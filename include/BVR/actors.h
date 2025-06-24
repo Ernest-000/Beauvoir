@@ -17,23 +17,28 @@
     This actor can only block object; this means that this actor shall not 
     move.
 */
-#define BVR_DYNACTOR_PASSIVE 0x00100
+#define BVR_DYNACTOR_PASSIVE 0x00010
 
 /*
     This actor can move and generate collisions.
 */
-#define BVR_DYNACTOR_AGGRESSIVE 0x00200
+#define BVR_DYNACTOR_AGGRESSIVE 0x00020
 
 /*
     Create collider's box shape from an object's bounds
 */
-#define BVR_DYNACTOR_CREATE_COLLIDER_FROM_BOUNDS 0x00400
+#define BVR_DYNACTOR_CREATE_COLLIDER_FROM_BOUNDS 0x00040
 
 /*
     Create a new triangulated mesh from an object's mesh. 
     This new mesh with be used to 
 */
-#define BVR_DYNACTOR_TRIANGULATE_COLLIDER_FROM_VERTICES 0x00800
+#define BVR_DYNACTOR_TRIANGULATE_COLLIDER_FROM_VERTICES 0x00080
+
+/*
+    Define if this actor should link its y position to its sorting method
+*/
+#define BVR_DYNACTOR_Y_SORTED   0x00100
 
 #define BVR_BITMAP_CREATE_COLLIDER 0x01000
 

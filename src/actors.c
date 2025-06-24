@@ -252,7 +252,7 @@ void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_typ
 
     actor->type = type;
     actor->flags = flags;
-    
+    actor->order_in_layer = 0;
     actor->active = 1;
     BVR_IDENTITY_VEC3(actor->transform.position);
     BVR_IDENTITY_VEC3(actor->transform.rotation);
@@ -348,9 +348,11 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor){
     bvri_update_transform(&actor->object);
     bvr_shader_enable(&actor->shader);
 
+    bvr_layer_t* layer_ptr;
     for (int layer = BVR_BUFFER_COUNT(actor->texture.image.layers); layer >= 0; layer--)
     {
-        if(!(((bvr_layer_t*)actor->texture.image.layers.data)[layer]).opacity){
+        layer_ptr = &((bvr_layer_t*)actor->texture.image.layers.data)[layer];
+        if(!layer_ptr->opacity){
             continue;
         }
 
@@ -360,7 +362,11 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor){
 
         bvr_shader_use_uniform(&actor->shader.uniforms[0], &actor->object.transform.matrix[0][0]);
 
-        cmd.order = actor->object.order_in_layer + layer * 2;
+        cmd.order = actor->object.order_in_layer + layer;
+        if(BVR_HAS_FLAG(layer_ptr->flags, BVR_LAYER_Y_SORTED)){
+            cmd.order += layer_ptr->anchor_y;
+        }
+
         cmd.array_buffer = actor->mesh.array_buffer;
         cmd.vertex_buffer = actor->mesh.vertex_buffer;
         cmd.element_buffer = actor->mesh.element_buffer;
@@ -410,7 +416,12 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     bvr_shader_use_uniform(&sactor->shader.uniforms[0], &actor->transform.matrix[0][0]);
 
     struct bvr_draw_command_s cmd;
+    
     cmd.order = actor->order_in_layer;
+    if(BVR_HAS_FLAG(actor->flags, BVR_DYNACTOR_Y_SORTED)){
+        cmd.order += abs((int)(actor->transform.position[1] / 50.0f));
+    }
+
     cmd.array_buffer = sactor->mesh.array_buffer;
     cmd.vertex_buffer = sactor->mesh.vertex_buffer;
     cmd.element_buffer = sactor->mesh.element_buffer;

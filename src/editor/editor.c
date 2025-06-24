@@ -87,6 +87,27 @@ static void bvri_draw_editor_image(bvr_image_t* image){
     nk_label_wrap(__editor->gui.context, image->asset.pointer.asset_id);
 }
 
+static void bvri_draw_editor_layer(bvr_layer_t* layer){
+
+    nk_layout_row_dynamic(__editor->gui.context, 90, 1);
+    if(nk_group_begin_titled(__editor->gui.context, layer->name.string, layer->name.string, NK_WINDOW_BORDER | NK_WINDOW_TITLE)){
+        int flag = 0;
+        nk_layout_row_dynamic(__editor->gui.context, 15, 2);
+        nk_checkbox_label(__editor->gui.context, "is visible", (nk_bool*)&layer->opacity);
+
+        flag = BVR_HAS_FLAG(layer->flags, BVR_LAYER_Y_SORTED);
+        if(nk_checkbox_label(__editor->gui.context, "y sorted", &flag)){
+            layer->flags ^= BVR_LAYER_Y_SORTED;
+        }
+
+        nk_property_int(__editor->gui.context, "#x", -100000, &layer->anchor_x, 100000, 1, 1);
+        nk_property_int(__editor->gui.context, "#y", -100000, &layer->anchor_y, 100000, 1, 1);
+
+        nk_group_end(__editor->gui.context);
+    }
+    
+}
+
 static void bvri_draw_editor_shader(bvr_shader_t* shader){
     if(!shader){
         return;
@@ -108,7 +129,6 @@ static void bvri_draw_editor_shader(bvr_shader_t* shader){
         
         nk_label_wrap(__editor->gui.context, BVR_FORMAT("%s", type_name));     
     }
-    
 }
 
 static void bvri_draw_hierarchy_button(const char* name, uint64 type, void* object){
@@ -546,63 +566,50 @@ void bvr_editor_draw_inspector(){
 
                 bvri_draw_editor_transform(&actor->transform);
 
-                nk_layout_row_dynamic(__editor->gui.context, 250, 1);
-                if(nk_group_begin(__editor->gui.context, BVR_MACRO_STR(__LINE__), NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR)){
-                    nk_layout_row_dynamic(__editor->gui.context, 15, 1);
-
-                    switch (actor->type)
+                nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+                switch (actor->type)
+                {
+                case BVR_EMPTY_ACTOR:
+                    nk_label(__editor->gui.context, "EMPTY ACTOR", NK_TEXT_ALIGN_CENTERED);
+                    break;
+                case BVR_LAYER_ACTOR:
                     {
-                    case BVR_EMPTY_ACTOR:
-                        nk_label(__editor->gui.context, "EMPTY ACTOR", NK_TEXT_ALIGN_CENTERED);
-                        break;
-                    case BVR_LAYER_ACTOR:
-                        {
-                            nk_label(__editor->gui.context, "LAYER ACTOR", NK_TEXT_ALIGN_CENTERED);
-                            bvr_layer_t* layers = (bvr_layer_t*)(((bvr_layer_actor_t*)actor)->texture.image.layers.data);
+                        nk_label(__editor->gui.context, "LAYER ACTOR", NK_TEXT_ALIGN_CENTERED);
+                        bvr_layer_t* layers = (bvr_layer_t*)(((bvr_layer_actor_t*)actor)->texture.image.layers.data);
+                        nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+                        bvri_draw_editor_shader(&((bvr_layer_actor_t*)actor)->shader);
+                        bvri_draw_editor_image(&((bvr_layer_actor_t*)actor)->texture.image);
 
-                            nk_layout_row_dynamic(__editor->gui.context, 15, 1);
-                            bvri_draw_editor_shader(&((bvr_layer_actor_t*)actor)->shader);
-                            bvri_draw_editor_image(&((bvr_layer_actor_t*)actor)->texture.image);
-
-                            for (uint64 layer = 0; layer < BVR_BUFFER_COUNT(((bvr_layer_actor_t*)actor)->texture.image.layers); layer++)
-                            {
-                                nk_layout_row_dynamic(__editor->gui.context, 15, 1);
-                                
-                                nk_property_int(__editor->gui.context, 
-                                    BVR_FORMAT("%s opacity", layers[layer].name.string), 0, 
-                                    (int*)&layers[layer].opacity, 1, 1, 1.0f
-                                );
-                            }
-                            
-                        }
-                        break;
-                    case BVR_BITMAP_ACTOR:
+                        nk_label(__editor->gui.context, "LAYERS", NK_TEXT_ALIGN_CENTERED);
+                        for (uint64 layer = 0; layer < BVR_BUFFER_COUNT(((bvr_layer_actor_t*)actor)->texture.image.layers); layer++)
                         {
-                            nk_label(__editor->gui.context, "BITMAP ACTOR", NK_TEXT_ALIGN_CENTERED);
+                            bvri_draw_editor_layer(&layers[layer]);
                         }
-                        break;
-                    case BVR_STATIC_ACTOR:
-                        {
-                            nk_label(__editor->gui.context, "STATIC ACTOR", NK_TEXT_ALIGN_CENTERED);
-                        }
-                        break;
-                    case BVR_DYNAMIC_ACTOR:
-                        {
-                            nk_label(__editor->gui.context, "DYNAMIC ACTOR", NK_TEXT_ALIGN_CENTERED);
-                            bvri_draw_editor_mesh(&((bvr_dynamic_actor_t*)actor)->mesh);
-                            bvri_draw_editor_shader(&((bvr_dynamic_actor_t*)actor)->shader);
-
-                            bvri_draw_editor_body(&((bvr_dynamic_actor_t*)actor)->collider.body);
-
-                            nk_layout_row_dynamic(__editor->gui.context, 15, 1);
-                            bvri_draw_hierarchy_button("go to collider", BVR_EDITOR_COLLIDER, &((bvr_dynamic_actor_t*)actor)->collider);
-                        }
-                        break;
-                    default:
-                        break;
+                        
                     }
-
-                    nk_group_end(__editor->gui.context);
+                    break;
+                case BVR_BITMAP_ACTOR:
+                    {
+                        nk_label(__editor->gui.context, "BITMAP ACTOR", NK_TEXT_ALIGN_CENTERED);
+                    }
+                    break;
+                case BVR_STATIC_ACTOR:
+                    {
+                        nk_label(__editor->gui.context, "STATIC ACTOR", NK_TEXT_ALIGN_CENTERED);
+                    }
+                    break;
+                case BVR_DYNAMIC_ACTOR:
+                    {
+                        nk_label(__editor->gui.context, "DYNAMIC ACTOR", NK_TEXT_ALIGN_CENTERED);
+                        bvri_draw_editor_mesh(&((bvr_dynamic_actor_t*)actor)->mesh);
+                        bvri_draw_editor_shader(&((bvr_dynamic_actor_t*)actor)->shader);
+                        bvri_draw_editor_body(&((bvr_dynamic_actor_t*)actor)->collider.body);
+                        nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+                        bvri_draw_hierarchy_button("go to collider", BVR_EDITOR_COLLIDER, &((bvr_dynamic_actor_t*)actor)->collider);
+                    }
+                    break;
+                default:
+                    break;
                 }
                 
             }

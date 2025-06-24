@@ -67,7 +67,8 @@
 #define BVR_TEXTURE_WRAP_REPEAT 0x2901
 #define BVR_TEXTURE_WRAP_CLAMP_TO_EDGE 0x812F
 
-#define BVR_LAYER_CLIPPED 0x01
+#define BVR_LAYER_CLIPPED   0x01
+#define BVR_LAYER_Y_SORTED  0x02
 
 typedef enum bvr_layer_blend_mode_e {
     BVR_LAYER_BLEND_PASSTHROUGH     = 0x70617373,

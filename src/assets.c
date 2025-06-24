@@ -273,7 +273,7 @@ void bvr_write_book_dataf(FILE* file, bvr_book_t* book){
             uint16 order_in_layer;
 
             bvr_transform_t transform;
-        } actor_data;
+        } target;
 
         struct bvr_actor_s* actor = NULL;
         BVR_POOL_FOR_EACH(actor, book->page.actors){
@@ -281,45 +281,76 @@ void bvr_write_book_dataf(FILE* file, bvr_book_t* book){
                 break;
             }
 
-            actor_data.size = 0;
-            actor_data.offset = 0;
-            actor_data.type = actor->type;
-            actor_data.flags = actor->flags;
-            actor_data.active = actor->active;
-            actor_data.order_in_layer = actor->order_in_layer;
+            target.size = 0;
+            target.offset = 0;
+            target.type = actor->type;
+            target.flags = actor->flags;
+            target.active = actor->active;
+            target.order_in_layer = actor->order_in_layer;
             
-            memcpy(&actor_data.transform, &actor->transform, sizeof(bvr_transform_t));
-            memcpy(&actor_data.id, &actor->id, sizeof(bvr_uuid_t));
-            bvr_string_create_and_copy(&actor_data.name, &actor->name);
+            memcpy(&target.transform, &actor->transform, sizeof(bvr_transform_t));
+            memcpy(&target.id, &actor->id, sizeof(bvr_uuid_t));
+            bvr_string_create_and_copy(&target.name, &actor->name);
 
             size_offset = ftell(file);
-            fwrite(&actor_data.size, sizeof(uint32), 1, file);
-            fwrite(&actor_data.offset, sizeof(uint32), 1, file);
+            fwrite(&target.size, sizeof(uint32), 1, file);
+            fwrite(&target.offset, sizeof(uint32), 1, file);
 
-            bvri_write_string(file, &actor_data.name);
+            bvri_write_string(file, &target.name);
             
-            fwrite(&actor_data.type, sizeof(bvr_actor_type_t), 1, file);
-            fwrite(&actor_data.id, sizeof(bvr_uuid_t), 1, file);
-            fwrite(&actor_data.active, sizeof(uint8), 1, file);
-            fwrite(&actor_data.flags, sizeof(int), 1, file);
-            fwrite(&actor_data.order_in_layer, sizeof(uint16), 1, file);
-            fwrite(&actor_data.transform, sizeof(bvr_transform_t), 1, file);
+            fwrite(&target.type, sizeof(bvr_actor_type_t), 1, file);
+            fwrite(&target.id, sizeof(bvr_uuid_t), 1, file);
+            fwrite(&target.active, sizeof(uint8), 1, file);
+            fwrite(&target.flags, sizeof(int), 1, file);
+            fwrite(&target.order_in_layer, sizeof(uint16), 1, file);
+            fwrite(&target.transform, sizeof(bvr_transform_t), 1, file);
+
+            // actor overwrite 
+            switch (target.type)
+            {
+            case BVR_NULL_ACTOR:
+            case BVR_EMPTY_ACTOR:
+                break;
+            
+            case BVR_LAYER_ACTOR:
+                {
+                    bvr_layer_t* layer;
+                    uint32 layer_count = BVR_BUFFER_COUNT(((bvr_layer_actor_t*)actor)->texture.image.layers);
+                    
+                    fwrite(&layer_count, sizeof(uint32), 1, file);
+                    for (size_t i = 0; i < layer_count; i++)
+                    {
+                        layer = &((bvr_layer_t*)((bvr_layer_actor_t*)actor)->texture.image.layers.data)[i];
+
+                        fwrite(&layer->flags, sizeof(uint16), 1, file);
+                        fwrite(&layer->anchor_x, sizeof(int), 1, file);
+                        fwrite(&layer->anchor_y, sizeof(int), 1, file);
+                        fwrite(&layer->opacity, sizeof(short), 1, file);
+                        fwrite(&layer->blend_mode, sizeof(bvr_layer_blend_mode_t), 1, file);
+                    }
+                    
+                }
+                break;
+
+            default:
+                break;
+            }
 
             prev_offset = ftell(file);
 
             // calc actor data section size
-            actor_data.size = prev_offset - size_offset;
-            section_size += actor_data.size;
+            target.size = prev_offset - size_offset;
+            section_size += target.size;
             
             // update size informations
             fseek(file, size_offset, SEEK_SET);
-            fwrite(&actor_data.size, sizeof(uint32), 1, file);
+            fwrite(&target.size, sizeof(uint32), 1, file);
             fseek(file, section_start, SEEK_SET);
             fwrite(&section_size, sizeof(uint32), 1, file);
             fseek(file, prev_offset, SEEK_SET);
             
             // free elements
-            bvr_destroy_string(&actor_data.name);
+            bvr_destroy_string(&target.name);
         }
     }
 
@@ -496,6 +527,37 @@ void bvr_open_book_dataf(FILE* file, bvr_book_t* book){
                 target->padding = 0;
 
                 memcpy(&target->transform, &target_data.transform, sizeof(bvr_transform_t));
+            }
+
+             // actor overwrite 
+            switch (target->type)
+            {
+            case BVR_NULL_ACTOR:
+            case BVR_EMPTY_ACTOR:
+                break;
+            
+            case BVR_LAYER_ACTOR:
+                {
+                    bvr_layer_t* layer;
+                    uint32 layer_count = bvr_fread32_le(file);
+                    
+                    if(layer_count == BVR_BUFFER_COUNT(((bvr_layer_actor_t*)target)->texture.image.layers)){
+                        for (size_t i = 0; i < layer_count; i++)
+                        {
+                            layer = &((bvr_layer_t*)((bvr_layer_actor_t*)target)->texture.image.layers.data)[i];
+
+                            layer->flags = bvr_fread16_le(file);
+                            layer->anchor_x = (int)bvr_fread32_le(file);
+                            layer->anchor_y = (int)bvr_fread32_le(file);
+                            layer->opacity = (short)bvr_fread16_le(file);
+                            fread(&layer->blend_mode, sizeof(bvr_layer_blend_mode_t), 1, file);
+                        }
+                    }
+                }
+                break;
+
+            default:
+                break;
             }
 
             // make sure to go to the sector actor

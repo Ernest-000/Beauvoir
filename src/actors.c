@@ -12,27 +12,27 @@
 /*
     calculate actor's transformation matrix
 */
-static void bvri_update_transform(struct bvr_actor_s* actor){
-    BVR_ASSERT(actor);
+static void bvri_update_transform(bvr_transform_t* transform){
+    BVR_ASSERT(transform);
 
     mat4x4 rotation_mat;
 
     BVR_IDENTITY_MAT4(rotation_mat);
-    BVR_IDENTITY_MAT4(actor->transform.matrix);
+    BVR_IDENTITY_MAT4(transform->matrix);
 
-    mat4_rotate(rotation_mat, actor->transform.rotation);
+    mat4_rotate(rotation_mat, transform->rotation);
 
     // copy translation to the translate matrix
-    actor->transform.matrix[3][0] = actor->transform.position[0];
-    actor->transform.matrix[3][1] = actor->transform.position[1];
-    actor->transform.matrix[3][2] = actor->transform.position[2];
+    transform->matrix[3][0] = transform->position[0];
+    transform->matrix[3][1] = transform->position[1];
+    transform->matrix[3][2] = transform->position[2];
 
     // scale matrix
-    actor->transform.matrix[0][0] = actor->transform.scale[0];
-    actor->transform.matrix[1][1] = actor->transform.scale[0];
-    actor->transform.matrix[2][2] = actor->transform.scale[0];
+    transform->matrix[0][0] = transform->scale[0];
+    transform->matrix[1][1] = transform->scale[0];
+    transform->matrix[2][2] = transform->scale[0];
 
-    mat4_mul(actor->transform.matrix, actor->transform.matrix, rotation_mat);
+    mat4_mul(transform->matrix, transform->matrix, rotation_mat);
 }
 
 /*
@@ -343,28 +343,26 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
 
 static void bvri_draw_layer_actor(bvr_layer_actor_t* actor){
     struct bvr_draw_command_s cmd;
-    bvr_shader_uniform_t* texture;
+    bvr_shader_uniform_t* texture_uniform, *layer_uniform;
+    texture_uniform = bvr_find_uniform(&actor->shader, "bvr_texture");
+    layer_uniform = bvr_find_uniform(&actor->shader, "bvr_texture_z");
 
-    bvri_update_transform(&actor->object);
     bvr_shader_enable(&actor->shader);
+    bvri_update_transform(&actor->object.transform);
 
-    bvr_layer_t* layer_ptr;
-    for (int layer = BVR_BUFFER_COUNT(actor->texture.image.layers); layer >= 0; layer--)
+    bvr_layer_t* layer;
+    for (int layer_idx = BVR_BUFFER_COUNT(actor->texture.image.layers); layer_idx >= 0; layer_idx--)
     {
-        layer_ptr = &((bvr_layer_t*)actor->texture.image.layers.data)[layer];
-        if(!layer_ptr->opacity){
+        layer = &((bvr_layer_t*)actor->texture.image.layers.data)[layer_idx];
+        if(!layer->opacity){
             continue;
-        }
-
-        texture = bvr_find_uniform(&actor->shader, "bvr_texture");
-
-        bvr_shader_set_texturei(texture, NULL, &layer);
+        }        
 
         bvr_shader_use_uniform(&actor->shader.uniforms[0], &actor->object.transform.matrix[0][0]);
 
-        cmd.order = actor->object.order_in_layer + layer;
-        if(BVR_HAS_FLAG(layer_ptr->flags, BVR_LAYER_Y_SORTED)){
-            cmd.order += layer_ptr->anchor_y;
+        cmd.order = actor->object.order_in_layer + layer_idx;
+        if(BVR_HAS_FLAG(layer->flags, BVR_LAYER_Y_SORTED)){
+            cmd.order += layer->anchor_y;
         }
 
         cmd.array_buffer = actor->mesh.array_buffer;
@@ -379,10 +377,11 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor){
         cmd.element_count = actor->mesh.element_count;
         cmd.element_offset = 0;
 
-        cmd.user_data = malloc(sizeof(int));
+        cmd.user_data = malloc(sizeof(int) + sizeof(bvr_layer_t*));
         BVR_ASSERT(cmd.user_data);
 
-        memcpy(cmd.user_data, &layer, sizeof(int));
+        memcpy(cmd.user_data, &layer_idx, sizeof(int));
+        memcpy(cmd.user_data + sizeof(int), &layer, sizeof(bvr_layer_t*));
 
         bvr_pipeline_add_draw_cmd(&cmd);
     }
@@ -408,7 +407,7 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     }
 
     // update shaders transform
-    bvri_update_transform(actor);
+    bvri_update_transform(&actor->transform);
 
     bvr_static_actor_t* sactor = (bvr_static_actor_t*)actor;
 

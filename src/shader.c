@@ -1,6 +1,7 @@
 #include <BVR/shader.h>
 #include <BVR/math.h>
 #include <BVR/file.h>
+#include <BVR/image.h>
 
 #include <string.h>
 #include <memory.h>
@@ -9,14 +10,6 @@
 #include <GLAD/glad.h>
 
 #define BVR_MAX_GLSL_HEADER_SIZE 100
-
-struct bvri_texture_uniform_s {
-    int id;
-    int layer; 
-
-    int layer_location;
-    int unit;
-};
 
 static int bvri_compile_shader(uint32* shader, bvr_string_t* const content, int type);
 static int bvri_link_shader(const uint32 program);
@@ -287,22 +280,13 @@ bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type
         shader->uniforms[shader->uniform_count].location = location;
         shader->uniforms[shader->uniform_count].type = type;
 
-        if(type == BVR_TEXTURE_2D || type == BVR_TEXTURE_2D_ARRAY){
-            shader->uniforms[shader->uniform_count].memory.elemsize = sizeof(struct bvri_texture_uniform_s);
-            shader->uniforms[shader->uniform_count].memory.size = sizeof(struct bvri_texture_uniform_s);
-            shader->uniforms[shader->uniform_count].memory.data = malloc(shader->uniforms[shader->uniform_count].memory.size);
-            BVR_ASSERT(shader->uniforms[shader->uniform_count].memory.data);
-        }
-        else{
-            shader->uniforms[shader->uniform_count].memory.elemsize = bvr_sizeof(type);
-            shader->uniforms[shader->uniform_count].memory.size = count * shader->uniforms[shader->uniform_count].memory.elemsize;
+        shader->uniforms[shader->uniform_count].memory.elemsize = bvr_sizeof(type);
+        shader->uniforms[shader->uniform_count].memory.size = count * shader->uniforms[shader->uniform_count].memory.elemsize;
             
-            shader->uniforms[shader->uniform_count].memory.data = calloc(shader->uniforms[shader->uniform_count].memory.size, 1);
-            BVR_ASSERT(shader->uniforms[shader->uniform_count].memory.data);
-        }
-        
-        bvr_create_string(&shader->uniforms[shader->uniform_count].name, name);
+        shader->uniforms[shader->uniform_count].memory.data = calloc(shader->uniforms[shader->uniform_count].memory.elemsize, count);
+        BVR_ASSERT(shader->uniforms[shader->uniform_count].memory.data);
 
+        bvr_create_string(&shader->uniforms[shader->uniform_count].name, name);
 
         return &shader->uniforms[shader->uniform_count++];
     }
@@ -311,55 +295,25 @@ bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type
     return NULL;
 }
 
-bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type, int* id, int* layer, 
-    const char* name, const char* layer_name)
+bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type, void* texture, const char* name)
 {
     BVR_ASSERT(shader);
-    if(type != BVR_TEXTURE_2D && type != BVR_TEXTURE_2D_ARRAY){
-        BVR_PRINT("cannot link default uniform through texture registering!");
+    BVR_ASSERT(name);
+
+    if(type < BVR_TEXTURE_2D || type > BVR_TEXTURE_2D_LAYER){
+        BVR_PRINT("wrong texture type!");
         return NULL;
     }
 
-    bvr_shader_uniform_t* uniform = bvr_shader_register_uniform(shader, type, 0, name);
+    bvr_shader_uniform_t* uniform = bvr_shader_register_uniform(shader, type, 1, name);
     if(uniform){
-        struct bvri_texture_uniform_s texture_uniform;
-        texture_uniform.id = 0;
-        texture_uniform.layer = 0;
-        texture_uniform.layer_location = 0;
-        texture_uniform.unit = -1;
-
-        if(id){
-            texture_uniform.id = *id;
-        }
-
-        if(type == BVR_TEXTURE_2D_ARRAY){
-            if(layer){
-                texture_uniform.layer = *layer;
-            }
-
-            texture_uniform.layer_location = glGetUniformLocation(shader->program, layer_name);
-
-            if(texture_uniform.layer_location == -1){
-                BVR_PRINT("failed to find texture layer location!");
-            }
-        }
-
-        for (uint64 i = 0; i < shader->uniform_count; i++)
-        {
-            if(shader->uniforms[i].type == BVR_TEXTURE_2D || shader->uniforms[i].type == BVR_TEXTURE_2D_ARRAY){
-                texture_uniform.unit++;
-            }
-        }
-        
-        memcpy(uniform->memory.data, &texture_uniform, sizeof(struct bvri_texture_uniform_s));
-
-        return uniform;
+        // just copy texture's pointer
+        memcpy(uniform->memory.data, &texture, sizeof(struct bvr_texture_s*));
     }
     else {
-        BVR_PRINT("failed to create texture's uniform!");
+        BVR_PRINT("failed to register texture's uniform");
     }
-
-    return NULL;
+    return uniform;
 }
 
 bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* name, int type, int count, int index){
@@ -400,33 +354,22 @@ void bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data){
     }
 }
 
+void bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, void* texture){
+    if(texture && uniform){
+        BVR_ASSERT(uniform->memory.data);
+
+        memcpy(uniform->memory.data, &texture, uniform->memory.size);
+    }
+    else {
+        BVR_PRINT("skipping texture updating, data is NULL");
+    }
+}
+
 void bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data){
     BVR_ASSERT(shader);
     BVR_ASSERT(name);
 
     bvr_shader_set_uniformi(bvr_find_uniform(shader, name), data);
-}
-void bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, int* id, int* layer){
-    if(uniform){
-        struct bvri_texture_uniform_s texture;
-        if(id){
-            texture.id = *id;
-        }
-
-        if(layer){
-            texture.layer = *layer;
-        }
-
-
-        memcpy(uniform->memory.data, &texture, sizeof(texture.id) + sizeof(texture.layer));
-    }
-}
-
-void bvr_shader_set_texture(bvr_shader_t* shader, const char* name, int* id, int* layer){
-    BVR_ASSERT(shader);
-    BVR_ASSERT(name);
-
-    bvr_shader_set_texturei(bvr_find_uniform(shader, name), id, layer);
 }
 
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
@@ -461,19 +404,22 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
         case BVR_MAT4: 
             glUniformMatrix4fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, GL_FALSE, (float*)data); 
             return;
-
+        
         case BVR_TEXTURE_2D:
-            glUniform1i(uniform->location, ((struct bvri_texture_uniform_s*)uniform->memory.data)->unit);
-            return;
+            // WARNING invalid uniform's memory pointer
+            glUniform1i(uniform->location, 0);
+            break;
+        
+        case BVR_TEXTURE_2D_ARRAY:            
+            // WARNING invalid uniform's memory pointer
+            glUniform1i(uniform->location, 0);
+            break;
 
-        case BVR_TEXTURE_2D_ARRAY:
-            {
-                struct bvri_texture_uniform_s* texture = (struct bvri_texture_uniform_s*)uniform->memory.data;
-                
-                glUniform1i(uniform->location, texture->unit);
-                glUniform1i(texture->layer_location, texture->layer);
-            }
-            return;
+        case BVR_TEXTURE_2D_LAYER:
+            // WARNING invalid uniform's memory pointer
+            glUniform1i(uniform->location, 0);
+            break;
+
         default:
             break;
         }

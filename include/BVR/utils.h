@@ -15,23 +15,24 @@
 #define BVR_OK      0x1
 
 /*   based on OpenGLES   */  
-#define BVR_NULL                0x00
-#define BVR_FLOAT               0x1406
-#define BVR_INT8                0x1400
-#define BVR_INT16               0x1402
-#define BVR_INT32               0x1404
-#define BVR_UNSIGNED_INT8       0x1401
-#define BVR_UNSIGNED_INT16      0x1403
-#define BVR_UNSIGNED_INT32      0x1405
-#define BVR_VEC2                0x1407
-#define BVR_VEC3                0x1408
-#define BVR_VEC4                0x140A
-#define BVR_MAT3                0x140D
-#define BVR_MAT4                0x140E
+#define BVR_NULL                    0x00
+#define BVR_FLOAT                   0x1406
+#define BVR_INT8                    0x1400
+#define BVR_INT16                   0x1402
+#define BVR_INT32                   0x1404
+#define BVR_UNSIGNED_INT8           0x1401
+#define BVR_UNSIGNED_INT16          0x1403
+#define BVR_UNSIGNED_INT32          0x1405
+#define BVR_VEC2                    0x1407
+#define BVR_VEC3                    0x1408
+#define BVR_VEC4                    0x140A
+#define BVR_MAT3                    0x140B
+#define BVR_MAT4                    0x140C
 
 /*   custom   */  
-#define BVR_TEXTURE_2D          0x140B
-#define BVR_TEXTURE_2D_ARRAY    0x140C
+#define BVR_TEXTURE_2D              0x141A
+#define BVR_TEXTURE_2D_ARRAY        0x141B
+#define BVR_TEXTURE_2D_LAYER        0x141C
 
 #define BVR_INCLUDE_BUFFER
 #define BVR_INCLUDE_DEBUG

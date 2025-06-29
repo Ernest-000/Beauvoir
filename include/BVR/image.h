@@ -135,6 +135,7 @@ typedef struct bvr_texture_s {
     bvr_image_t image;
 
     uint32 id;
+    uint8 unit;
     int filter, wrap;
 } bvr_texture_t;
 
@@ -146,6 +147,7 @@ typedef struct bvr_texture_atlas_s
     bvr_image_t image;
 
     uint32 id;
+    uint8 unit;
     int filter, wrap;
 
     uint32 tile_width, tile_height;
@@ -158,6 +160,7 @@ typedef struct bvr_layered_texture_s {
     bvr_image_t image;
 
     uint32 id;
+    uint8 unit;
     int filter, wrap;
 } bvr_layered_texture_t;
 

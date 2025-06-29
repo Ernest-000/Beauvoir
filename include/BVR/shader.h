@@ -91,15 +91,12 @@ void bvr_destroy_uniform_buffer(uint32* buffer);
 */
 int bvri_create_shader_vert_frag(bvr_shader_t* shader, const char* vert, const char* frag);
 
+/*
+    Bind a new shader uniform.
+*/
 bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type, int count, const char* name);
-bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type, int* id, int* layer, const char* name, const char* layer_name);
+bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type, void* texture, const char* name);
 bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* name, int type, int count, int index);
-
-void bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data);
-void bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, int* id, int* layer);
-void bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data);
-void bvr_shader_set_texture(bvr_shader_t* shader, const char* name, int* id, int* layer);
-void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data);
 
 BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform(bvr_shader_t* shader, const char* name){
     for (uint64 i = 1; i < shader->uniform_count; i++)
@@ -115,6 +112,17 @@ BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform(bvr_shader_t* shader, const ch
 
     return NULL;
 }
+
+void bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data);
+void bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, void* texture);
+
+void bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data);
+BVR_H_FUNC void bvr_shader_set_texture(bvr_shader_t* shader, const char* name, void* texture){
+    bvr_shader_set_texturei(bvr_find_uniform(shader, name), texture);
+}
+
+void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data);
+
 
 void bvr_shader_enable(bvr_shader_t* shader);
 void bvr_shader_disable(void);

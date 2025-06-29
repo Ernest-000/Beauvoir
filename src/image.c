@@ -797,7 +797,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
             bvr_freadstr(ressources_section.block.sig, sizeof(ressources_section.block.sig), file);
             
             // check for signature
-            BVR_ASSERT(strcmp(ressources_section.block.sig, "8BIM") == 0);
+            BVR_ASSERT(strncmp(ressources_section.block.sig, "8BIM", 4) == 0);
 
             ressources_section.block.id = bvr_freadu16_be(file);
 
@@ -867,7 +867,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
             bvr_freadstr(layer->sig, 5, file);
             layer->blend_mode = bvr_freadu32_be(file);
 
-            BVR_ASSERT(strcmp(layer->sig, "8BIM") == 0);
+            BVR_ASSERT(strncmp(layer->sig, "8BIM", 4) == 0);
             // TODO: define blend mode
 
             layer->opacity = bvr_freadu8_be(file);
@@ -895,7 +895,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
 
                 bvr_freadstr(additional_data_sig, sizeof(additional_data_sig), file);
 
-                if(strcmp(additional_data_sig, "8BIM") == 0 || strcmp(additional_data_sig, "8B64") == 0){
+                if(strncmp(additional_data_sig, "8BIM", 4) == 0 || strncmp(additional_data_sig, "8B64", 4) == 0){
                     uint64 data_size;
                     
                     bvr_freadstr(additional_data_tag, sizeof(additional_data_tag), file);
@@ -932,9 +932,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
     }
 
     image->pixels = malloc(image->width * image->height * image->channels * layer_section.layer_count);
-    BVR_ASSERT(image->pixels);
 
-    memset(image->pixels, 0, image->width * image->height * image->channels * layer_section.layer_count);
     
     image->layers.size = layer_section.layer_count * image->layers.elemsize;
     image->layers.data = calloc(layer_section.layer_count, image->layers.elemsize);
@@ -975,8 +973,8 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
             {
                 int layer_width = layer_section.layers[layer].bounds[3] - layer_section.layers[layer].bounds[1];
                 int layer_height = layer_section.layers[layer].bounds[2] - layer_section.layers[layer].bounds[0];
-                int layer_anchor_x = layer_section.layers[layer].bounds[1];
-                int layer_anchor_y = layer_section.layers[layer].bounds[0];
+                int layer_anchor_x = __min(layer_section.layers[layer].bounds[1], image->width - layer_width);
+                int layer_anchor_y = __min(layer_section.layers[layer].bounds[0], image->height - layer_height);
             
                 image_data_section.channels = layer_section.layers[layer].channel_count;
                 image_data_section.rle_pack_lengths = calloc(layer_height, sizeof(uint16));
@@ -1100,6 +1098,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
                         for (uint64 column = 0; column < image_data_section.columns; column++)
                         {
 #ifndef BVR_NO_FLIP
+
                             image->pixels[
                                 (((strip + layer_anchor_y) * image->width + column + layer_anchor_x) * image->channels + image_data_section.channel) +
                                 (image->width * image->height * image->channels * layer)
@@ -1382,6 +1381,7 @@ int bvr_create_texture_from_image(bvr_texture_t* texture, bvr_image_t* image, in
     texture->filter = filter;
     texture->wrap = wrap;
     texture->id = 0;
+    texture->unit = 0;
 
     if(BVR_BUFFER_COUNT(image->layers) > 1){
         // TODO: compress images into one layer
@@ -1432,6 +1432,8 @@ int bvr_create_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap
 void bvr_texture_enable(bvr_texture_t* texture, int unit){
     glActiveTexture(unit);
     glBindTexture(GL_TEXTURE_2D, texture->id);
+
+    texture->unit = unit;
 }
 
 void bvr_texture_disable(void){
@@ -1457,6 +1459,7 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
     atlas->tile_height = tile_height;
 
     atlas->id = 0;
+    atlas->unit = 0;
     
     bvr_create_imagef(&atlas->image, file);
     if(!atlas->image.pixels){
@@ -1511,6 +1514,8 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
 void bvr_texture_atlas_enablei(bvr_texture_atlas_t* atlas, int unit){
     glActiveTexture(unit);
     glBindTexture(GL_TEXTURE_2D_ARRAY, atlas->id);
+
+    atlas->unit = unit;
 }
 
 void bvr_texture_atlas_disable(void){
@@ -1531,6 +1536,7 @@ int bvr_create_layered_texturef(bvr_layered_texture_t* texture, FILE* file, int 
     texture->wrap = wrap;
 
     texture->id = 0;
+    texture->unit = 0;
 
     bvr_create_imagef(&texture->image, file);
     if(!texture->image.pixels){
@@ -1604,6 +1610,8 @@ int bvr_create_layered_texturef(bvr_layered_texture_t* texture, FILE* file, int 
 void bvr_layered_texture_enable(bvr_layered_texture_t* texture, int unit){
     glActiveTexture(unit);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture->id);
+
+    texture->unit = unit;
 }
 
 void bvr_layered_texture_disable(void){

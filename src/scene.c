@@ -370,7 +370,9 @@ struct bvr_actor_s* bvr_link_actor_to_page(bvr_page_t* page, struct bvr_actor_s*
             break;
 
         case BVR_LAYER_ACTOR:
-            bvr_memstream_write(&bvr_get_book_instance()->garbage_stream, actor, sizeof(bvr_layer_actor_t));
+            {
+                bvr_memstream_write(&bvr_get_book_instance()->garbage_stream, actor, sizeof(bvr_layer_actor_t));
+            }
             break;
 
         case BVR_BITMAP_ACTOR:

@@ -111,6 +111,10 @@ void bvr_update(bvr_book_t* book){
     bvr_collider_t* collider = NULL;
     bvr_collider_t* other = NULL;
 
+    if(!bvr_is_active()){
+        return;
+    }
+
     BVR_POOL_FOR_EACH(collider, book->page.colliders){        
 
         if(!collider){
@@ -172,6 +176,7 @@ void bvr_flush(bvr_book_t* book){
 }
 
 void bvr_render(bvr_book_t* book){
+    
     // if there is still draw commands, flush
     if(book->pipeline.command_count){
         bvr_flush(book);
@@ -237,29 +242,33 @@ int bvr_create_page(bvr_page_t* page, const char* name){
     return BVR_OK;
 }
 
-void bvr_enable_page(bvr_page_t* page){
+void bvr_enable_page(){
+    
 #ifdef BVR_AUTO_SAVE
-
-    BVR_ASSERT(page);
 
     bvr_asset_t asset;
-    if(bvr_find_asset(BVR_FORMAT("%s.bin", page->name.string), &asset)){
-        bvr_open_book(BVR_FORMAT("%s.bin", page->name.string), bvr_get_book_instance());
+    if(bvr_find_asset(BVR_FORMAT("%s.bin", __book_instance->page.name.string), &asset)){
+        bvr_open_book(BVR_FORMAT("%s.bin", __book_instance->page.name.string), bvr_get_book_instance());
     }
 
 #endif
+
+
 }
 
-void bvr_disable_page(bvr_page_t* page){
+void bvr_disable_page(){
 #ifdef BVR_AUTO_SAVE
 
-    BVR_ASSERT(page);
-
-    if(access(BVR_FORMAT("%s.bin", page->name.string), F_OK)){
-        bvr_write_book(BVR_FORMAT("%s.bin", page->name.string), bvr_get_book_instance());
+    if(access(BVR_FORMAT("%s.bin", __book_instance->page.name.string), F_OK)){
+        bvr_write_book(BVR_FORMAT("%s.bin", __book_instance->page.name.string), bvr_get_book_instance());
     }
 
 #endif
+
+    bvr_memstream_clear(&__book_instance->garbage_stream);
+    bvr_memstream_clear(&__book_instance->asset_stream);
+
+    bvr_destroy_page(&__book_instance->page);
 }
 
 bvr_camera_t* bvr_create_orthographic_camera(bvr_page_t* page, bvr_framebuffer_t* framebuffer, float near, float far, float scale){

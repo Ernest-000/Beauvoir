@@ -391,7 +391,7 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor){
 
 void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     // skip actor if 
-    if(!actor->active || bvr_is_actor_null(actor)){
+    if(bvr_is_actor_null(actor) || !actor->active){
         return;
     }
 

@@ -116,10 +116,17 @@ BVR_H_FUNC void bvr_create_book_memories(bvr_book_t* book, const uint64 asset_si
 }
 
 /*
-    Return BVR_OK if the game is still running.
+    Returns BVR_OK if the game is still running.
 */
-BVR_H_FUNC int bvr_is_awake(bvr_book_t* book){
-    return book->window.awake;
+BVR_H_FUNC int bvr_is_awake(void){
+    return bvr_get_book_instance()->window.awake;
+}
+
+/*
+    Returns BVR_OK is a scene is active.
+*/
+BVR_H_FUNC int bvr_is_active(void){
+    return bvr_get_book_instance()->page.name.string != NULL;
 }
 
 /*
@@ -146,9 +153,15 @@ void bvr_destroy_book(bvr_book_t* book);
 */
 int bvr_create_page(bvr_page_t* page, const char* name);
 
-void bvr_enable_page(bvr_page_t* page);
+/*
+    Set page as current working page
+*/
+void bvr_enable_page(void);
 
-void bvr_disable_page(bvr_page_t* page);
+/*
+    Remove page from current working page
+*/
+void bvr_disable_page(void);
 
 bvr_camera_t* bvr_create_orthographic_camera(bvr_page_t* page, bvr_framebuffer_t* framebuffer, float near, float far, float scale);
 

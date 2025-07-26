@@ -6,7 +6,7 @@ set "BVR_GENERATOR=MinGW Makefiles"
 set "BVR_CC=gcc"
 set "BVR_CXX=g++"
 set "BVR_BUILD_DIR=%CD%\build"
-set "BVR_EXTERNAL_MODULES=SDL PortAudio Zlib Lpng"
+set "BVR_EXTERNAL_MODULES=SDL PortAudio Zlib Lpng json-c"
 
 :: Clear command
 if "%1"=="-clear" (

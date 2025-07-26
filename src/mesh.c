@@ -1,11 +1,14 @@
 #include <BVR/mesh.h>
 #include <BVR/math.h>
 #include <BVR/buffer.h>
+#include <BVR/file.h>
 #include <BVR/physics.h>
 
 #include <malloc.h>
 #include <string.h>
 #include <memory.h>
+
+#include <json-c/json.h>
 
 #include <GLAD/glad.h>
 
@@ -90,12 +93,14 @@ static int bvri_is_obj(FILE* file){
     fseek(file, 0, SEEK_SET);
 
     char sig[32];
+    uint8 max = 1;
 
     // check 5 first lines
-    for (uint64 i = 0; i < 5; i++)
+    for (uint64 i = 0; i < max; i++)
     {
-        bvri_objreadline(sig, file);
+        fread(sig, sizeof(char), 7, file);
         if(sig[0] == '#'){
+            max++;
             continue;
         }
 
@@ -103,7 +108,7 @@ static int bvri_is_obj(FILE* file){
             return BVR_OK;
         }
 
-        if(sig[0] == 'o' && sig[1] == ' '){
+        if(sig[0] == 'o'){
             return BVR_OK;
         }
     }
@@ -353,6 +358,90 @@ bvr_objfailed:
 
 #endif
 
+struct bvri_gltfchunk {
+    uint32 length;
+    uint32 sig;
+    size_t offset;
+};
+
+static int bvri_is_gltf(FILE* file){
+    fseek(file, 0, SEEK_SET);
+
+    // check for magic number
+    int magic = bvr_freadu32_be(file);
+    return magic == 0x676C5446;
+}
+
+static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
+    fseek(file, 0, SEEK_SET);
+
+    // get header informations
+    int magic = bvr_freadu32_be(file);
+    int version = bvr_freadu32_le(file);
+    int file_length = bvr_freadu32_le(file);
+
+    struct bvri_gltfchunk json_section, bin_section;
+    
+    // json section;
+    json_section.length = bvr_freadu32_le(file);
+    json_section.sig = bvr_freadu32_be(file);
+    
+    // compare section sig to JSON signature (4A 53 4F 4E)
+    if(json_section.sig == 0x4A534F4E){
+        json_section.offset = ftell(file);
+    }
+    else {
+        BVR_PRINT("failed to locate json gltf chunk");
+        return BVR_FAILED;
+    }
+
+    // bin section;
+    fseek(file, json_section.length, SEEK_CUR);
+
+    bin_section.length = bvr_freadu32_le(file);
+    bin_section.sig = bvr_freadu32_be(file);
+
+    // compare section sig to BIN signature (42 49 4E 00)
+    if(bin_section.sig == 0x42494E00){
+        bin_section.offset = ftell(file);
+    }
+    else {
+        BVR_PRINT("failed to locate binary gltf chunk");
+        return BVR_FAILED;
+    }
+
+    json_object* json_root;
+    json_tokener* json_tok = json_tokener_new();
+    
+    // read json section and create json context
+    {
+        fseek(file, json_section.offset, SEEK_SET);
+
+        char* json_content = malloc(json_section.length);
+        fread(json_content, sizeof(char), json_section.length, file);
+
+        json_root = json_tokener_parse_ex(json_tok, json_content, json_section.length);
+        BVR_PRINT(json_content);
+        free(json_content);
+    }
+
+    json_object* json_meshes = json_object_object_get(json_root, "meshes");
+    json_object* json_accessors = json_object_object_get(json_root, "accessors");
+    json_object* json_bufferviews = json_object_object_get(json_root, "bufferViews");
+    json_object* json_buffers = json_object_object_get(json_root, "buffers");
+
+    // check for objects assignments
+    if(!(json_root && json_meshes && json_accessors && json_bufferviews && json_buffers)){
+        json_object_put(json_root);
+
+        BVR_PRINT("corrupted or missing gdb json!");
+        return BVR_FAILED;
+    }
+    
+    json_object_put(json_root);
+    return BVR_FAILED;
+}
+
 int bvr_create_meshf(bvr_mesh_t* mesh, FILE* file, bvr_mesh_array_attrib_t attrib){
     BVR_ASSERT(mesh);
     BVR_ASSERT(file);
@@ -378,6 +467,10 @@ int bvr_create_meshf(bvr_mesh_t* mesh, FILE* file, bvr_mesh_array_attrib_t attri
         status = bvri_load_obj(mesh, file);
     }
 #endif
+
+    if(bvri_is_gltf(file)){
+        status = bvri_load_gltf(mesh, file);
+    }
 
     if(!status){
         BVR_PRINT("failed to load model");

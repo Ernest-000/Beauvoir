@@ -23,7 +23,7 @@ set(BVR_DEMO_DIR ${BVR_CURRENT_DIR}/dev)
 # Development only
 if(NOT ${BVR_TARGET_SHARED})
     if (NOT DEFINED BVR_MAIN_FILE)
-        set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/memory_test.c")
+        set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/model_viewer.c")
     endif()
 endif()
 
@@ -52,23 +52,29 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(BVR_PORT_AUDIO_LIB ${BVR_LIB_DIR}/portaudio.lib)
     set(BVR_Z_LIB ${BVR_LIB_DIR}/zsd.lib)
     set(BVR_PNG_LIB ${BVR_LIB_DIR}/libpng16d.lib)
+    set(BVR_JSON_LIB ${BVR_LIB_DIR}/libjson-c.lib)
 
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")   
     set(BVR_SDL_LIB ${BVR_LIB_DIR}/SDL3.lib)
     set(BVR_PORT_AUDIO_LIB ${BVR_LIB_DIR}/portaudio.lib)
     set(BVR_Z_LIB ${BVR_LIB_DIR}/zsd.lib)
     set(BVR_PNG_LIB ${BVR_LIB_DIR}/libpng16d.lib)
+    set(BVR_JSON_LIB ${BVR_LIB_DIR}/libjson-c.lib)
 
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(BVR_SDL_LIB ${BVR_LIB_DIR}/libSDL3.dll.a)
     set(BVR_PORT_AUDIO_LIB ${BVR_LIB_DIR}/libportaudio.dll.a)
     set(BVR_Z_LIB ${BVR_LIB_DIR}/libz.dll.a)
     set(BVR_PNG_LIB ${BVR_LIB_DIR}/libpng16.dll.a)
+    set(BVR_JSON_LIB ${BVR_LIB_DIR}/libjson-c.dll.a)
+
 else()
     set(BVR_SDL_LIB ${BVR_LIB_DIR}/libSDL3.dll.a)
     set(BVR_PORT_AUDIO_LIB ${BVR_LIB_DIR}/libportaudio.dll.a)
     set(BVR_Z_LIB ${BVR_LIB_DIR}/libz.dll.a)
     set(BVR_PNG_LIB ${BVR_LIB_DIR}/libpng16.dll.a)
+    set(BVR_JSON_LIB ${BVR_LIB_DIR}/libjson-c.dll.a)
+
 endif()
 
 if(NOT EXISTS ${BVR_SDL_LIB})
@@ -87,6 +93,9 @@ if(NOT EXISTS ${BVR_PNG_LIB})
     message(FATAL_ERROR "Cannot find lPng '${BVR_PNG_LIB}'")
 endif()
 
+if(NOT EXISTS ${BVR_JSON_LIB})
+    message(FATAL_ERROR "Cannot find json-c '${BVR_JSON_LIB}'")
+endif()
 include_directories(${BVR_INCLUDE_DIR})
 
 ## Create library or executable depends on the compilation mode
@@ -107,6 +116,7 @@ target_link_libraries(Beauvoir PUBLIC
     ${BVR_PORT_AUDIO_LIB}
     ${BVR_Z_LIB}
     ${BVR_PNG_LIB}
+    ${BVR_JSON_LIB}
 )
 
 target_include_directories(Beauvoir PUBLIC ${BVR_SOURCE_DIR})

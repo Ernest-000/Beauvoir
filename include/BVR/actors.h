@@ -116,5 +116,5 @@ void bvr_destroy_actor(struct bvr_actor_s* actor);
 void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode);
 
 BVR_H_FUNC int bvr_is_actor_null(struct bvr_actor_s* actor){
-    return actor->type == BVR_NULL_ACTOR;
+    return actor == NULL || actor->type == BVR_NULL_ACTOR;
 }

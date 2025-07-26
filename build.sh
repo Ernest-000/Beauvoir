@@ -4,7 +4,7 @@ BVR_GENERATOR="MinGW Makefiles"
 BVR_CC="gcc"
 BVR_CXX="g++"
 BVR_BULID_DIR="$PWD/build/"
-BVR_EXTERNAL_MODULES="SDL PortAudio Zlib Lpng"
+BVR_EXTERNAL_MODULES="SDL PortAudio Zlib Lpng json-c"
 
 #! Clear command
 if [ $1 = "-clear" ]; then 

@@ -101,10 +101,15 @@ void bvr_new_frame(bvr_book_t* book){
     view[3][1] = camera->transform.position[1];
     view[3][2] = camera->transform.position[2];
 
-    bvr_enable_uniform_buffer(book->page.camera.buffer);
-    bvr_uniform_buffer_set(0, sizeof(mat4x4), &projection[0][0]);
-    bvr_uniform_buffer_set(sizeof(mat4x4), sizeof(mat4x4), &view[0][0]);
-    bvr_enable_uniform_buffer(0);
+    if(book->page.camera.framebuffer){
+        bvr_enable_uniform_buffer(book->page.camera.buffer);
+        bvr_uniform_buffer_set(0, sizeof(mat4x4), &projection[0][0]);
+        bvr_uniform_buffer_set(sizeof(mat4x4), sizeof(mat4x4), &view[0][0]);
+        bvr_enable_uniform_buffer(0);
+    }
+    else {
+        BVR_PRINT("missing camera");
+    }
 }
 
 void bvr_update(bvr_book_t* book){
@@ -212,7 +217,7 @@ void bvr_render(bvr_book_t* book){
         book->frame_timer = book->delta_time;
     }
 
-    bvr_error();
+    bvr_poll_errors();
 }
 
 void bvr_destroy_book(bvr_book_t* book){
@@ -232,6 +237,13 @@ void bvr_destroy_book(bvr_book_t* book){
 
 int bvr_create_page(bvr_page_t* page, const char* name){
     BVR_ASSERT(page);
+
+    page->camera.buffer = 0;
+    page->camera.far = 0;
+    page->camera.near = 0;
+    page->camera.field_of_view.fov = 0;
+    page->camera.framebuffer = NULL;
+    page->camera.mode = 0;
 
     bvr_create_string(&page->name, name);
 

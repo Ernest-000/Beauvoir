@@ -92,7 +92,7 @@ typedef struct bvr_framebuffer_s {
 void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state);
 void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd);
 void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd);
-void bvr_error(void);
+void bvr_poll_errors(void);
 
 BVR_H_FUNC int bvr_pipeline_compare_commands(const void* a, const void* b){
     return (((struct bvr_draw_command_s*)a)->order - ((struct bvr_draw_command_s*)b)->order);

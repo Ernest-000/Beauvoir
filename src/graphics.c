@@ -149,7 +149,7 @@ void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd){
     }
 }
 
-void bvr_error(void){
+void bvr_poll_errors(void){
     char found_error = 0;
     uint32 err;
 
@@ -157,10 +157,6 @@ void bvr_error(void){
     {
         switch (err)
         {
-        case GL_NO_ERROR:
-            BVR_PRINT("GL_NO_ERROR");
-            break;
-    
         case GL_INVALID_ENUM:
             BVR_PRINT("GL_INVALID_ENUM");
             break;
@@ -174,26 +170,36 @@ void bvr_error(void){
             break;
     
         case GL_STACK_OVERFLOW:
+            found_error = 1;
+            
             BVR_PRINT("GL_STACK_OVERFLOW");
             break;
     
         case GL_STACK_UNDERFLOW:
+            found_error = 1;
+            
             BVR_PRINT("GL_STACK_UNDERFLOW");
             break;
     
         case GL_OUT_OF_MEMORY:
+            found_error = 1;
+            
             BVR_PRINT("GL_OUT_OF_MEMORY");
             break;
+
         case GL_INVALID_FRAMEBUFFER_OPERATION:
             BVR_PRINT("GL_INVALID_FRAMEBUFFER_OPERATION");
             break;
+
         default:
             BVR_ASSERT(0);
         }
-        found_error = 1;
     }
 
-    BVR_ASSERT(!found_error || "Opengl has throw error(s)!");
+    // break if a fatal error is catch
+    if(found_error){
+        BVR_BREAK();
+    }
 }
 
 int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, const uint16 width, const uint16 height, const char* shader){

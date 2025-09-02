@@ -367,13 +367,6 @@ struct bvri_gltfchunk {
     void* data;
 };
 
-struct bvri_gltfprimitive {
-    bvr_string_t name;
-
-    uint32 element_count;
-    uint32 element_offset;
-};
-
 struct bvri_gltfobject {
     struct bvri_gltfchunk* json;
     struct bvri_gltfchunk* binary;
@@ -384,7 +377,7 @@ struct bvri_gltfobject {
     uint32 element_count;
     
     struct bvr_buffer_s vertex_group;
-    struct bvri_gltfprimitive* group;
+    bvr_vertex_group_t* group;
 
     bvr_mesh_buffer_t vertices;
     bvr_mesh_buffer_t elements;
@@ -395,25 +388,28 @@ struct bvri_gltfobject {
     json_object* json_buffers;
 };
 
-static int bvri_gltftypeof(const char* type){
-    int hex = *((int*)type);
-    BVR_PRINTF("%i %s", hex, type);
-
-    switch (hex)
+static int bvri_gltftypeof(const int type){
+    switch (type)
     {
-    // VEC3
-    case 0x033434556:
-        return sizeof(vec3);
-    // VEC2
-    case 0x32434556:
-        return sizeof(vec2);
-
+    case 5120:
+        return BVR_INT8;
+    case 5121:
+        return BVR_UNSIGNED_INT8;
+    case 5122:
+        return BVR_INT16;
+    case 5123:
+        return BVR_UNSIGNED_INT16;
+    case 5125:
+        return BVR_UNSIGNED_INT32;
+    case 5126:
+        return BVR_FLOAT;
+    
     default:
-        return sizeof(float);
+        break;
     }
 }
 
-static void bvri_gltfpushbackbuffer(struct bvri_gltfobject* object, json_object* target, const uint32_t offset){
+static void bvri_gltfpushbackattribute(struct bvri_gltfobject* object, json_object* target, uint32_t offset, const uint32 stride){
     json_object* json_accessor = json_object_array_get_idx(object->json_accessors, json_object_get_int(target));
     json_object* json_bufferview = json_object_array_get_idx(object->json_bufferviews, json_object_get_int(json_object_object_get(json_accessor, "bufferView")));
 
@@ -424,27 +420,38 @@ static void bvri_gltfpushbackbuffer(struct bvri_gltfobject* object, json_object*
     const int byte_offset = json_object_get_int(json_object_object_get(json_bufferview, "byteOffset"));
     const int target_buffer = json_object_get_int(json_object_object_get(json_bufferview, "target"));
 
-    const int type_size = byte_length / count;
-
     //TODO: support multiple buffers
     BVR_ASSERT(buffer == 0);
+    BVR_ASSERT(target_buffer == GL_ARRAY_BUFFER || target_buffer == GL_ELEMENT_ARRAY_BUFFER);
 
-    char* data = (char*)(object->binary->data + byte_length);
-    char* wrote_bytes = data;
-
-    while (wrote_bytes - data < byte_length)
-    {
+    // if there is no stride, we just copy all data to the buffer
+    if(stride == 1){
         glBufferSubData(
             target_buffer,
-            object->vertices.count + offset,
-            type_size,
-            wrote_bytes
+            offset,
+            byte_length,
+            object->binary->data + byte_offset
         );
-
-        BVR_PRINTF("%i", wrote_bytes - data);
-        wrote_bytes += type_size;
     }
-    
+
+    // copy data split with a stride
+    else {
+        char* data = (char*)(object->binary->data + byte_offset);
+        char* wrote_bytes = data;
+
+        while (wrote_bytes - data < byte_length)
+        {
+            glBufferSubData(
+                target_buffer,
+                offset,
+                byte_length / count,
+                wrote_bytes
+            );
+
+            wrote_bytes += byte_length / count;
+            offset += stride * (byte_length / count / 4);
+        }
+    }    
 }
 
 static int bvri_is_gltf(FILE* file){
@@ -482,7 +489,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
     object.element_count = 0;
 
     object.vertex_group.size = 0;
-    object.vertex_group.elemsize = sizeof(struct bvri_gltfprimitive);
+    object.vertex_group.elemsize = sizeof(bvr_vertex_group_t);
     object.vertex_group.data = NULL;
     object.group = NULL;
 
@@ -547,7 +554,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
     BVR_ASSERT(object.vertex_group.data);
 
     memset(object.vertex_group.data, 0, object.vertex_group.size);
-    object.group = (struct bvri_gltfprimitive*) object.vertex_group.data;
+    object.group = (bvr_vertex_group_t*) object.vertex_group.data;
 
     json_object* json_mesh = NULL;
     json_object* json_pritimive = NULL;
@@ -560,9 +567,10 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
         json_mesh = json_object_array_get_idx(object.json_meshes, i);
         json_pritimive = json_object_object_get(json_mesh, "primitives");
 
-        object.group = (struct bvri_gltfprimitive*)(object.vertex_group.data + object.vertex_group.elemsize * i);
+        object.group = (bvr_vertex_group_t*)(object.vertex_group.data + object.vertex_group.elemsize * i);
         object.group->element_offset = object.element_count;
         object.group->element_count = 0;
+
         // create null string but i shall replce with meshes's name
         bvr_create_string(&object.group->name, NULL);
 
@@ -579,7 +587,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
             // if there is a position attribute
             if(!json_object_is_type(json_position, json_type_null)){
                 json_accessor = json_object_array_get_idx(object.json_accessors, json_object_get_int(json_position));
-                int size = bvri_gltftypeof(json_object_get_string(json_object_object_get(json_accessor, "type")));
+                int size = bvr_sizeof(bvri_gltftypeof(json_object_get_int(json_object_object_get(json_accessor, "componentType"))));
 
                 // add position count
                 object.vertex_count += (size / sizeof(float)) * json_object_get_int(json_object_object_get(json_accessor, "count"));
@@ -590,8 +598,8 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
 
             // if there is a position attribute
             if(!json_object_is_type(json_normal, json_type_null)){
-                json_accessor = json_object_array_get_idx(object.json_accessors, json_object_get_int(json_normal));
-                int size = bvri_gltftypeof(json_object_get_string(json_object_object_get(json_accessor, "type")));
+                json_accessor = json_object_array_get_idx(object.json_accessors, json_object_get_int(json_normal));                
+                int size = bvr_sizeof(bvri_gltftypeof(json_object_get_int(json_object_object_get(json_accessor, "componentType"))));
 
                 // add normal count
                 object.normal_count += (size / sizeof(float)) * json_object_get_int(json_object_object_get(json_accessor, "count"));
@@ -603,7 +611,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
             // if there is a position attribute
             if(!json_object_is_type(json_texcoords, json_type_null)){
                 json_accessor = json_object_array_get_idx(object.json_accessors, json_object_get_int(json_texcoords));
-                int size = bvri_gltftypeof(json_object_get_string(json_object_object_get(json_accessor, "type")));
+                int size = bvr_sizeof(bvri_gltftypeof(json_object_get_int(json_object_object_get(json_accessor, "componentType"))));
 
                 // add texcoords count
                 object.uv_count += (size / sizeof(float)) * json_object_get_int(json_object_object_get(json_accessor, "count"));
@@ -626,19 +634,9 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
     object.vertices.data = NULL;
 
     object.elements.count = object.element_count;
-    object.elements.type = BVR_UNSIGNED_INT32;
+    object.elements.type = BVR_UNSIGNED_INT16; // is element type always uint16 w/ gltf?
     object.elements.data = NULL;
-    
     bvr_create_meshv(mesh, &object.vertices, &object.elements, BVR_MESH_ATTRIB_V3UV2N3);
-
-    // reset counts
-    object.vertex_count = 0;
-    object.normal_count = 0;
-    object.uv_count = 0;
-    object.element_count = 0;
-
-    object.vertices.count = 0;
-    object.elements.count = 0;
 
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->element_buffer);
@@ -671,36 +669,42 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
         
             // VERTEX
             if(!json_object_is_type(json_position, json_type_null)){
-                bvri_gltfpushbackbuffer(&object, json_position, 0);
+                bvri_gltfpushbackattribute(&object, json_position, 0, 7);
             }
             
             // TEXTURE COORDS
             if(!json_object_is_type(json_texcoords, json_type_null)){
-                bvri_gltfpushbackbuffer(&object, json_texcoords, 3);         
+                bvri_gltfpushbackattribute(&object, json_texcoords, 3, 7);         
             }
 
             // NORMALS
             if(!json_object_is_type(json_normal, json_type_null)){
-                bvri_gltfpushbackbuffer(&object, json_normal, 5);
+                bvri_gltfpushbackattribute(&object, json_normal, 5, 7);
             }
-            
-            // global stride count
-            object.vertices.count += mesh->stride;
-
-            // each element counts
-            object.vertex_count += 3;
-            object.normal_count += 3;
-            object.uv_count += 2;
         }
 
         json_object* json_elements = json_object_object_get(json_pritimive, "indices");
-        bvri_gltfpushbackbuffer(&object, json_elements, 0);
+        bvri_gltfpushbackattribute(&object, json_elements, 0, 1);
     }
-    
+
+    //debug
+    if(1){
+        uint16* vertex_buffer = glMapBufferRange(GL_ARRAY_BUFFER, 0, object.elements.count * sizeof(uint16), GL_MAP_READ_BIT);
+        for (size_t i = 0; i < object.element_count; i++)
+        {
+            BVR_PRINTF("i%i", vertex_buffer[i]);
+        }
+        
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+    }
+
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    mesh->vertex_groups.data = object.vertex_group.data;
+    free(object.vertex_group.data);
+
+    mesh->vertex_groups.data = NULL;
     mesh->vertex_groups.size = object.vertex_group.size;
     mesh->vertex_groups.elemsize = sizeof(bvr_vertex_group_t);
 
@@ -733,7 +737,6 @@ int bvr_create_meshf(bvr_mesh_t* mesh, FILE* file, bvr_mesh_array_attrib_t attri
 
     if(bvri_is_gltf(file)){
         status = bvri_load_gltf(mesh, file);
-        BVR_PRINTF("status value %i", status);
     }
 
 #ifndef BVR_NO_OBJ

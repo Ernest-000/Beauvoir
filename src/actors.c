@@ -432,13 +432,20 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     cmd.draw_mode = drawmode;
     cmd.user_data = NULL;
 
-    for (uint64 i = 0; i < BVR_BUFFER_COUNT(sactor->mesh.vertex_groups); i++)
-    {
-        cmd.element_offset = ((bvr_vertex_group_t*)sactor->mesh.vertex_groups.data)[i].element_offset;
-        cmd.element_count = ((bvr_vertex_group_t*)sactor->mesh.vertex_groups.data)[i].element_count;
+    // if using vertex groups
+    if(sactor->mesh.vertex_groups.data){
+        for (uint64 i = 0; i < BVR_BUFFER_COUNT(sactor->mesh.vertex_groups); i++)
+        {
+            cmd.element_offset = ((bvr_vertex_group_t*)sactor->mesh.vertex_groups.data)[i].element_offset;
+            cmd.element_count = ((bvr_vertex_group_t*)sactor->mesh.vertex_groups.data)[i].element_count;
+            bvr_pipeline_add_draw_cmd(&cmd);
+        }
+    }
+    else {
+        cmd.element_offset = 0;
+        cmd.element_count = sactor->mesh.element_count;
         bvr_pipeline_add_draw_cmd(&cmd);
     }
-    
 
     bvr_shader_disable();
 }

@@ -8,86 +8,59 @@
 #include <string.h>
 #include <memory.h>
 
-#include <json-c/json.h>
-
 #include <GLAD/glad.h>
 
+#ifndef BVR_NO_OBJ
+    #include <ctype.h>
+#endif
+
+#ifndef BVR_NO_GLTF
+    #include <json-c/json.h>
+#endif
+
+/*
+    Generic function tp allocate and create ogl buffers.
+    This function is used when creating buffers so that if any anything is needed to be change globally,
+    only this function's content need to me changed.
+*/
 static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint64 element_size, 
     int vertex_type, int element_type, bvr_mesh_array_attrib_t attrib);
 
 #ifndef BVR_NO_OBJ
 
-#include <ctype.h>
+struct bvri_objobject_s {
+    bvr_string_t name;
+    bvr_string_t material;
 
-static int bvri_objreadline(char* buffer, FILE* file){
-    int c;
-    while (c = getc(file), c != EOF && c != '\n') {
-        *buffer++ = c;
-    }
+    vec3 vertex[BVR_BUFFER_SIZE];
+    vec2 uvs[BVR_BUFFER_SIZE];
+    vec3 normals[BVR_BUFFER_SIZE];
+    struct {
+        uint32 vertex[4];
+        uint32 uv[4];
+        uint32 normal[4];
 
-    *buffer = '\0';
+        uint8 edges;
+    } faces[BVR_BUFFER_SIZE];
 
-    return c != EOF;
-}
+    bvr_mesh_buffer_t vertices;
+    bvr_mesh_buffer_t elements;
 
-static char* bvri_objparseint(char* buffer, int* v){
-    int sig = + 1;
-    int num = 0;
+    struct bvr_buffer_s vertex_group;
+    bvr_vertex_group_t* group;
 
-    if(*buffer == '-'){
-        sig = -1;
-        buffer++;
-    }
+    uint32 vertex_count;
+    uint32 uv_count;
+    uint32 normal_count;
+    uint32 face_count;
+};
 
-    while (isdigit(*buffer))
-    {
-        num = 10 * num + (*buffer++ - '0');
-    }
-    
-    *v = sig * num;
 
-    return buffer;
-}
+static int bvri_objreadline(char* buffer, FILE* file);
+static char* bvri_objparseint(char* buffer, int* v);
+static char* bvri_objparsefloat(char* buffer, float* v);
 
-static char* bvri_objparsefloat(char* buffer, float* v){
-    double sig = +1, p = +1;
-    double num = 0.0;
-    double fra = 0.0;
-    double div = 1.0;
-    uint32 e = 0;
-
-    if(*buffer == '-'){
-        sig = -1;
-        buffer++;
-    }
-    else if(*buffer == '+'){
-        sig = +1;
-        buffer++;
-    }
-
-    while (isdigit(*buffer))
-    {
-        num = 10 * num + (double)(*buffer++ - '0');
-    }
-    
-    if(*buffer == '.'){
-        buffer++;
-    }
-
-    while (isdigit(*buffer))
-    {
-        fra = 10.0 * fra + (double)(*buffer++ - '0');
-        div *= 10.0;
-    }
-
-    num += fra / div;
-    
-    BVR_ASSERT(*buffer == 'E' || *buffer == 'e' || "powers aren't supported :(");
-
-    *v = (float)sig * num;
-
-    return buffer;
-}
+static bvr_vertex_group_t* bvri_objpushgrp(struct bvr_buffer_s* group, bvr_string_t* name);
 
 static int bvri_is_obj(FILE* file){
     fseek(file, 0, SEEK_SET);
@@ -116,58 +89,6 @@ static int bvri_is_obj(FILE* file){
     
     return BVR_FAILED;
 }
-
-/*
-    Push back a new vertex group as the targetted group
-*/
-static bvr_vertex_group_t* bvri_objpushgrp(struct bvr_buffer_s* group, bvr_string_t* name){
-    bvr_vertex_group_t* vertex_group;
-
-    if(group->data){
-        group->data = realloc(group->data, group->size + group->elemsize);
-        BVR_ASSERT(group->data);
-
-        vertex_group = (bvr_vertex_group_t*)group->data + group->size;
-        group->size += group->elemsize;
-    }
-    else {
-        group->data = malloc(group->elemsize);
-        group->size += group->elemsize;
-
-        vertex_group = (bvr_vertex_group_t*)group->data;
-    }
-
-    bvr_string_create_and_copy(&vertex_group->name, name);
-    vertex_group->element_count = 0;
-    return vertex_group;
-}
-
-struct bvri_objobject_s {
-    bvr_string_t name;
-    bvr_string_t material;
-
-    vec3 vertex[BVR_BUFFER_SIZE];
-    vec2 uvs[BVR_BUFFER_SIZE];
-    vec3 normals[BVR_BUFFER_SIZE];
-    struct {
-        uint32 vertex[4];
-        uint32 uv[4];
-        uint32 normal[4];
-
-        uint8 edges;
-    } faces[BVR_BUFFER_SIZE];
-
-    bvr_mesh_buffer_t vertices;
-    bvr_mesh_buffer_t elements;
-
-    struct bvr_buffer_s vertex_group;
-    bvr_vertex_group_t* group;
-
-    uint32 vertex_count;
-    uint32 uv_count;
-    uint32 normal_count;
-    uint32 face_count;
-};
 
 static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
     BVR_ASSERT(mesh);
@@ -357,7 +278,104 @@ bvr_objfailed:
     return BVR_FAILED;
 }
 
+static int bvri_objreadline(char* buffer, FILE* file){
+    int c;
+    while (c = getc(file), c != EOF && c != '\n') {
+        *buffer++ = c;
+    }
+
+    *buffer = '\0';
+
+    return c != EOF;
+}
+
+static char* bvri_objparseint(char* buffer, int* v){
+    int sig = + 1;
+    int num = 0;
+
+    if(*buffer == '-'){
+        sig = -1;
+        buffer++;
+    }
+
+    while (isdigit(*buffer))
+    {
+        num = 10 * num + (*buffer++ - '0');
+    }
+    
+    *v = sig * num;
+
+    return buffer;
+}
+
+static char* bvri_objparsefloat(char* buffer, float* v){
+    double sig = +1, p = +1;
+    double num = 0.0;
+    double fra = 0.0;
+    double div = 1.0;
+    uint32 e = 0;
+
+    if(*buffer == '-'){
+        sig = -1;
+        buffer++;
+    }
+    else if(*buffer == '+'){
+        sig = +1;
+        buffer++;
+    }
+
+    while (isdigit(*buffer))
+    {
+        num = 10 * num + (double)(*buffer++ - '0');
+    }
+    
+    if(*buffer == '.'){
+        buffer++;
+    }
+
+    while (isdigit(*buffer))
+    {
+        fra = 10.0 * fra + (double)(*buffer++ - '0');
+        div *= 10.0;
+    }
+
+    num += fra / div;
+    
+    BVR_ASSERT(*buffer == 'E' || *buffer == 'e' || "powers aren't supported :(");
+
+    *v = (float)sig * num;
+
+    return buffer;
+}
+
+/*
+    Push back a new vertex group as the targetted group
+*/
+static bvr_vertex_group_t* bvri_objpushgrp(struct bvr_buffer_s* group, bvr_string_t* name){
+    bvr_vertex_group_t* vertex_group;
+
+    if(group->data){
+        group->data = realloc(group->data, group->size + group->elemsize);
+        BVR_ASSERT(group->data);
+
+        vertex_group = (bvr_vertex_group_t*)group->data + group->size;
+        group->size += group->elemsize;
+    }
+    else {
+        group->data = malloc(group->elemsize);
+        group->size += group->elemsize;
+
+        vertex_group = (bvr_vertex_group_t*)group->data;
+    }
+
+    bvr_string_create_and_copy(&vertex_group->name, name);
+    vertex_group->element_count = 0;
+    return vertex_group;
+}
+
 #endif
+
+#ifndef BVR_NO_GLTF 
 
 struct bvri_gltfchunk {
     uint32 length;
@@ -388,71 +406,8 @@ struct bvri_gltfobject {
     json_object* json_buffers;
 };
 
-static int bvri_gltftypeof(const int type){
-    switch (type)
-    {
-    case 5120:
-        return BVR_INT8;
-    case 5121:
-        return BVR_UNSIGNED_INT8;
-    case 5122:
-        return BVR_INT16;
-    case 5123:
-        return BVR_UNSIGNED_INT16;
-    case 5125:
-        return BVR_UNSIGNED_INT32;
-    case 5126:
-        return BVR_FLOAT;
-    
-    default:
-        break;
-    }
-}
-
-static void bvri_gltfpushbackattribute(struct bvri_gltfobject* object, json_object* target, uint32_t offset, const uint32 stride){
-    json_object* json_accessor = json_object_array_get_idx(object->json_accessors, json_object_get_int(target));
-    json_object* json_bufferview = json_object_array_get_idx(object->json_bufferviews, json_object_get_int(json_object_object_get(json_accessor, "bufferView")));
-
-    const int count = json_object_get_int(json_object_object_get(json_accessor, "count"));
-
-    const int buffer = json_object_get_int(json_object_object_get(json_bufferview, "buffer"));
-    const int byte_length = json_object_get_int(json_object_object_get(json_bufferview, "byteLength"));
-    const int byte_offset = json_object_get_int(json_object_object_get(json_bufferview, "byteOffset"));
-    const int target_buffer = json_object_get_int(json_object_object_get(json_bufferview, "target"));
-
-    //TODO: support multiple buffers
-    BVR_ASSERT(buffer == 0);
-    BVR_ASSERT(target_buffer == GL_ARRAY_BUFFER || target_buffer == GL_ELEMENT_ARRAY_BUFFER);
-
-    // if there is no stride, we just copy all data to the buffer
-    if(stride == 1){
-        glBufferSubData(
-            target_buffer,
-            offset,
-            byte_length,
-            object->binary->data + byte_offset
-        );
-    }
-
-    // copy data split with a stride
-    else {
-        char* data = (char*)(object->binary->data + byte_offset);
-        char* wrote_bytes = data;
-
-        while (wrote_bytes - data < byte_length)
-        {
-            glBufferSubData(
-                target_buffer,
-                offset,
-                byte_length / count,
-                wrote_bytes
-            );
-
-            wrote_bytes += byte_length / count;
-            offset += stride * (byte_length / count / 4);
-        }
-    }    
-}
+static int bvri_gltftypeof(const int type);
+static void bvri_gltfpushbackattribute(struct bvri_gltfobject* object, json_object* target, uint32_t offset, const uint32 stride);
 
 static int bvri_is_gltf(FILE* file){
     fseek(file, 0, SEEK_SET);
@@ -523,10 +478,10 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
         return BVR_FAILED;
     }
 
-    json_tokener* json_tok = json_tokener_new();
-    
     // read json section and create json context
     {
+        json_tokener* json_tok = json_tokener_new();
+
         fseek(file, json_section.offset, SEEK_SET);
 
         char* json_content = malloc(json_section.length);
@@ -636,7 +591,14 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
     object.elements.count = object.element_count;
     object.elements.type = BVR_UNSIGNED_INT16; // is element type always uint16 w/ gltf?
     object.elements.data = NULL;
-    bvr_create_meshv(mesh, &object.vertices, &object.elements, BVR_MESH_ATTRIB_V3UV2N3);
+
+    bvri_create_mesh_buffers(mesh, 
+        object.vertices.count * sizeof(float) * sizeof(float),
+        object.elements.count * sizeof(uint16),
+        object.vertices.type,
+        object.elements.type,
+        BVR_MESH_ATTRIB_V3UV2N3
+    );
 
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->element_buffer);
@@ -648,7 +610,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
 
         bin_section.data = malloc(bin_section.length);
         readed_bytes = fread(bin_section.data, sizeof(char), bin_section.length, file);
-        BVR_ASSERT(readed_bytes == bin_section.length);
+        BVR_ASSERT(readed_bytes == bin_section.length && bin_section.data);
     }
 
     for (size_t i = 0; i < json_object_array_length(object.json_meshes); i++)
@@ -681,14 +643,15 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
             if(!json_object_is_type(json_normal, json_type_null)){
                 bvri_gltfpushbackattribute(&object, json_normal, 5, 7);
             }
+        
+            json_object* json_elements = json_object_object_get(json_object_array_get_idx(json_pritimive, p), "indices");
+            bvri_gltfpushbackattribute(&object, json_elements, 0, 1);
         }
-
-        json_object* json_elements = json_object_object_get(json_pritimive, "indices");
-        bvri_gltfpushbackattribute(&object, json_elements, 0, 1);
     }
 
     //debug
-    if(1){
+#if 1
+    {
         uint16* vertex_buffer = glMapBufferRange(GL_ARRAY_BUFFER, 0, object.elements.count * sizeof(uint16), GL_MAP_READ_BIT);
         for (size_t i = 0; i < object.element_count; i++)
         {
@@ -697,7 +660,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
         
         glUnmapBuffer(GL_ARRAY_BUFFER);
     }
-
+#endif
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -714,6 +677,176 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
     
     return BVR_OK;
 }
+
+static int bvri_gltftypeof(const int type){
+    switch (type)
+    {
+    case 5120:
+        return BVR_INT8;
+    case 5121:
+        return BVR_UNSIGNED_INT8;
+    case 5122:
+        return BVR_INT16;
+    case 5123:
+        return BVR_UNSIGNED_INT16;
+    case 5125:
+        return BVR_UNSIGNED_INT32;
+    case 5126:
+        return BVR_FLOAT;
+    
+    default:
+        break;
+    }
+}
+
+static void bvri_gltfpushbackattribute(struct bvri_gltfobject* object, json_object* target, uint32_t offset, const uint32 stride){
+    json_object* json_accessor = json_object_array_get_idx(object->json_accessors, json_object_get_int(target));
+    json_object* json_bufferview = json_object_array_get_idx(object->json_bufferviews, json_object_get_int(json_object_object_get(json_accessor, "bufferView")));
+    BVR_ASSERT(json_bufferview && json_accessor);
+
+    const int count = json_object_get_int(json_object_object_get(json_accessor, "count"));
+
+    const int buffer = json_object_get_int(json_object_object_get(json_bufferview, "buffer"));
+    const int byte_length = json_object_get_int(json_object_object_get(json_bufferview, "byteLength"));
+    const int byte_offset = json_object_get_int(json_object_object_get(json_bufferview, "byteOffset"));
+    const int target_buffer = json_object_get_int(json_object_object_get(json_bufferview, "target"));
+
+    //TODO: support multiple buffers
+    BVR_ASSERT(buffer == 0);
+    BVR_ASSERT(object->binary->length >= byte_offset + byte_length);
+    BVR_ASSERT(target_buffer == GL_ARRAY_BUFFER || target_buffer == GL_ELEMENT_ARRAY_BUFFER);
+
+    BVR_PRINTF("infos %i %i", byte_length, byte_offset);
+
+    // if there is no stride, we just copy all data to the buffer
+    if(stride == 1){
+        glBufferSubData(
+            target_buffer,
+            offset,
+            byte_length,
+            object->binary->data + byte_offset
+        );
+    }
+
+    // copy data split with a stride
+    else {
+        char* data = (char*)(object->binary->data + byte_offset);
+        char* wrote_bytes = data;
+
+        while (wrote_bytes - data < byte_length)
+        {
+            glBufferSubData(
+                target_buffer,
+                offset,
+                byte_length / count,
+                wrote_bytes
+            );
+
+            wrote_bytes += byte_length / count;
+            offset += stride * (byte_length / count / 4);
+        }
+    }    
+}
+
+#endif
+
+#ifndef BVR_NO_FBX
+
+struct bvri_fbxnode {
+    uint32 length;
+    uint32 end_offset;
+    uint32 properties_count;
+    uint32 property_list_length;
+
+    bvr_string_t name;
+    struct bvri_fbxnode* childs;
+};
+
+static int bvri_is_fbx(FILE* file){
+    uint8 sig[20];
+    uint8 unknow;
+    uint8 endian;
+    uint32 version;
+
+    fseek(file, 0, SEEK_SET);
+    fread(sig, sizeof(uint8), 20, file);
+    sig[20] = '\0'; // unsually the signature finish w/ '\0' but we overwrite to avoid memleeks
+
+    bvr_freadu8_le(file); // padding
+    unknow = bvr_freadu8_le(file);
+    endian = bvr_freadu8_le(file);
+    version = bvr_fread32_le(file);
+
+    return strncmp(sig, "Kaydara FBX Binary", 18) == 0 && 
+            unknow == 0x1A &&
+            (endian == 0x0 || endian == 0x1);
+}
+
+static int bvri_readfbxnode(FILE* file, size_t offset, struct bvri_fbxnode* node){
+    BVR_ASSERT(node);
+    
+    fseek(file, offset, SEEK_SET);
+    node->length = 0;
+    node->end_offset = bvr_freadu32_le(file);
+    node->properties_count = bvr_fread32_le(file);
+    node->property_list_length = bvr_fread32_le(file);
+    node->name.length = bvr_freadu8_le(file);
+
+    node->name.string = malloc(node->name.length + 1);
+
+    // skip name
+    fread(node->name.string, sizeof(char), node->name.length, file);
+    node->name.string[node->name.length] = '\0';
+
+    BVR_PRINTF("%s(%i)", node->name.string, node->name.length);
+
+    // skip properties
+    fseek(file, node->property_list_length, SEEK_CUR);
+
+    node->length = offset - ftell(file);
+    while (offset + node->length < node->end_offset)
+    {
+        struct bvri_fbxnode child;
+        bvri_readfbxnode(file, offset + node->length, &child);
+        node->length += child.length;
+    }
+    
+    bvr_destroy_string(&node->name);
+}
+
+// https://docs.fileformat.com/3d/fbx/
+// https://gist.github.com/iscle/0dbcee58be8582978d15ea3629ce3e8b
+// https://github.com/jskorepa/fbx/tree/master
+static int bvri_load_fbx(bvr_mesh_t* mesh, FILE* file){
+    BVR_ASSERT(mesh);
+    BVR_ASSERT(file);
+
+    fseek(file, 22, SEEK_SET);
+
+    uint32 stream_offset;
+    uint32 stream_size;
+
+    uint8 endian = bvr_freadu8_le(file);
+    uint32 version = bvr_fread32_le(file);;
+
+    BVR_ASSERT(endian == 0x0 || "big endian fbx not supported");
+    
+    stream_offset = ftell(file);
+    stream_size = bvr_get_file_size(file);
+
+    while (stream_offset < stream_size)
+    {
+        struct bvri_fbxnode node;
+
+        bvri_readfbxnode(file, stream_offset, &node);
+
+        stream_offset = ftell(file);
+    }
+    
+    return BVR_OK;
+}
+
+#endif
 
 int bvr_create_meshf(bvr_mesh_t* mesh, FILE* file, bvr_mesh_array_attrib_t attrib){
     BVR_ASSERT(mesh);
@@ -735,9 +868,17 @@ int bvr_create_meshf(bvr_mesh_t* mesh, FILE* file, bvr_mesh_array_attrib_t attri
     mesh->vertex_groups.elemsize = sizeof(bvr_vertex_group_t);
     mesh->vertex_groups.data = NULL;
 
+#ifndef BVR_NO_GLTF
     if(bvri_is_gltf(file)){
         status = bvri_load_gltf(mesh, file);
     }
+#endif
+
+#ifndef BVR_NO_FBX
+    if(!status && bvri_is_fbx(file)){
+        status = bvri_load_fbx(mesh, file);
+    }
+#endif
 
 #ifndef BVR_NO_OBJ
     if(!status && bvri_is_obj(file)){
@@ -928,10 +1069,8 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
     return BVR_OK;
 }
 
+// https://github.com/joelibaceta/triangulator/blob/main/triangulator/ear_clipping_method.py
 void bvr_triangulate(bvr_mesh_buffer_t* src, bvr_mesh_buffer_t* dest, const uint8 stride){
-
-    // https://github.com/joelibaceta/triangulator/blob/main/triangulator/ear_clipping_method.py
-
     BVR_ASSERT(src);
     BVR_ASSERT(dest);
     BVR_ASSERT(src->data && src->count);
@@ -1071,6 +1210,7 @@ void bvr_destroy_mesh(bvr_mesh_t* mesh){
     {
         bvr_destroy_string(&((bvr_vertex_group_t*)mesh->vertex_groups.data)[i].name);
     }
+
     free(mesh->vertex_groups.data);
 
     glDeleteVertexArrays(1, &mesh->array_buffer);

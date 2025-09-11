@@ -752,13 +752,33 @@ static void bvri_gltfpushbackattribute(struct bvri_gltfobject* object, json_obje
 
 #ifndef BVR_NO_FBX
 
+#include <zlib.h>
+
+#define BVR_FBX_FOOTER_LENGTH 172
+
+struct bvri_fbxobject {
+    uint32 total_bytes;
+    uint32 readed_bytes;
+
+    bvr_mesh_buffer_t vertices;
+    bvr_mesh_buffer_t normals;
+    bvr_mesh_buffer_t uvs;
+    bvr_mesh_buffer_t elements;
+};
+
 struct bvri_fbxnode {
     uint32 length;
+    uint32 offset;
+
+    uint32 child_count;
+    uint32 child_count_length;
+
     uint32 end_offset;
     uint32 properties_count;
     uint32 property_list_length;
 
     bvr_string_t name;
+    struct bvri_fbxnode* parent;
     struct bvri_fbxnode* childs;
 };
 
@@ -782,36 +802,198 @@ static int bvri_is_fbx(FILE* file){
             (endian == 0x0 || endian == 0x1);
 }
 
-static int bvri_readfbxnode(FILE* file, size_t offset, struct bvri_fbxnode* node){
-    BVR_ASSERT(node);
+static void bvri_copyfbxproperty(FILE* file, char** destination, size_t* length, uint32* dtype){
+    if(destination == NULL || length == NULL){
+        return;
+    }
+
+    uint32 type = bvr_freadu8_le(file);
     
+    // binary types
+    if(type == 'R' || type == 'S'){
+        // if this object was already allocated
+        if(*length){
+            uint32 new_length = bvr_fread32_le(file);
+            *destination = realloc(*destination, *length + new_length);
+            BVR_ASSERT(*destination);
+
+            fread(*destination + *length, sizeof(char), new_length, file);
+            *length += new_length;
+        }
+        else {
+            *length = bvr_fread32_le(file);
+            *destination = malloc(*length);
+            BVR_ASSERT(*destination);
+
+            fread(*destination, sizeof(char), *length, file);
+        }
+    }
+    // primitive types
+    else if(type < 'Z'){
+        switch (type)
+        {
+        case 'B':
+        case 'C':
+            *length = 1; 
+            *destination = (char*)bvr_freadu8_le(file);
+            break;
+
+        case 'Y':
+            *length = 2; 
+            *destination = (char*)bvr_fread16_le(file);
+            break;
+        
+        case 'I':
+            *length = 4;
+            *destination = (char*)bvr_fread32_le(file);
+            break;
+
+        case 'F':
+            *length = 4;
+            //*destination = (char*)bvr_freadf(file);
+            BVR_ASSERT(0 || "float not supported");
+            break;
+        
+        case 'D':
+            *length = 8;
+            //((float*)*destination) = bvr_freadf(file);
+            BVR_ASSERT(0 || "double not supported");
+            break;
+
+        case 'L':
+            *length = 8;
+            *destination = (char*)((bvr_fread32_le(file) << 32) | bvr_fread32_le(file));
+            break;
+
+        default:
+            *length = 0;
+            break;
+        }
+    }
+
+    // array
+    else {
+        uint32 array_length = bvr_fread32_le(file);
+        uint32 encoding = bvr_fread32_le(file);
+        uint32 encoding_length = bvr_fread32_le(file);
+        
+        BVR_ASSERT(encoding == 0);
+
+        switch (type)
+        {
+        case 'b':
+        case 'C':
+            *dtype = BVR_UNSIGNED_INT8;
+            break;
+        
+        case 'i':
+            *dtype = BVR_INT32;
+            break;
+
+        case 'f':
+            *dtype = BVR_FLOAT;
+            break;
+        
+        case 'd':
+            *dtype = BVR_DOUBLE;
+            break;
+
+        case 'l':
+            *dtype = BVR_INT64;
+            break;
+
+        default:
+            *dtype = BVR_NULL;
+            break;
+        }
+
+        // uncompress
+        if(encoding){}
+    }
+
+}
+
+static int bvri_readfbxproperty(FILE* file, struct bvri_fbxobject* object, struct bvri_fbxnode* parent_node) {
+    if(!parent_node->name.length){
+        return BVR_FAILED;
+    }
+
+    if(strcmp(parent_node->name.string, "Vertices\0") == 0){
+        bvri_copyfbxproperty(file, &object->vertices.data, &object->vertices.count, &object->vertices.type);
+        return BVR_OK;
+    }
+    
+    if(strcmp(parent_node->name.string, "PolygoneVertexIndex\0") == 0){
+        bvri_copyfbxproperty(file, &object->elements.data, &object->elements.count, &object->elements.type);
+    }
+
+    return BVR_FAILED;
+}
+
+static int bvri_readfbxnode(FILE* file, struct bvri_fbxobject* object, struct bvri_fbxnode* node, size_t offset){
+    BVR_ASSERT(node);
+
     fseek(file, offset, SEEK_SET);
-    node->length = 0;
+    
+    // custom properties
+    node->offset = offset;
+    node->child_count = 0;
+    node->child_count_length = 0;
+    node->childs = NULL;
+
+    // reading from file
     node->end_offset = bvr_freadu32_le(file);
     node->properties_count = bvr_fread32_le(file);
     node->property_list_length = bvr_fread32_le(file);
     node->name.length = bvr_freadu8_le(file);
+    node->name.string = NULL;
 
-    node->name.string = malloc(node->name.length + 1);
+    node->length = 13 + node->name.length + node->property_list_length;
 
-    // skip name
-    fread(node->name.string, sizeof(char), node->name.length, file);
-    node->name.string[node->name.length] = '\0';
+    if(node->end_offset > object->total_bytes || node->offset + node->length > object->total_bytes){
+        return BVR_FAILED;
+    }
+    
+    // create name if there is one
+    if(node->name.length > 0){
+        node->name.string = malloc(node->name.length + 1);
 
-    BVR_PRINTF("%s(%i)", node->name.string, node->name.length);
+        fread(node->name.string, sizeof(char), node->name.length, file);
+        node->name.string[node->name.length] = '\0';
+    }
 
-    // skip properties
-    fseek(file, node->property_list_length, SEEK_CUR);
+    // length = sizeof(end_offset) + sizeof(properties_count) + sizeof(property_list_length) + 
+    //          sizeof(name_length) + name_length + property_list_length
 
-    node->length = offset - ftell(file);
+    for (size_t i = 0; i < node->properties_count; i++)
+    {
+        bvri_readfbxproperty(file, object, node);
+    }
+    
+    // seek after properties
+    fseek(file, node->offset + node->length, SEEK_SET);
+
+    // gather childs
     while (offset + node->length < node->end_offset)
     {
         struct bvri_fbxnode child;
-        bvri_readfbxnode(file, offset + node->length, &child);
+        child.parent = node;
+
+        bvri_readfbxnode(file, object, &child, offset + node->length);
+        
         node->length += child.length;
+        node->child_count_length += child.length;
+        node->child_count++;
     }
     
+    //BVR_PRINTF("%s (property_count=%i, child_count=%i)", node->name.string, node->properties_count, node->child_count);
+
+    fseek(file, node->end_offset, SEEK_SET);
+
     bvr_destroy_string(&node->name);
+    free(node->childs);
+
+    return BVR_OK;
 }
 
 // https://docs.fileformat.com/3d/fbx/
@@ -821,28 +1003,46 @@ static int bvri_load_fbx(bvr_mesh_t* mesh, FILE* file){
     BVR_ASSERT(mesh);
     BVR_ASSERT(file);
 
-    fseek(file, 22, SEEK_SET);
+    struct bvri_fbxobject object;
+    object.vertices.count = 0;
+    object.vertices.type = BVR_FLOAT;
+    object.vertices.data = NULL;
+    object.elements.count = 0;
+    object.elements.type = BVR_UNSIGNED_INT32;
+    object.elements.data = NULL;
+    object.uvs.count = 0;
+    object.uvs.type = BVR_FLOAT;
+    object.uvs.data = NULL;
+    object.normals.count = 0;
+    object.normals.type = BVR_FLOAT;
+    object.normals.data = NULL;
 
-    uint32 stream_offset;
-    uint32 stream_size;
+    fseek(file, 22, SEEK_SET);
 
     uint8 endian = bvr_freadu8_le(file);
     uint32 version = bvr_fread32_le(file);;
 
     BVR_ASSERT(endian == 0x0 || "big endian fbx not supported");
     
-    stream_offset = ftell(file);
-    stream_size = bvr_get_file_size(file);
+    object.readed_bytes = ftell(file);
+    object.total_bytes = bvr_get_file_size(file);
 
-    while (stream_offset < stream_size)
+    bool eof = 0;
+    while (object.readed_bytes < object.total_bytes - BVR_FBX_FOOTER_LENGTH || eof)
     {
         struct bvri_fbxnode node;
 
-        bvri_readfbxnode(file, stream_offset, &node);
-
-        stream_offset = ftell(file);
+        eof = !bvri_readfbxnode(file, &object, &node, object.readed_bytes);
+        object.readed_bytes += node.length;
     }
     
+    free(object.vertices.data);
+    free(object.uvs.data);
+    free(object.normals.data);
+    free(object.elements.data);
+
+    BVR_BREAK();
+
     return BVR_OK;
 }
 

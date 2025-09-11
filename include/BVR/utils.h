@@ -17,6 +17,7 @@
 /*   based on OpenGLES   */  
 #define BVR_NULL                    0x00
 #define BVR_FLOAT                   0x1406
+#define BVR_BOOL                    0x1399
 #define BVR_INT8                    0x1400
 #define BVR_INT16                   0x1402
 #define BVR_INT32                   0x1404
@@ -28,6 +29,10 @@
 #define BVR_VEC4                    0x140A
 #define BVR_MAT3                    0x140B
 #define BVR_MAT4                    0x140C
+
+#define BVR_DOUBLE                  0x140D
+#define BVR_INT64                   0x140E
+#define BVR_UNSIGNED_INT64          0x140F
 
 /*   custom   */  
 #define BVR_TEXTURE_2D              0x141A

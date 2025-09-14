@@ -46,18 +46,13 @@ struct bvr_draw_command_s {
     uint32 vertex_buffer;
     uint32 element_buffer;
 
-    uint16 element_offset;
-    uint32 element_count;
-    uint8 attrib_count;
-    
     uint8 draw_mode;
+    uint8 attrib_count;
+    int element_type;
 
-    uint16 texture_type;
-
+    bvr_vertex_group_t vertex_group;
+    
     bvr_shader_t* shader;
-    bvr_texture_t* texture;    
-
-    void* user_data;
 } __attribute__ ((packed));
 
 typedef struct bvr_pipeline_s {
@@ -72,6 +67,9 @@ typedef struct bvr_pipeline_s {
     */
     struct bvr_pipeline_state_s swap_pass;
 
+    /*
+        Store all draw command and the current index
+    */
     uint16 command_count;
     struct bvr_draw_command_s commands[BVR_MAX_DRAW_COMMAND];
 

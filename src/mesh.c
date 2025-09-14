@@ -217,8 +217,26 @@ static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
         goto bvr_objfailed;
     }
 
-    mesh->vertex_groups.size = object.vertex_group.size;
-    mesh->vertex_groups.data = object.vertex_group.data;
+    /*mesh->vertex_groups.size = object.vertex_group.size;
+    mesh->vertex_groups.data = object.vertex_group.data;*/
+
+    bvr_create_pool(&mesh->vertex_groups, sizeof(bvr_vertex_group_t), BVR_BUFFER_COUNT(object.vertex_group));
+    for (size_t i = 0; i < BVR_BUFFER_COUNT(object.vertex_group); i++)
+    {
+        bvr_vertex_group_t* group = bvr_pool_alloc(&mesh->vertex_groups);
+        group->name.length = ((bvr_vertex_group_t*)object.vertex_group.data)[i].name.length;
+        group->name.string = ((bvr_vertex_group_t*)object.vertex_group.data)[i].name.string;
+        group->element_count = ((bvr_vertex_group_t*)object.vertex_group.data)[i].element_count;
+        group->element_offset = ((bvr_vertex_group_t*)object.vertex_group.data)[i].element_offset;
+        group->texture = 0;
+    }
+    
+    /*bvr_vertex_group_t* group = bvr_pool_alloc(&mesh->vertex_groups);
+    group->name.length = 0;
+    group->name.string = NULL;
+    group->element_count = 0;
+    group->element_offset = 0;
+    group->texture = 0; */
 
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->element_buffer);
@@ -259,6 +277,7 @@ static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
 
     free(object.vertices.data);
     free(object.elements.data);
+    free(object.vertex_group.data);
 
     return BVR_OK;
 
@@ -667,9 +686,9 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
 
     free(object.vertex_group.data);
 
-    mesh->vertex_groups.data = NULL;
+    /*mesh->vertex_groups.data = NULL;
     mesh->vertex_groups.size = object.vertex_group.size;
-    mesh->vertex_groups.elemsize = sizeof(bvr_vertex_group_t);
+    mesh->vertex_groups.elemsize = sizeof(bvr_vertex_group_t);*/
 
     // free
     json_object_put((json_object*) json_section.data);
@@ -1063,10 +1082,12 @@ int bvr_create_meshf(bvr_mesh_t* mesh, FILE* file, bvr_mesh_array_attrib_t attri
     mesh->attrib_count = 0;
     mesh->stride = 0;
     mesh->attrib = attrib;
-
-    mesh->vertex_groups.size = 0;
-    mesh->vertex_groups.elemsize = sizeof(bvr_vertex_group_t);
+    
     mesh->vertex_groups.data = NULL;
+    mesh->vertex_groups.next = NULL;
+    mesh->vertex_groups.count = 0;
+    mesh->vertex_groups.elemsize = sizeof(bvr_vertex_group_t);
+    mesh->vertex_groups.capacity = 0;
 
 #ifndef BVR_NO_GLTF
     if(bvri_is_gltf(file)){
@@ -1110,9 +1131,13 @@ int bvr_create_meshv(bvr_mesh_t* mesh, bvr_mesh_buffer_t* vertices, bvr_mesh_buf
     mesh->stride = 0;
     mesh->attrib = attrib;
 
+    /*
     mesh->vertex_groups.size = 0;
     mesh->vertex_groups.elemsize = sizeof(bvr_vertex_group_t);
     mesh->vertex_groups.data = NULL;
+    */
+
+    bvr_create_pool(&mesh->vertex_groups, sizeof(bvr_vertex_group_t), 1);
 
     status = bvri_create_mesh_buffers(mesh, 
         vertices->count * bvr_sizeof(vertices->type),
@@ -1126,15 +1151,22 @@ int bvr_create_meshv(bvr_mesh_t* mesh, bvr_mesh_buffer_t* vertices, bvr_mesh_buf
     }
 
     // allocate a single vertex group 
-    mesh->vertex_groups.size = sizeof(bvr_vertex_group_t);
+    /*mesh->vertex_groups.size = sizeof(bvr_vertex_group_t);
     mesh->vertex_groups.data = malloc(mesh->vertex_groups.size);
     BVR_ASSERT(mesh->vertex_groups.data);
 
     ((bvr_vertex_group_t*)mesh->vertex_groups.data)[0].name.length = 0;
     ((bvr_vertex_group_t*)mesh->vertex_groups.data)[0].name.string = NULL;
     ((bvr_vertex_group_t*)mesh->vertex_groups.data)[0].element_offset = 0;
-    ((bvr_vertex_group_t*)mesh->vertex_groups.data)[0].element_count = elements->count;
+    ((bvr_vertex_group_t*)mesh->vertex_groups.data)[0].element_count = elements->count;*/
 
+    bvr_vertex_group_t* group = bvr_pool_alloc(&mesh->vertex_groups);
+    group->name.length = 0;
+    group->name.string = NULL;
+    group->element_offset = 0;
+    group->element_count = elements->count;
+    group->texture = 0;
+    
     // copy vertex values over buffers
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->element_buffer);
@@ -1406,9 +1438,11 @@ void bvr_triangulate(bvr_mesh_buffer_t* src, bvr_mesh_buffer_t* dest, const uint
 void bvr_destroy_mesh(bvr_mesh_t* mesh){
     BVR_ASSERT(mesh);
 
-    for (uint64 i = 0; i < BVR_BUFFER_COUNT(mesh->vertex_groups); i++)
-    {
-        bvr_destroy_string(&((bvr_vertex_group_t*)mesh->vertex_groups.data)[i].name);
+    BVR_BREAK();
+
+    bvr_vertex_group_t group;
+    BVR_POOL_FOR_EACH(group, mesh->vertex_groups){
+        bvr_destroy_string(&group.name);
     }
 
     free(mesh->vertex_groups.data);

@@ -89,9 +89,11 @@ typedef struct bvr_book_s {
 
     bvr_page_t page;
 
-    float delta_time, frame_timer;
-    int average_render_time, frames;
-    uint64 prev_time, current_time;
+    struct {
+        float delta_time, frame_timer;
+        int average_render_time, frames;
+        uint64 prev_time, current_time;
+    } timer;
 } bvr_book_t;
 
 /*
@@ -118,15 +120,15 @@ BVR_H_FUNC void bvr_create_book_memories(bvr_book_t* book, const uint64 asset_si
 /*
     Returns BVR_OK if the game is still running.
 */
-BVR_H_FUNC int bvr_is_awake(void){
-    return bvr_get_book_instance()->window.awake;
+BVR_H_FUNC int bvr_is_awake(bvr_book_t* book){
+    return book->window.awake;
 }
 
 /*
     Returns BVR_OK is a scene is active.
 */
-BVR_H_FUNC int bvr_is_active(void){
-    return bvr_get_book_instance()->page.name.string != NULL;
+BVR_H_FUNC int bvr_is_active(bvr_book_t* book){
+    return book->page.name.string != NULL;
 }
 
 /*
@@ -154,14 +156,15 @@ void bvr_destroy_book(bvr_book_t* book);
 int bvr_create_page(bvr_page_t* page, const char* name);
 
 /*
-    Set page as current working page
+    Set another page as the target one.
+    Setting a new page will overwrite the previous page. Previous page will be freed.
 */
-void bvr_enable_page(void);
+void bvr_enable_page(bvr_page_t* page);
 
 /*
     Remove page from current working page
 */
-void bvr_disable_page(void);
+void bvr_disable_page(bvr_page_t* page);
 
 bvr_camera_t* bvr_create_orthographic_camera(bvr_page_t* page, bvr_framebuffer_t* framebuffer, float near, float far, float scale);
 

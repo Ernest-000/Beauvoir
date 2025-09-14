@@ -21,12 +21,12 @@ int bvr_create_book(bvr_book_t* book){
     memset(&book->window, 0, sizeof(bvr_window_t));
     memset(&book->page, 0, sizeof(bvr_page_t));
 
-    book->frames = 0;
-    book->frame_timer = 0.0f;
-    book->delta_time = 0.0f;
-    book->prev_time = 0.0f;
-    book->current_time = 0.0f;
-    book->average_render_time = 0.0f;
+    book->timer.frames = 0;
+    book->timer.frame_timer = 0.0f;
+    book->timer.delta_time = 0.0f;
+    book->timer.prev_time = 0.0f;
+    book->timer.current_time = 0.0f;
+    book->timer.average_render_time = 0.0f;
 
     book->pipeline.rendering_pass.blending = BVR_BLEND_FUNC_ALPHA_ONE_MINUS;
     book->pipeline.rendering_pass.depth = BVR_DEPTH_TEST_ENABLE;
@@ -65,8 +65,8 @@ bvr_book_t* bvr_get_book_instance(){
 void bvr_new_frame(bvr_book_t* book){
     bvr_window_poll_events();
 
-    book->current_time = bvr_frames();
-    book->delta_time = (book->current_time - book->prev_time) / 1000.0f;
+    book->timer.current_time = bvr_frames();
+    book->timer.delta_time = (book->timer.current_time - book->timer.prev_time) / 1000.0f;
 
     // reset opengl states
     bvr_framebuffer_enable(&book->window.framebuffer);
@@ -116,7 +116,7 @@ void bvr_update(bvr_book_t* book){
     bvr_collider_t* collider = NULL;
     bvr_collider_t* other = NULL;
 
-    if(!bvr_is_active()){
+    if(!bvr_is_active(book)){
         return;
     }
 
@@ -150,8 +150,8 @@ void bvr_update(bvr_book_t* book){
                 bvr_compare_colliders(collider, other, &result);
 
                 if(result.collide == 1){
-                    //bvr_invert_direction(&collider->body);
-                    //BVR_IDENTITY_VEC3(collider->body.direction);
+                    bvr_invert_direction(&collider->body);
+                    BVR_IDENTITY_VEC3(collider->body.direction);
 
                     break;
                 }
@@ -200,21 +200,21 @@ void bvr_render(bvr_book_t* book){
 
 #ifndef BVR_NO_FPS_CAP
     // wait for next frame. 
-    if(book->prev_time + BVR_FRAMERATE > book->current_time){
-        bvr_delay(book->current_time - book->prev_time + BVR_FRAMERATE);
+    if(book->timer.prev_time + BVR_FRAMERATE > book->timer.current_time){
+        bvr_delay(book->timer.current_time - book->timer.prev_time + BVR_FRAMERATE);
     }
 #endif
 
-    book->frames++;
-    book->frame_timer += book->delta_time;
+    book->timer.frames++;
+    book->timer.frame_timer += book->timer.delta_time;
 
     //book->average_render_time = (int)(flerp((float)book->average_render_time, (float)(book->frames / book->frame_timer), 0.5f));
-    book->prev_time = book->current_time;
+    book->timer.prev_time = book->timer.current_time;
 
-    if(book->frames > BVR_TARGET_FRAMERATE){
-        book->average_render_time = book->frames / book->frame_timer;
-        book->frames = 0;
-        book->frame_timer = book->delta_time;
+    if(book->timer.frames > BVR_TARGET_FRAMERATE){
+        book->timer.average_render_time = book->timer.frames / book->timer.frame_timer;
+        book->timer.frames = 0;
+        book->timer.frame_timer = book->timer.delta_time;
     }
 
     bvr_poll_errors();
@@ -254,27 +254,32 @@ int bvr_create_page(bvr_page_t* page, const char* name){
     return BVR_OK;
 }
 
-void bvr_enable_page(){
-    
-#ifdef BVR_AUTO_SAVE
+void bvr_enable_page(bvr_page_t* page){
+    if(page == &__book_instance->page){
+        return;
+    }
 
+    if(bvr_is_active(__book_instance)){
+        bvr_disable_page(&__book_instance->page);
+    }
+
+    memcpy(&__book_instance->page, page, sizeof(bvr_page_t));
+
+#ifdef BVR_AUTO_SAVE
+    // load page's datas
     bvr_asset_t asset;
     if(bvr_find_asset(BVR_FORMAT("%s.bin", __book_instance->page.name.string), &asset)){
         bvr_open_book(BVR_FORMAT("%s.bin", __book_instance->page.name.string), bvr_get_book_instance());
     }
-
 #endif
-
-
 }
 
-void bvr_disable_page(){
+void bvr_disable_page(bvr_page_t* page){
 #ifdef BVR_AUTO_SAVE
-
+    // sage page's data
     if(access(BVR_FORMAT("%s.bin", __book_instance->page.name.string), F_OK)){
         bvr_write_book(BVR_FORMAT("%s.bin", __book_instance->page.name.string), bvr_get_book_instance());
     }
-
 #endif
 
     bvr_memstream_clear(&__book_instance->garbage_stream);

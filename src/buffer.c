@@ -8,6 +8,8 @@
 
 #define BVR_GROWTH_FACTOR 2
 
+static int bvri_grow_buffer(void* ptr, uint64* size);
+
 static int bvri_grow_buffer(void* ptr, uint64* size){
     if(ptr && size){
         ptr = realloc(ptr, (*size *= BVR_GROWTH_FACTOR));

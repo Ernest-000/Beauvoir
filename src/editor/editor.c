@@ -424,8 +424,8 @@ void bvr_editor_draw_inspector(){
                 
                 nk_layout_row_dynamic(__editor->gui.context, 15, 1);
 
-                nk_label(__editor->gui.context, BVR_FORMAT("render time %f ms", __editor->book->delta_time), NK_TEXT_ALIGN_LEFT);
-                nk_label(__editor->gui.context, BVR_FORMAT("fps %i", __editor->book->average_render_time), NK_TEXT_ALIGN_LEFT);
+                nk_label(__editor->gui.context, BVR_FORMAT("render time %f ms", __editor->book->timer.delta_time), NK_TEXT_ALIGN_LEFT);
+                nk_label(__editor->gui.context, BVR_FORMAT("fps %i", __editor->book->timer.average_render_time), NK_TEXT_ALIGN_LEFT);
 
                 nk_checkbox_label(__editor->gui.context, "is blending", (int*)&pipeline->rendering_pass.blending);
                 nk_checkbox_label(__editor->gui.context, "is depth testing", (int*)&pipeline->rendering_pass.depth);

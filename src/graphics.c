@@ -84,59 +84,32 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
 void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
     bvr_shader_enable(cmd->shader);
 
-    // bind correct texture
-    if(cmd->texture){
-        switch (cmd->texture_type)
-        {
-        case BVR_TEXTURE_2D:
-            bvr_texture_enable(cmd->texture, BVR_TEXTURE_UNIT0);
-            bvr_shader_use_uniform(bvr_find_uniform(cmd->shader, "bvr_texture"), cmd->texture);
-
-            break;
-
-        case BVR_TEXTURE_2D_ARRAY:
-            bvr_texture_atlas_enablei((bvr_texture_atlas_t*)cmd->texture, BVR_TEXTURE_UNIT0);
-
-            // update layer index with user data
-            if(cmd->user_data){
-                bvr_shader_use_uniform(bvr_find_uniform(cmd->shader, "bvr_texture"), cmd->texture);
-                bvr_shader_use_uniform(bvr_find_uniform(cmd->shader, "bvr_texture_z"), cmd->user_data);
-
-                free(cmd->user_data);
-                cmd->user_data = NULL;
-            }
-            break;
-
-        default:
-            break;
-        }
-    }
-
     glBindVertexArray(cmd->array_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, cmd->vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cmd->element_buffer);
 
     for (uint64 i = 0; i < cmd->attrib_count; i++)
     {
-        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(i);
     }
     
-    glDrawElements(cmd->draw_mode, cmd->element_count, GL_UNSIGNED_INT, (void*)cmd->element_offset);
+    glDrawElementsBaseVertex(cmd->draw_mode, 
+        cmd->vertex_group.element_count, 
+        cmd->element_type, 
+        NULL, 
+        cmd->vertex_group.element_offset
+    );
 
     for (uint64 i = 0; i < cmd->attrib_count; i++)
     {
-        glEnableVertexAttribArray(1);
+        glDisableVertexAttribArray(i);
     }
 
     glBindVertexArray(cmd->array_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, cmd->vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cmd->element_buffer);
 
-    // try to avoid mem leeks
-    if(cmd->user_data){
-        free(cmd->user_data);
-        cmd->user_data = NULL;
-    }
+    bvr_shader_disable();
 }
 
 void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd){
@@ -145,7 +118,8 @@ void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd){
     if(bvr_get_book_instance()->pipeline.command_count + 1 < BVR_MAX_DRAW_COMMAND){
         memcpy(
             &bvr_get_book_instance()->pipeline.commands[bvr_get_book_instance()->pipeline.command_count++], 
-            cmd, sizeof(struct bvr_draw_command_s));
+            cmd, sizeof(struct bvr_draw_command_s)
+        );
     }
 }
 

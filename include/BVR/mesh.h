@@ -54,7 +54,9 @@ typedef struct bvr_vertex_group_s {
 
     uint32 element_count;
     uint32 element_offset;
-} bvr_vertex_group_t;
+
+    uint32 texture;
+} __attribute__ ((packed)) bvr_vertex_group_t; 
 
 typedef struct bvr_mesh_s {
     uint32 array_buffer;
@@ -63,7 +65,8 @@ typedef struct bvr_mesh_s {
 
     uint32 vertex_count;
     uint32 element_count;
-    struct bvr_buffer_s vertex_groups;
+    
+    bvr_pool_t vertex_groups;
 
     int element_type;
 

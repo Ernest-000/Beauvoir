@@ -27,26 +27,23 @@
         struct bvr_pool_block_s (first ## ##a) = {0};   \
         struct bvr_pool_block_s* (block ## ##a) = &(first ## ##a); \
         while(                                                     \
-            pool.data && \
             ((int)(((block ## ##a) = (struct bvr_pool_block_s*)(pool.data + ((block ## ##a)->next * (pool.elemsize + sizeof(struct bvr_pool_block_s))))) \
-            && (a = *(typeof(a)*)((block ## ##a) + sizeof(struct bvr_pool_block_s)))))*0 \
-            || ((block ## ##a)->next || (block ## ##a) == &(first ## ##a)) \
+            && ((void*)memcpy(&a, ((block ## ##a) + sizeof(struct bvr_pool_block_s)), sizeof(__typeof(a))) == NULL))) \
+            || (pool.data && ((block ## ##a)->next) || 0 == (first ## ##a).next++) \
         )     
+
 // Clang specific macro
 #elif defined(__clang__) || defined(_MSC_VER)
-    #define BVR_POOL_FOR_EACH(a, pool)                                        \
-        struct bvr_pool_block_s first_##a = {0};                                    \
-        struct bvr_pool_block_s* block_##a = &first_##a;                            \
-        while (  \
-            pool.data &&                                                                   \
-            ((block_##a = (struct bvr_pool_block_s*)(                              \
-                (pool).data + (block_##a->next * ((pool).elemsize + sizeof(struct bvr_pool_block_s))))), \
-            (a = *((char*)block_##a + sizeof(struct bvr_pool_block_s))),     \
-            (block_##a->next || block_##a == &first_##a))                           \
-            
-        )
+    #define BVR_POOL_FOR_EACH(a, pool)    \
+        struct bvr_pool_block_s (first ## ##a) = {0};   \
+        struct bvr_pool_block_s* (block ## ##a) = &(first ## ##a); \
+        while(                                                     \
+            ((int)(((block ## ##a) = (struct bvr_pool_block_s*)(pool.data + ((block ## ##a)->next * (pool.elemsize + sizeof(struct bvr_pool_block_s))))) \
+            && (a = *((char*)block_##a + sizeof(struct bvr_pool_block_s))))) \
+            || (pool.data && ((block ## ##a)->next) || 0 == (first ## ##a).next++) \
+        ) 
 #else
-    #define BVR_POOL_FOR_EACH(a, pool) while(0)                                 
+    #define BVR_POOL_FOR_EACH(a, pool) for(int i = 0; i < pool.count; i++, a = bvr_pool_try_get(&pool, i))                                 
 #endif
 
 /*

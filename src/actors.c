@@ -341,7 +341,7 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
     BVR_IDENTITY_MAT4(actor->transform.matrix);
 }
 
-static void bvri_draw_layer_actor(bvr_layer_actor_t* actor){
+static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     struct bvr_draw_command_s cmd;
     bvr_shader_uniform_t* texture_uniform, *layer_uniform;
     texture_uniform = bvr_find_uniform(&actor->shader, "bvr_texture");
@@ -369,19 +369,12 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor){
         cmd.vertex_buffer = actor->mesh.vertex_buffer;
         cmd.element_buffer = actor->mesh.element_buffer;
         cmd.attrib_count = actor->mesh.attrib_count;
+        cmd.element_type = actor->mesh.element_type;
 
         cmd.shader = &actor->shader;
-        cmd.texture_type = BVR_TEXTURE_2D_ARRAY;
-        cmd.texture = (bvr_texture_t*)&actor->texture;
-        cmd.draw_mode = BVR_DRAWMODE_TRIANGLES;
-        cmd.element_count = actor->mesh.element_count;
-        cmd.element_offset = 0;
 
-        cmd.user_data = malloc(sizeof(int) + sizeof(bvr_layer_t*));
-        BVR_ASSERT(cmd.user_data);
-
-        memcpy(cmd.user_data, &layer_idx, sizeof(int));
-        memcpy(cmd.user_data + sizeof(int), &layer, sizeof(bvr_layer_t*));
+        cmd.draw_mode = drawmode;
+        cmd.vertex_group = *(bvr_vertex_group_t*)bvr_pool_try_get(&actor->mesh.vertex_groups, 0);
 
         bvr_pipeline_add_draw_cmd(&cmd);
     }
@@ -402,7 +395,7 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
 
     // layered actors are drawn differentlty
     if(actor->type == BVR_LAYER_ACTOR){
-        bvri_draw_layer_actor((bvr_layer_actor_t*)actor);
+        bvri_draw_layer_actor((bvr_layer_actor_t*)actor, drawmode);
         return;
     }
 
@@ -425,25 +418,14 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     cmd.vertex_buffer = sactor->mesh.vertex_buffer;
     cmd.element_buffer = sactor->mesh.element_buffer;
     cmd.attrib_count = sactor->mesh.attrib_count;
+    cmd.element_type = sactor->mesh.element_type;
 
     cmd.shader = &sactor->shader;
-    cmd.texture = NULL;
-    cmd.texture_type = 0;
     cmd.draw_mode = drawmode;
-    cmd.user_data = NULL;
 
-    // if using vertex groups
-    if(sactor->mesh.vertex_groups.data){
-        for (uint64 i = 0; i < BVR_BUFFER_COUNT(sactor->mesh.vertex_groups); i++)
-        {
-            cmd.element_offset = ((bvr_vertex_group_t*)sactor->mesh.vertex_groups.data)[i].element_offset;
-            cmd.element_count = ((bvr_vertex_group_t*)sactor->mesh.vertex_groups.data)[i].element_count;
-            bvr_pipeline_add_draw_cmd(&cmd);
-        }
-    }
-    else {
-        cmd.element_offset = 0;
-        cmd.element_count = sactor->mesh.element_count;
+    bvr_vertex_group_t group;
+    BVR_POOL_FOR_EACH(group, sactor->mesh.vertex_groups){
+        cmd.vertex_group = group;
         bvr_pipeline_add_draw_cmd(&cmd);
     }
 

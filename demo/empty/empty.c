@@ -27,7 +27,7 @@ int main(){
         bvr_new_frame(&book);
 
         /* quit the main loop if Beauvoir is not running */
-        if(!bvr_is_awake()){
+        if(!bvr_is_awake(&book)){
             break;
         }
 

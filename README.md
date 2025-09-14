@@ -1,12 +1,13 @@
 # Beauvoir
 > 'Beauvoir' just like Simone de Beauvoir
 
+![](./.github/beauvoir_rendu.png)
 ## Overview
 Beauvoir is an OpenGL-based game framework that aims to provide a simple, yet performant and flexible way to create 2D games - but it can also be used to create 3D games. I chose to create it in C and OpenGL ES 3.2 to keep the code simple and flexible.
 
 The goal of the framework is to create games around layered-based scenes. You can either import images from Photoshop using ```.PSD``` files or stack images manually. 
 
-Beauvoir can handle ```PNG```, ```PSD```, ```TIF``` and ```BMP``` through custom and fast read-only parser but more format still need to be added! It can also load simple ```OBJ``` 3d objects.
+Beauvoir can handle ```PNG```, ```PSD```, ```TIF``` and ```BMP``` through custom and fast read-only parser but more format still need to be added! It can also load simple ```OBJ``` 3d objects (```GLTF``` and ```FBX``` are still in development).
 
 The framework is still in early development, but I'm doing my best to improve it!
 
@@ -37,8 +38,8 @@ static bvr_book_t book;
 
 int main(){
     /* create initial game's context */
-    bvr_create_book(&book); // book = game context
-    bvr_create_page(&book.page); // page = scene
+    bvr_create_book(&book);
+    bvr_create_page(&book.page, "empty");
 
     /* create the window */
     bvr_create_window(&book.window, 800, 800, "Window", 0);
@@ -55,13 +56,10 @@ int main(){
         /* quit the main loop if Beauvoir is not running */
         if(!bvr_is_awake(&book)){
             break;
-            
         }
 
         /* update colliders and physics */
         bvr_update(&book);
-
-        /* rendering */
 
         /* push Beauvoir's graphics to the window */
         bvr_render(&book);
@@ -83,4 +81,5 @@ You can find submodules in the [Extern](/extern/) folder.
 - [Zlib](https://github.com/madler/zlib)
 - [Nuklear](https://github.com/vurtun/nuklear)
 - [Libpng16](https://github.com/pnggroup/libpng)
+- [Json-c](https://github.com/json-c/json-c)
 - [Linmath](https://github.com/datenwolf/linmath.h)

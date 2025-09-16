@@ -374,6 +374,7 @@ void bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data){
 
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
     if(!uniform || uniform->location == -1) {
+        BVR_PRINTF("cannot find uniform %i", uniform->name.string);
         return;
     }
 
@@ -406,18 +407,30 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
             return;
         
         case BVR_TEXTURE_2D:
-            // WARNING invalid uniform's memory pointer
-            glUniform1i(uniform->location, 0);
+            {
+                bvr_texture_t* texture = *(bvr_texture_t**)data;
+
+                bvr_texture_enable(texture);
+                glUniform1i(uniform->location, (int)texture->unit);
+            }
             break;
         
         case BVR_TEXTURE_2D_ARRAY:            
-            // WARNING invalid uniform's memory pointer
-            glUniform1i(uniform->location, 0);
+            {
+                bvr_texture_atlas_t* texture = *(bvr_texture_atlas_t**)data;
+
+                bvr_texture_atlas_enablei(texture);
+                glUniform1i(uniform->location, (int)texture->unit);
+            }
             break;
 
         case BVR_TEXTURE_2D_LAYER:
-            // WARNING invalid uniform's memory pointer
-            glUniform1i(uniform->location, 0);
+            {
+                bvr_layered_texture_t* texture = *(bvr_layered_texture_t**)data;
+
+                bvr_layered_texture_enable(texture);
+                glUniform1i(uniform->location, (int)texture->unit);
+            }
             break;
 
         default:

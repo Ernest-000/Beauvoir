@@ -29,8 +29,7 @@ int bvr_create_book(bvr_book_t* book){
     book->timer.average_render_time = 0.0f;
 
     book->pipeline.rendering_pass.blending = BVR_BLEND_FUNC_ALPHA_ONE_MINUS;
-    book->pipeline.rendering_pass.depth = BVR_DEPTH_TEST_ENABLE;
-    book->pipeline.rendering_pass.depth |= BVR_DEPTH_FUNC_LESS;
+    book->pipeline.rendering_pass.depth = BVR_DEPTH_FUNC_LESS;
     book->pipeline.rendering_pass.flags = 0;
 
     book->pipeline.swap_pass.blending = BVR_BLEND_DISABLE;

@@ -350,3 +350,12 @@ BVR_H_FUNC void mat4_rotate(mat4x4 dest, vec3 angles)
     dest[3][2] = 0.0f;
     dest[3][3] = 1.0f;
 }
+
+BVR_H_FUNC void quat_rotate(quat quat, float angle, vec3 const axis){
+    vec3 axis_normalized;
+    vec3_norm(axis_normalized, axis);
+    float s = sinf(angle / 2.0f);
+    float c = sinf(angle / 2.0f);
+    vec3_scale(quat, axis_normalized, s);
+    quat[3] = c;
+}

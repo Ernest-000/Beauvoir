@@ -1429,11 +1429,9 @@ int bvr_create_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap
     return bvr_create_texture_from_image(texture, &texture->image, filter, wrap);    
 }
 
-void bvr_texture_enable(bvr_texture_t* texture, int unit){
-    glActiveTexture(unit);
+void bvr_texture_enable(bvr_texture_t* texture){
+    glActiveTexture(BVR_TEXTURE_UNIT0 + texture->unit);
     glBindTexture(GL_TEXTURE_2D, texture->id);
-
-    texture->unit = unit;
 }
 
 void bvr_texture_disable(void){
@@ -1511,11 +1509,9 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
     return BVR_OK;
 }
 
-void bvr_texture_atlas_enablei(bvr_texture_atlas_t* atlas, int unit){
-    glActiveTexture(unit);
+void bvr_texture_atlas_enablei(bvr_texture_atlas_t* atlas){
+    glActiveTexture(BVR_TEXTURE_UNIT0 + atlas->unit);
     glBindTexture(GL_TEXTURE_2D_ARRAY, atlas->id);
-
-    atlas->unit = unit;
 }
 
 void bvr_texture_atlas_disable(void){
@@ -1607,11 +1603,9 @@ int bvr_create_layered_texturef(bvr_layered_texture_t* texture, FILE* file, int 
     return BVR_OK;
 }
 
-void bvr_layered_texture_enable(bvr_layered_texture_t* texture, int unit){
-    glActiveTexture(unit);
+void bvr_layered_texture_enable(bvr_layered_texture_t* texture){
+    glActiveTexture(BVR_TEXTURE_UNIT0 + texture->unit);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture->id);
-
-    texture->unit = unit;
 }
 
 void bvr_layered_texture_disable(void){

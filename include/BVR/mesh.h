@@ -55,7 +55,7 @@ typedef struct bvr_vertex_group_s {
     uint32 element_count;
     uint32 element_offset;
 
-    uint32 texture;
+    int texture;
 } __attribute__ ((packed)) bvr_vertex_group_t; 
 
 typedef struct bvr_mesh_s {

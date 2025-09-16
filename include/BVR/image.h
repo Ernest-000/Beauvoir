@@ -7,11 +7,13 @@
 #include <stdint.h>
 #include <stdio.h>
 
+// color modes
 #define BVR_RED     0x0
 #define BVR_GREEN   0x1
 #define BVR_BLUE    0x2
 #define BVR_ALPHA   0x3
 
+// color channels
 #define BVR_R       0x1903
 #define BVR_RG      0x8227
 #define BVR_RGB     0x1907
@@ -19,6 +21,7 @@
 #define BVR_RGBA    0x1908
 #define BVR_BGRA    0x80E1
 
+// sized color channels
 #define BVR_RED8    0x8229
 #define BVR_RG8     0x822B
 #define BVR_RGB8    0x8051
@@ -28,6 +31,7 @@
 #define BVR_RGB16   0x8054
 #define BVR_RGBA16  0x805B
 
+// texture units
 #define BVR_TEXTURE_UNIT0   0x84C0
 #define BVR_TEXTURE_UNIT1   0x84C1
 #define BVR_TEXTURE_UNIT2   0x84C2
@@ -61,12 +65,15 @@
 #define BVR_TEXTURE_UNIT30  0x84DE
 #define BVR_TEXTURE_UNIT31  0x84DF
 
+// texture filters
 #define BVR_TEXTURE_FILTER_NEAREST 0x2600
 #define BVR_TEXTURE_FILTER_LINEAR 0x2601
 
+// texture wrap modes
 #define BVR_TEXTURE_WRAP_REPEAT 0x2901
 #define BVR_TEXTURE_WRAP_CLAMP_TO_EDGE 0x812F
 
+// layers tags
 #define BVR_LAYER_CLIPPED   0x01
 #define BVR_LAYER_Y_SORTED  0x02
 
@@ -216,7 +223,7 @@ BVR_H_FUNC int bvr_create_texture(bvr_texture_t* texture, const char* path, int 
 /*
     Bind a texture. 
 */
-void bvr_texture_enable(bvr_texture_t* texture, int unit);
+void bvr_texture_enable(bvr_texture_t* texture);
 
 /*
     Unbind textures
@@ -241,7 +248,7 @@ BVR_H_FUNC int bvr_create_texture_atlas(bvr_texture_atlas_t* atlas, const char* 
     return success;
 }
 
-void bvr_texture_atlas_enablei(bvr_texture_atlas_t* atlas, int unit);
+void bvr_texture_atlas_enablei(bvr_texture_atlas_t* atlas);
 void bvr_texture_atlas_disable(void);
 void bvr_destroy_texture_atlas(bvr_texture_atlas_t* atlas);
 
@@ -262,7 +269,7 @@ BVR_H_FUNC int bvr_create_layered_texture(bvr_layered_texture_t* texture, const 
     return success;
 }
 
-void bvr_layered_texture_enable(bvr_layered_texture_t* texture, int unit);
+void bvr_layered_texture_enable(bvr_layered_texture_t* texture);
 void bvr_layered_texture_disable(void);
 
 void bvr_destroy_layered_texture(bvr_layered_texture_t* texture);

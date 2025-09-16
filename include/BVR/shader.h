@@ -18,9 +18,9 @@
 #define BVR_MAX_UNIFORM_COUNT 20
 #define BVR_MAX_SHADER_BLOCK_COUNT 5
 
-#define BVR_VERTEX_SHADER 0x001
-#define BVR_FRAGMENT_SHADER 0x002
-#define BVR_FRAMEBUFFER_SHADER 0x004
+#define BVR_VERTEX_SHADER       0x001
+#define BVR_FRAGMENT_SHADER     0x002
+#define BVR_FRAMEBUFFER_SHADER  0x004
 
 typedef struct bvr_shader_uniform_s {
     struct bvr_buffer_s memory;

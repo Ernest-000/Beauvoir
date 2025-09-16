@@ -343,24 +343,30 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
 
 static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     struct bvr_draw_command_s cmd;
-    bvr_shader_uniform_t* texture_uniform, *layer_uniform;
+    bvr_shader_uniform_t* texture_uniform;
+    bvr_shader_uniform_t* layer_uniform;
+
     texture_uniform = bvr_find_uniform(&actor->shader, "bvr_texture");
     layer_uniform = bvr_find_uniform(&actor->shader, "bvr_texture_z");
 
-    bvr_shader_enable(&actor->shader);
-    bvri_update_transform(&actor->object.transform);
-
     bvr_layer_t* layer;
-    for (int layer_idx = BVR_BUFFER_COUNT(actor->texture.image.layers); layer_idx >= 0; layer_idx--)
+    for (int id = 0; id < BVR_BUFFER_COUNT(actor->texture.image.layers); id++)
     {
-        layer = &((bvr_layer_t*)actor->texture.image.layers.data)[layer_idx];
+        layer = &((bvr_layer_t*)actor->texture.image.layers.data)[id];
         if(!layer->opacity){
             continue;
         }        
 
-        bvr_shader_use_uniform(&actor->shader.uniforms[0], &actor->object.transform.matrix[0][0]);
+        bvr_texture_atlas_enablei((bvr_texture_atlas_t*)&actor->texture);
 
-        cmd.order = actor->object.order_in_layer + layer_idx;
+        bvr_shader_enable(&actor->shader);
+        bvri_update_transform(&actor->object.transform);
+
+        bvr_shader_use_uniform(&actor->shader.uniforms[0], &actor->object.transform.matrix[0][0]);
+        bvr_shader_set_uniformi(texture_uniform, &actor->texture.id);
+        bvr_shader_set_uniformi(layer_uniform, &id);
+
+        cmd.order = actor->object.order_in_layer + id;
         if(BVR_HAS_FLAG(layer->flags, BVR_LAYER_Y_SORTED)){
             cmd.order += layer->anchor_y;
         }
@@ -375,8 +381,9 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
 
         cmd.draw_mode = drawmode;
         cmd.vertex_group = *(bvr_vertex_group_t*)bvr_pool_try_get(&actor->mesh.vertex_groups, 0);
+        cmd.vertex_group.texture = actor->texture.id;
 
-        bvr_pipeline_add_draw_cmd(&cmd);
+        bvr_pipeline_draw_cmd(&cmd);
     }
 
     bvr_shader_disable();

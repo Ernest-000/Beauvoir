@@ -1438,10 +1438,9 @@ void bvr_triangulate(bvr_mesh_buffer_t* src, bvr_mesh_buffer_t* dest, const uint
 void bvr_destroy_mesh(bvr_mesh_t* mesh){
     BVR_ASSERT(mesh);
 
-    BVR_BREAK();
-
     bvr_vertex_group_t group;
     BVR_POOL_FOR_EACH(group, mesh->vertex_groups){
+        //TODO: find why this fucking vertex group mess up string's pointer
         bvr_destroy_string(&group.name);
     }
 

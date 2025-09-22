@@ -249,29 +249,29 @@ static void bvri_create_bitmap_layer(bvr_bitmap_layer_t* layer, int flags){
 
 static void bvri_create_landscape(bvr_landscape_actor_t* landscape, int flags){
     // generate grid
-    float width = landscape->dimension[2];
-    float height = landscape->dimension[3];
+    const float count_x = landscape->dimension[0];
+    const float count_y = landscape->dimension[1];
+    const float tile_w = landscape->dimension[2];
+    const float tile_h = landscape->dimension[3];
     
-    float vertices[20] = {
-        -width,  height, 0, 0, 1,
-        -width, -height, 0, 0, 0,
-         width, -height, 0, 1, 0,
-         width,  height, 0, 1, 1
-    };
+    const int vertex_count = count_x * count_y * 2; 
 
-    uint32_t indices[6] = {0, 1, 2, 0, 2, 3};
+    int* vertices = malloc(vertex_count * sizeof(int));
+    BVR_ASSERT(vertices);
+
+    memset(vertices, 0, vertex_count * sizeof(int));
 
     bvr_mesh_buffer_t vertices_buffer;
     vertices_buffer.data = (char*) vertices;
-    vertices_buffer.type = BVR_FLOAT;
-    vertices_buffer.count = sizeof(vertices) / sizeof(float);
+    vertices_buffer.type = BVR_INT32;
+    vertices_buffer.count = vertex_count;
 
     bvr_mesh_buffer_t element_buffer;
-    element_buffer.data = (char*) indices;
+    element_buffer.data = (char*) NULL;
     element_buffer.type = BVR_UNSIGNED_INT32;
-    element_buffer.count = 6;
+    element_buffer.count = vertex_count;
 
-    bvr_create_meshv(&landscape->mesh, &vertices_buffer, &element_buffer, BVR_MESH_ATTRIB_V3UV2);
+    bvr_create_meshv(&landscape->mesh, &vertices_buffer, &element_buffer, BVR_MESH_ATTRIB_SINGLE);
 }
 
 void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_type_t type, int flags){
@@ -426,8 +426,6 @@ static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){
     bvr_shader_enable(&actor->shader);
 
     bvri_update_transform(&actor->object.transform);
-
-    BVR_IDENTITY_MAT4(actor->object.transform.matrix);
     bvr_shader_set_uniformi(&actor->shader.uniforms[0], actor->object.transform.matrix);
     
     struct bvr_draw_command_s cmd;
@@ -435,12 +433,12 @@ static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){
 
     cmd.array_buffer = actor->mesh.array_buffer;
     cmd.vertex_buffer = actor->mesh.vertex_buffer;
-    cmd.element_buffer = actor->mesh.element_buffer;
+    cmd.element_buffer = 0;
     cmd.attrib_count = actor->mesh.attrib_count;
     cmd.element_type = actor->mesh.element_type;
 
     cmd.shader = &actor->shader;
-    cmd.draw_mode = BVR_DRAWMODE_TRIANGLES;
+    cmd.draw_mode = BVR_DRAWMODE_TRIANGLES_STRIP;
 
     cmd.vertex_group = *(bvr_vertex_group_t*)bvr_pool_try_get(&actor->mesh.vertex_groups, 0);
 

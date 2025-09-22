@@ -93,6 +93,7 @@ void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
         glEnableVertexAttribArray(i);
     }
     
+    // if use element 
     if(cmd->element_buffer){ 
         glDrawElementsBaseVertex(cmd->draw_mode, 
             cmd->vertex_group.element_count, 

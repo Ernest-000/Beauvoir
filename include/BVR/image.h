@@ -158,6 +158,7 @@ typedef struct bvr_texture_atlas_s
     int filter, wrap;
 
     uint32 tile_width, tile_height;
+    uint32 tile_count_x, tile_count_y;
 } bvr_texture_atlas_t;
 
 /*

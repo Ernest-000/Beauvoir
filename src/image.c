@@ -1451,10 +1451,13 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
 
     BVR_ASSERT(atlas);
     BVR_ASSERT(file);
+
     atlas->filter = filter;
     atlas->wrap = wrap;
     atlas->tile_width = tile_width;
     atlas->tile_height = tile_height;
+    atlas->tile_count_x = 0;
+    atlas->tile_count_y = 0;
 
     atlas->id = 0;
     atlas->unit = 0;
@@ -1468,6 +1471,10 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
     if(BVR_BUFFER_COUNT(atlas->image.layers) > 1){
         // TODO: compress images into one layer
     }
+
+    atlas->tile_count_x = atlas->image.width / tile_width;
+    atlas->tile_count_y = atlas->image.height / tile_height;
+    const int tile_count = atlas->tile_count_x * atlas->tile_count_y;
 
     glGenTextures(1, &atlas->id);
     glBindTexture(GL_TEXTURE_2D_ARRAY, atlas->id);
@@ -1485,23 +1492,36 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
 
     glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, bvri_sizeof_format(atlas->image.format, atlas->image.depth), 
         atlas->tile_width, atlas->tile_height, 
-        (atlas->image.width / atlas->tile_width) * (atlas->image.height / atlas->tile_height)
+        tile_count
     );
 
     for (uint64 y = 0; y < atlas->image.height; y += atlas->tile_height)
     {
         for (uint64 x = 0; x < atlas->image.width; x += atlas->tile_width)
         {
+#ifndef BVR_NO_FLIP
             glTexSubImage3D(
                 GL_TEXTURE_2D_ARRAY, 0, 
                 0, 
                 0,
-                (y / atlas->tile_height) * (x / atlas->tile_width),
+                tile_count - ((y / atlas->tile_height) * atlas->tile_count_x + (atlas->tile_count_x - x / atlas->tile_width - 1)) - 1,
                 atlas->tile_width, 
                 atlas->tile_height, 
                 1, atlas->image.format, GL_UNSIGNED_BYTE,
                 atlas->image.pixels + (y * atlas->image.width + x) * atlas->image.channels
             );
+#else
+            glTexSubImage3D(
+                GL_TEXTURE_2D_ARRAY, 0, 
+                0, 
+                0,
+                ((y / atlas->tile_height) * atlas->tile_count_x + (x / atlas->tile_width)),
+                atlas->tile_width, 
+                atlas->tile_height, 
+                1, atlas->image.format, GL_UNSIGNED_BYTE,
+                atlas->image.pixels + (y * atlas->image.width + x) * atlas->image.channels
+            );
+#endif
         }
     }
     

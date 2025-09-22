@@ -77,7 +77,19 @@ static void bvri_draw_editor_mesh(bvr_mesh_t* mesh){
     nk_layout_row_dynamic(__editor->gui.context, 15, 1);
 
     nk_label(__editor->gui.context, "Mesh", NK_TEXT_ALIGN_CENTERED);
-    nk_layout_row_dynamic(__editor->gui.context, 90, 1);
+    nk_layout_row_dynamic(__editor->gui.context, 40, 1);
+    if (nk_group_begin(__editor->gui.context, BVR_FORMAT("framebuffer%x", &mesh), NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR))
+    {
+        nk_layout_row_dynamic(__editor->gui.context, 15, 2);
+
+        nk_label(__editor->gui.context, BVR_FORMAT("vertex count %i", mesh->vertex_count), NK_TEXT_ALIGN_LEFT);
+        nk_label(__editor->gui.context, BVR_FORMAT("element count %i", mesh->element_count), NK_TEXT_ALIGN_LEFT);
+
+        nk_label(__editor->gui.context, BVR_FORMAT("vertex buffer '0x%x'", mesh->vertex_buffer), NK_TEXT_ALIGN_LEFT);
+        nk_label(__editor->gui.context, BVR_FORMAT("element buffer '0x%x'", mesh->element_buffer), NK_TEXT_ALIGN_LEFT);
+
+        nk_group_end(__editor->gui.context);
+    }
 }
 
 static void bvri_draw_editor_image(bvr_image_t* image){

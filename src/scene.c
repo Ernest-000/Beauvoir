@@ -96,9 +96,50 @@ void bvr_new_frame(bvr_book_t* book){
         projection[3][3] =  1.0f;
     }
 
-    view[3][0] = camera->transform.position[0];
+    {
+        vec3 front, right, up, side;
+
+        const vec3 up_axis = {0.0f, 1.0f, 0.0f};
+        front[0] = cos(deg_to_rad(camera->transform.rotation[2]) + M_PI_2) * cos(deg_to_rad(camera->transform.rotation[1]));
+        front[1] = sin(deg_to_rad(camera->transform.rotation[1]));
+        front[2] = sin(deg_to_rad(camera->transform.rotation[2]) + M_PI_2) * cos(deg_to_rad(camera->transform.rotation[1]));
+    
+        vec3_norm(front, front);
+
+        vec3_mul_cross(right, front, up_axis);
+        vec3_norm(right, right);
+
+        vec3_mul_cross(up, right, front);
+        vec3_norm(up, up);
+        vec3_norm(front, front);
+
+        vec3_mul_cross(side, front, up);
+        vec3_norm(side, side);
+
+        vec3_mul_cross(up, side, front);
+        vec3_norm(up, up);
+
+        view[0][0] = side[0];
+        view[1][0] = side[1];
+        view[2][0] = side[2];
+        view[3][0] = -vec3_dot(side, camera->transform.position);
+        view[0][1] = up[0];
+        view[1][1] = up[1];
+        view[2][1] = up[2];
+        view[3][1] = -vec3_dot(up, camera->transform.position);
+        view[0][2] = -front[0];
+        view[1][2] = -front[1];
+        view[2][2] = -front[2];
+        view[3][2] = vec3_dot(front, camera->transform.position);
+        view[0][3] = 0.0f;
+        view[1][3] = 0.0f;
+        view[1][3] = 0.0f;
+        view[3][3] = 1.0f;
+    }
+
+    /*view[3][0] = camera->transform.position[0];
     view[3][1] = camera->transform.position[1];
-    view[3][2] = camera->transform.position[2];
+    view[3][2] = camera->transform.position[2];*/
 
     if(book->page.camera.framebuffer){
         bvr_enable_uniform_buffer(book->page.camera.buffer);

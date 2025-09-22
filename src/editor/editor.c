@@ -19,8 +19,8 @@
 
 #define BVR_EDITOR_VERTEX_BUFFER_SIZE 1000
 
-#define BVR_HIERARCHY_RECT(width, height) (nk_rect(50, 50, width, height))
-#define BVR_INSPECTOR_RECT(width, height) (nk_rect(350, 50, width, height))
+#define BVR_HIERARCHY_RECT(w, h) (nk_rect(0, 0, 200 + w, 450 + h))
+#define BVR_INSPECTOR_RECT(w, h) (nk_rect(__editor->book->window.framebuffer.width - 350 + w, 0, 350 + w, 400 + h))
 
 static int bvri_create_editor_render_buffers(uint32* array_buffer, uint32* vertex_buffer, uint64 vertex_size);
 static void bvri_bind_editor_buffers(uint32 array_buffer, uint32 vertex_buffer);
@@ -77,7 +77,7 @@ static void bvri_draw_editor_mesh(bvr_mesh_t* mesh){
     nk_layout_row_dynamic(__editor->gui.context, 15, 1);
 
     nk_label(__editor->gui.context, "Mesh", NK_TEXT_ALIGN_CENTERED);
-
+    nk_layout_row_dynamic(__editor->gui.context, 90, 1);
 }
 
 static void bvri_draw_editor_image(bvr_image_t* image){
@@ -227,7 +227,7 @@ void bvr_editor_draw_page_hierarchy(){
     BVR_ASSERT(__editor->state == BVR_EDITOR_STATE_HANDLE);
     __editor->state = BVR_EDITOR_STATE_DRAWING;
 
-    if(nk_begin(__editor->gui.context, BVR_FORMAT("scene '%s'", __editor->book->page.name.string), BVR_HIERARCHY_RECT(200, 450), 
+    if(nk_begin(__editor->gui.context, BVR_FORMAT("scene '%s'", __editor->book->page.name.string), BVR_HIERARCHY_RECT(0, 0), 
         NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE)){
 
         {
@@ -326,7 +326,16 @@ void bvr_editor_draw_page_hierarchy(){
                     break;
                 }
 
-                bvri_draw_hierarchy_button(actor->name.string, BVR_EDITOR_ACTOR, actor);
+                switch (actor->type)
+                {
+                case BVR_LANDSCAPE_ACTOR:
+                    bvri_draw_hierarchy_button(actor->name.string, BVR_EDITOR_LANDSCAPE, actor);
+                    break;
+                
+                default:
+                    bvri_draw_hierarchy_button(actor->name.string, BVR_EDITOR_ACTOR, actor);
+                    break;
+                }
             }
 
             nk_group_end(__editor->gui.context);
@@ -379,7 +388,8 @@ void bvr_editor_draw_inspector(){
 
     BVR_ASSERT(__editor->state == BVR_EDITOR_STATE_DRAWING);
 
-    if(nk_begin(__editor->gui.context, BVR_FORMAT("inspector '%s'", __editor->inspector_cmd.name.string), BVR_INSPECTOR_RECT(350, 200), 
+    
+    if(nk_begin(__editor->gui.context, BVR_FORMAT("inspector '%s'", __editor->inspector_cmd.name.string), BVR_INSPECTOR_RECT(0, 0), 
         NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE)){
     
         if(!__editor->inspector_cmd.pointer){
@@ -696,6 +706,24 @@ void bvr_editor_draw_inspector(){
                     }
                     //nk_group_end(__editor->gui.context);
                 } 
+            }
+            break;
+
+        case BVR_EDITOR_LANDSCAPE:
+            {
+                bvr_landscape_actor_t* actor = (bvr_landscape_actor_t*)__editor->inspector_cmd.pointer;
+                
+                nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+                nk_label(__editor->gui.context, BVR_FORMAT("id %s", actor->object.id), NK_TEXT_ALIGN_LEFT);
+                nk_label(__editor->gui.context, BVR_FORMAT("flags %x", actor->object.flags), NK_TEXT_ALIGN_LEFT);
+
+                nk_checkbox_label(__editor->gui.context, "is active", (nk_bool*)&actor->object.active);
+
+                bvri_draw_editor_transform(&actor->object.transform);
+
+                bvri_draw_editor_shader(&actor->shader);
+                bvri_draw_editor_image(&actor->atlas.image);
+                bvri_draw_editor_mesh(&actor->mesh);
             }
             break;
         default:

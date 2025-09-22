@@ -1131,12 +1131,6 @@ int bvr_create_meshv(bvr_mesh_t* mesh, bvr_mesh_buffer_t* vertices, bvr_mesh_buf
     mesh->stride = 0;
     mesh->attrib = attrib;
 
-    /*
-    mesh->vertex_groups.size = 0;
-    mesh->vertex_groups.elemsize = sizeof(bvr_vertex_group_t);
-    mesh->vertex_groups.data = NULL;
-    */
-
     bvr_create_pool(&mesh->vertex_groups, sizeof(bvr_vertex_group_t), 1);
 
     status = bvri_create_mesh_buffers(mesh, 
@@ -1150,16 +1144,6 @@ int bvr_create_meshv(bvr_mesh_t* mesh, bvr_mesh_buffer_t* vertices, bvr_mesh_buf
         return BVR_FAILED;
     }
 
-    // allocate a single vertex group 
-    /*mesh->vertex_groups.size = sizeof(bvr_vertex_group_t);
-    mesh->vertex_groups.data = malloc(mesh->vertex_groups.size);
-    BVR_ASSERT(mesh->vertex_groups.data);
-
-    ((bvr_vertex_group_t*)mesh->vertex_groups.data)[0].name.length = 0;
-    ((bvr_vertex_group_t*)mesh->vertex_groups.data)[0].name.string = NULL;
-    ((bvr_vertex_group_t*)mesh->vertex_groups.data)[0].element_offset = 0;
-    ((bvr_vertex_group_t*)mesh->vertex_groups.data)[0].element_count = elements->count;*/
-
     bvr_vertex_group_t* group = bvr_pool_alloc(&mesh->vertex_groups);
     group->name.length = 0;
     group->name.string = NULL;
@@ -1172,7 +1156,10 @@ int bvr_create_meshv(bvr_mesh_t* mesh, bvr_mesh_buffer_t* vertices, bvr_mesh_buf
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->element_buffer);
 
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertices->count * bvr_sizeof(vertices->type), vertices->data);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, elements->count * bvr_sizeof(elements->type), elements->data);
+
+    if(elements->count){
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, elements->count * bvr_sizeof(elements->type), elements->data);
+    }
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -1273,6 +1260,16 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
 
             glEnableVertexAttribArray(2);
             glVertexAttribPointer(2, 3, vertex_type, GL_FALSE, mesh->stride, (void*)(5 * bvr_sizeof(vertex_type)));
+        }
+        break;
+
+    case BVR_MESH_ATTRIB_SINGLE:
+        {
+            mesh->attrib_count = 1;
+            mesh->stride = sizeof(vertex_type);
+
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 1, vertex_type, GL_FALSE, mesh->stride, (void*)0);
         }
         break;
 

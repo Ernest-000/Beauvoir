@@ -269,7 +269,14 @@ BVR_H_FUNC int bvr_create_layered_texture(bvr_layered_texture_t* texture, const 
     return success;
 }
 
-void bvr_layered_texture_enable(bvr_layered_texture_t* texture);
-void bvr_layered_texture_disable(void);
+
+BVR_H_FUNC void bvr_layered_texture_enable(bvr_layered_texture_t* texture){
+    bvr_texture_atlas_enablei((bvr_texture_atlas_t*)texture);
+}
+
+BVR_H_FUNC void bvr_layered_texture_disable(void){
+    bvr_texture_atlas_disable();
+}
+
 
 void bvr_destroy_layered_texture(bvr_layered_texture_t* texture);

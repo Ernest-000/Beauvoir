@@ -199,6 +199,7 @@ shader_cstor_bidings:
     shader->uniforms[0].name.string = NULL;
     shader->uniforms[0].name.length = 0;
     shader->uniforms[0].type = BVR_MAT4;
+    shader->uniforms[0].tags = BVR_UNIFORM_TRANSFORM;
     if (shader->blocks[0].location == -1) {
         BVR_PRINT("cannot find transform uniform!");
     }
@@ -344,24 +345,29 @@ bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* 
 }
 
 void bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data){
-    if(data && uniform){
-        BVR_ASSERT(uniform->memory.data);
+    if(!uniform){
+        BVR_PRINT("cannot access uniform's memory");
+        return;
+    }
+    
+    if(data){
+        switch (uniform->type)
+        {
+        case BVR_MAT4:
+            uniform->memory.data = data;
+            break;
+        
+        default:
+            if(!uniform->memory.data){
+                break;
+            }
 
-        memcpy(uniform->memory.data, data, uniform->memory.size);
+            memcpy(uniform->memory.data, data, uniform->memory.size);
+            break;
+        }
     }
     else {
-        BVR_PRINT("skipping uniform data updating, data is NULL");
-    }
-}
-
-void bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, void* texture){
-    if(texture && uniform){
-        BVR_ASSERT(uniform->memory.data);
-
-        memcpy(uniform->memory.data, &texture, uniform->memory.size);
-    }
-    else {
-        BVR_PRINT("skipping texture updating, data is NULL");
+        BVR_PRINTF("failed to copy %s's data!", uniform->name.string);
     }
 }
 
@@ -374,7 +380,7 @@ void bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data){
 
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
     if(!uniform || uniform->location == -1) {
-        BVR_PRINTF("cannot find uniform %i", uniform->name.string);
+        BVR_PRINTF("cannot find uniform %s", uniform->name.string);
         return;
     }
 
@@ -465,7 +471,11 @@ void bvr_destroy_shader(bvr_shader_t* shader){
     {
         bvr_destroy_string(&shader->uniforms[uniform].name);
 
-        free(shader->uniforms[uniform].memory.data);
+        // skip transform
+        if(shader->uniforms[uniform].type != BVR_MAT4){
+            free(shader->uniforms[uniform].memory.data);    
+        }
+
         shader->uniforms[uniform].memory.data = NULL;
     }
 

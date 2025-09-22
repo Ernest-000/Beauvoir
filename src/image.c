@@ -1493,10 +1493,14 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
         for (uint64 x = 0; x < atlas->image.width; x += atlas->tile_width)
         {
             glTexSubImage3D(
-                GL_TEXTURE_2D_ARRAY, 0, 0, 0,
-                y * (atlas->image.width / atlas->tile_width) + x,
-                atlas->tile_width, atlas->tile_height, 1, atlas->image.format, GL_UNSIGNED_BYTE,
-                atlas->image.pixels + ((y * atlas->tile_height * atlas->image.width + x * atlas->tile_width) * atlas->image.channels)
+                GL_TEXTURE_2D_ARRAY, 0, 
+                0, 
+                0,
+                (y / atlas->tile_height) * (x / atlas->tile_width),
+                atlas->tile_width, 
+                atlas->tile_height, 
+                1, atlas->image.format, GL_UNSIGNED_BYTE,
+                atlas->image.pixels + (y * atlas->image.width + x) * atlas->image.channels
             );
         }
     }
@@ -1603,14 +1607,14 @@ int bvr_create_layered_texturef(bvr_layered_texture_t* texture, FILE* file, int 
     return BVR_OK;
 }
 
-void bvr_layered_texture_enable(bvr_layered_texture_t* texture){
+/*void bvr_layered_texture_enable(bvr_layered_texture_t* texture){
     glActiveTexture(BVR_TEXTURE_UNIT0 + texture->unit);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture->id);
 }
 
 void bvr_layered_texture_disable(void){
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-}
+}*/
 
 void bvr_destroy_layered_texture(bvr_layered_texture_t* texture){
     BVR_ASSERT(texture);

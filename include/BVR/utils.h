@@ -55,6 +55,7 @@ int bvr_sizeof(const int type);
 
 /*
     Return the name of a type as a string.
+    WARNING: VERY UNSAFE, if 'name' isn't big enough it might overwrite the next memory chunk!
 */
 void bvr_nameof(const int type, char* name);
 

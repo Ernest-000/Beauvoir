@@ -9,6 +9,7 @@ typedef enum bvr_drawmode_e {
     BVR_DRAWMODE_LINES = 0x0001,
     BVR_DRAWMODE_LINE_STRIPE = 0x0003,
     BVR_DRAWMODE_TRIANGLES = 0x0004,
+    BVR_DRAWMODE_TRIANGLES_STRIP = 0x0005,
     BVR_DRAWMODE_QUADS = 0x0007
 } bvr_drawmode_t;
 
@@ -46,7 +47,17 @@ typedef enum bvr_mesh_array_attrib_e {
         uvs         -> vec2
         normals     -> vec3 
     */
-    BVR_MESH_ATTRIB_V3UV2N3
+    BVR_MESH_ATTRIB_V3UV2N3,
+
+    /*
+        special attribute use for landscapes
+
+        0x00000011 -> tex id
+        0x00001100 -> altitude
+        0x00110000 -> normal yaw
+        0x11000000 -> normal pitch
+    */
+    BVR_MESH_ATTRIB_SINGLE
 } bvr_mesh_array_attrib_t;
 
 typedef struct bvr_vertex_group_s {

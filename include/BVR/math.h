@@ -49,6 +49,19 @@ struct bvr_bounds_s {
                                 mat[3][2] = 0.0f;\
                                 mat[3][3] = 1.0f;
 
+/*
+    Define each transform's values. 
+    x, y, z sets x, y and z position values
+    roll, pitch, yaw sets roll, pitch and yaw rotations values
+    scale sets transform's uniform scale
+*/
+#define BVR_TRANSFORM(tr, x, y, z, roll, pitch, yaw, scalev) \
+    tr.position[0] = x;                                     \
+    tr.position[1] = y;                                     \
+    tr.position[2] = z;                                     \
+    quat_euler(tr.rotation, roll, pitch, yaw);              \
+    BVR_SCALE_VEC3(tr.scale, scalev)                         
+
 BVR_H_FUNC float flerp(float a, float b, float t){
     return a + t * (b - a);
 }
@@ -358,4 +371,18 @@ BVR_H_FUNC void quat_rotate(quat quat, float angle, vec3 const axis){
     float c = sinf(angle / 2.0f);
     vec3_scale(quat, axis_normalized, s);
     quat[3] = c;
+}
+
+BVR_H_FUNC void quat_euler(quat quat, float roll, float pitch, float yaw){
+    float cr = cos(roll * 0.5);
+    float sr = sin(roll * 0.5);
+    float cp = cos(pitch * 0.5);
+    float sp = sin(pitch * 0.5);
+    float cy = cos(yaw * 0.5);
+    float sy = sin(yaw * 0.5);
+
+    quat[3] = cr * cp * cy + sr * sp * sy;
+    quat[0] = sr * cp * cy - cr * sp * sy;
+    quat[1] = cr * sp * cy + sr * cp * sy;
+    quat[2] = cr * cp * sy - sr * sp * cy;
 }

@@ -247,6 +247,33 @@ static void bvri_create_bitmap_layer(bvr_bitmap_layer_t* layer, int flags){
     }
 }
 
+static void bvri_create_landscape(bvr_landscape_actor_t* landscape, int flags){
+    // generate grid
+    float width = landscape->dimension[2];
+    float height = landscape->dimension[3];
+    
+    float vertices[20] = {
+        -width,  height, 0, 0, 1,
+        -width, -height, 0, 0, 0,
+         width, -height, 0, 1, 0,
+         width,  height, 0, 1, 1
+    };
+
+    uint32_t indices[6] = {0, 1, 2, 0, 2, 3};
+
+    bvr_mesh_buffer_t vertices_buffer;
+    vertices_buffer.data = (char*) vertices;
+    vertices_buffer.type = BVR_FLOAT;
+    vertices_buffer.count = sizeof(vertices) / sizeof(float);
+
+    bvr_mesh_buffer_t element_buffer;
+    element_buffer.data = (char*) indices;
+    element_buffer.type = BVR_UNSIGNED_INT32;
+    element_buffer.count = 6;
+
+    bvr_create_meshv(&landscape->mesh, &vertices_buffer, &element_buffer, BVR_MESH_ATTRIB_V3UV2);
+}
+
 void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_type_t type, int flags){
     BVR_ASSERT(actor);
 
@@ -263,7 +290,6 @@ void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_typ
     bvr_create_uuid(actor->id);
 
     BVR_PRINTF("created a new actor %x", actor);
-
     switch (type)
     {
     case BVR_EMPTY_ACTOR:
@@ -282,6 +308,10 @@ void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_typ
     
     case BVR_DYNAMIC_ACTOR:
         bvri_create_dynamic_actor((bvr_dynamic_actor_t*)actor, flags);
+        break;
+
+    case BVR_LANDSCAPE_ACTOR:
+        bvri_create_landscape((bvr_landscape_actor_t*)actor, flags);
         break;
 
     default:
@@ -328,6 +358,13 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
             bvr_destroy_collider(&((bvr_dynamic_actor_t*)actor)->collider);
         }
         break;
+    case BVR_LANDSCAPE_ACTOR:
+        {
+            bvr_destroy_mesh(&((bvr_landscape_actor_t*)actor)->mesh);
+            bvr_destroy_shader(&((bvr_landscape_actor_t*)actor)->shader);
+            bvr_destroy_texture_atlas(&((bvr_landscape_actor_t*)actor)->atlas);
+        }
+        break;
     default:
         break;
     }
@@ -343,14 +380,11 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
 
 static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     struct bvr_draw_command_s cmd;
-    bvr_shader_uniform_t* texture_uniform;
-    bvr_shader_uniform_t* layer_uniform;
 
-    texture_uniform = bvr_find_uniform(&actor->shader, "bvr_texture");
-    layer_uniform = bvr_find_uniform(&actor->shader, "bvr_texture_z");
+    const bvr_shader_uniform_t* layer_uniform = bvr_find_uniform(&actor->shader, "bvr_texture_z");
 
     bvr_layer_t* layer;
-    for (int id = 0; id < BVR_BUFFER_COUNT(actor->texture.image.layers); id++)
+    for (int id = BVR_BUFFER_COUNT(actor->texture.image.layers); id >= 0; id--)
     {
         layer = &((bvr_layer_t*)actor->texture.image.layers.data)[id];
         if(!layer->opacity){
@@ -363,7 +397,6 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
         bvri_update_transform(&actor->object.transform);
 
         bvr_shader_use_uniform(&actor->shader.uniforms[0], &actor->object.transform.matrix[0][0]);
-        bvr_shader_set_uniformi(texture_uniform, &actor->texture.id);
         bvr_shader_set_uniformi(layer_uniform, &id);
 
         cmd.order = actor->object.order_in_layer + id;
@@ -389,6 +422,33 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     bvr_shader_disable();
 }
 
+static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){
+    bvr_shader_enable(&actor->shader);
+
+    bvri_update_transform(&actor->object.transform);
+
+    BVR_IDENTITY_MAT4(actor->object.transform.matrix);
+    bvr_shader_set_uniformi(&actor->shader.uniforms[0], actor->object.transform.matrix);
+    
+    struct bvr_draw_command_s cmd;
+    cmd.order = actor->object.order_in_layer;
+
+    cmd.array_buffer = actor->mesh.array_buffer;
+    cmd.vertex_buffer = actor->mesh.vertex_buffer;
+    cmd.element_buffer = actor->mesh.element_buffer;
+    cmd.attrib_count = actor->mesh.attrib_count;
+    cmd.element_type = actor->mesh.element_type;
+
+    cmd.shader = &actor->shader;
+    cmd.draw_mode = BVR_DRAWMODE_TRIANGLES;
+
+    cmd.vertex_group = *(bvr_vertex_group_t*)bvr_pool_try_get(&actor->mesh.vertex_groups, 0);
+
+    bvr_pipeline_add_draw_cmd(&cmd);
+
+    bvr_shader_disable();
+}
+
 void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     // skip actor if 
     if(bvr_is_actor_null(actor) || !actor->active){
@@ -406,20 +466,22 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
         return;
     }
 
+    if(actor->type == BVR_LANDSCAPE_ACTOR){
+        bvri_draw_landscape_actor((bvr_landscape_actor_t*)actor);
+        return;
+    }
+
     // update shaders transform
     bvri_update_transform(&actor->transform);
 
     bvr_static_actor_t* sactor = (bvr_static_actor_t*)actor;
 
     bvr_shader_enable(&sactor->shader);
-    bvr_shader_use_uniform(&sactor->shader.uniforms[0], &actor->transform.matrix[0][0]);
+    bvr_shader_use_uniform(&sactor->shader.uniforms[0], actor->transform.matrix);
 
     struct bvr_draw_command_s cmd;
     
     cmd.order = actor->order_in_layer;
-    if(BVR_HAS_FLAG(actor->flags, BVR_DYNACTOR_Y_SORTED)){
-        cmd.order += abs((int)(actor->transform.position[1] / 50.0f));
-    }
 
     cmd.array_buffer = sactor->mesh.array_buffer;
     cmd.vertex_buffer = sactor->mesh.vertex_buffer;

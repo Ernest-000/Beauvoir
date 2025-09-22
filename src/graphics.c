@@ -93,12 +93,17 @@ void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
         glEnableVertexAttribArray(i);
     }
     
-    glDrawElementsBaseVertex(cmd->draw_mode, 
-        cmd->vertex_group.element_count, 
-        cmd->element_type, 
-        NULL, 
-        cmd->vertex_group.element_offset
-    );
+    if(cmd->element_buffer){ 
+        glDrawElementsBaseVertex(cmd->draw_mode, 
+            cmd->vertex_group.element_count, 
+            cmd->element_type, 
+            NULL, 
+            cmd->vertex_group.element_offset
+        );
+    }
+    else {
+        glDrawArrays(cmd->draw_mode, cmd->vertex_group.element_offset, cmd->vertex_group.element_count);
+    }
 
     for (uint64 i = 0; i < cmd->attrib_count; i++)
     {

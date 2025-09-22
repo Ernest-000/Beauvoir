@@ -419,7 +419,10 @@ struct bvr_actor_s* bvr_link_actor_to_page(bvr_page_t* page, struct bvr_actor_s*
                 collider->transform = &(*aptr)->transform;
             }
             break;
-        
+        case BVR_LANDSCAPE_ACTOR:
+            {
+                bvr_memstream_write(&bvr_get_book_instance()->garbage_stream, actor, sizeof(bvr_landscape_actor_t));
+            }
         default:
             break;
         }

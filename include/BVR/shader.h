@@ -22,17 +22,24 @@
 #define BVR_FRAGMENT_SHADER     0x002
 #define BVR_FRAMEBUFFER_SHADER  0x004
 
+#define BVR_UNIFORM_NONE        0x000
+#define BVR_UNIFORM_TRANSFORM   0x001
+#define BVR_UNIFORM_TEXTURE     0x002
+#define BVR_UNIFORM_LAYER_INDEX 0x004
+
 typedef struct bvr_shader_uniform_s {
     struct bvr_buffer_s memory;
 
     bvr_string_t name;
     short location;
-    int type;
+
+    uint16 type;
+    uint16 tags;
 } bvr_shader_uniform_t;
 
 typedef struct bvr_shader_stage_s {
     uint32 shader;
-    int type;
+    uint16 type;
 } bvr_shader_stage_t;
 
 typedef struct bvr_shader_block_s {
@@ -114,11 +121,13 @@ BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform(bvr_shader_t* shader, const ch
 }
 
 void bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data);
-void bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, void* texture);
+BVR_H_FUNC void bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, void* texture){
+    bvr_shader_set_uniformi(uniform, &texture);
+}
 
 void bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data);
 BVR_H_FUNC void bvr_shader_set_texture(bvr_shader_t* shader, const char* name, void* texture){
-    bvr_shader_set_texturei(bvr_find_uniform(shader, name), texture);
+    bvr_shader_set_uniformi(bvr_find_uniform(shader, name), &texture);
 }
 
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data);

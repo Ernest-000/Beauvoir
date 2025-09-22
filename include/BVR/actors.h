@@ -48,7 +48,8 @@ typedef enum bvr_actor_type_e {
     BVR_LAYER_ACTOR,
     BVR_BITMAP_ACTOR,
     BVR_STATIC_ACTOR,
-    BVR_DYNAMIC_ACTOR
+    BVR_DYNAMIC_ACTOR,
+    BVR_LANDSCAPE_ACTOR
 } bvr_actor_type_t;
 
 /*
@@ -106,6 +107,23 @@ typedef struct bvr_bitmap_layer_s {
 
     bvr_texture_t bitmap;
 } bvr_bitmap_layer_t;
+
+typedef struct bvr_landscape_actor_s {
+    struct bvr_actor_s object;
+
+    bvr_mesh_t mesh;
+    bvr_shader_t shader;
+    
+    bvr_texture_atlas_t atlas;
+
+    /*
+        0 -> width
+        1 -> height
+        2 -> res x
+        3 -> res y
+    */
+    vec4 dimension;
+} bvr_landscape_actor_t;
 
 /*
     Initialize a generic actor.

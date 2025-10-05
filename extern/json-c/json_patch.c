@@ -109,7 +109,7 @@ static int json_patch_apply_remove(struct json_object **res, const char *path, s
 }
 
 // callback for json_pointer_set_with_array_cb()
-static int json_object_array_insert_idx_cb(struct json_object *parent, size_t idx,
+static int json_object_array_insert_idx_cb(struct json_object *parent, uint64 idx,
                                            struct json_object *value, void *priv)
 {
 	int rc;
@@ -160,12 +160,12 @@ static int json_patch_apply_add_replace(struct json_object **res,
 }
 
 // callback for json_pointer_set_with_array_cb()
-static int json_object_array_move_cb(struct json_object *parent, size_t idx,
+static int json_object_array_move_cb(struct json_object *parent, uint64 idx,
                                      struct json_object *value, void *priv)
 {
 	int rc;
 	struct json_pointer_get_result *from = priv;
-	size_t len = json_object_array_length(parent);
+	uint64 len = json_object_array_length(parent);
 
 	/**
 	 * If it's the same array parent, it means that we removed
@@ -197,7 +197,7 @@ static int json_patch_apply_move_copy(struct json_object **res,
 	struct json_pointer_get_result from;
 	struct json_object *jfrom;
 	const char *from_s;
-	size_t from_s_len;
+	uint64 from_s_len;
 	int rc;
 
 	if (!json_object_object_get_ex(patch_elem, "from", &jfrom)) {
@@ -257,7 +257,7 @@ static int json_patch_apply_move_copy(struct json_object **res,
 int json_patch_apply(struct json_object *copy_from, struct json_object *patch,
                      struct json_object **base, struct json_patch_error *patch_error)
 {
-	size_t ii;
+	uint64 ii;
 	int rc = 0;
 	struct json_patch_error placeholder;
 

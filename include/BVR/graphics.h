@@ -2,8 +2,10 @@
 
 #include <BVR/math.h>
 #include <BVR/buffer.h>
+
 #include <BVR/mesh.h>
 #include <BVR/shader.h>
+#include <BVR/image.h>
 
 #define BVR_BLEND_DISABLE   0x000
 #define BVR_BLEND_ENABLE    0x001
@@ -29,11 +31,29 @@
 #define BVR_DEPTH_FUNC_NOTEQUAL 0x080
 #define BVR_DEPTH_FUNC_EQUAL    0x100
 
+#define BVR_MAX_DRAW_COMMAND 258
+
 struct bvr_pipeline_state_s {
-    int blending;
-    int depth;
+    short blending;
+    short depth;
     int flags;
 };
+
+struct bvr_draw_command_s {
+    short order;
+
+    uint32 array_buffer;
+    uint32 vertex_buffer;
+    uint32 element_buffer;
+
+    uint8 draw_mode;
+    uint8 attrib_count;
+    int element_type;
+
+    bvr_vertex_group_t vertex_group;
+    
+    bvr_shader_t* shader;
+} __attribute__ ((packed));
 
 typedef struct bvr_pipeline_s {
     /*
@@ -47,26 +67,38 @@ typedef struct bvr_pipeline_s {
     */
     struct bvr_pipeline_state_s swap_pass;
 
+    /*
+        Store all draw command and the current index
+    */
+    uint16 command_count;
+    struct bvr_draw_command_s commands[BVR_MAX_DRAW_COMMAND];
+
     vec3 clear_color;
 } bvr_pipeline_t;
 
 typedef struct bvr_framebuffer_s {
-    int width, target_width;
-    int height, target_height;
+    uint16 width, target_width;
+    uint16 height, target_height;
 
-    uint32_t buffer;
-    uint32_t color_buffer, depth_buffer, stencil_buffer;
-    uint32_t vertex_buffer, array_buffer;
+    uint32 buffer;
+    uint32 color_buffer, depth_buffer, stencil_buffer;
+    uint32 vertex_buffer, array_buffer;
 
     bvr_shader_t shader;
 } bvr_framebuffer_t;
 
-void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* state);
-void bvr_error();
+void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state);
+void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd);
+void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd);
+void bvr_poll_errors(void);
 
-int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, int width, int height, const char* shader);
+BVR_H_FUNC int bvr_pipeline_compare_commands(const void* a, const void* b){
+    return (((struct bvr_draw_command_s*)a)->order - ((struct bvr_draw_command_s*)b)->order);
+}
+
+int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, const uint16 width, const uint16 height, const char* shader);
 void bvr_framebuffer_enable(bvr_framebuffer_t* framebuffer);
 void bvr_framebuffer_disable(bvr_framebuffer_t* framebuffer);
-void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 color);
+void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 const color);
 void bvr_framebuffer_blit(bvr_framebuffer_t* framebuffer);
 void bvr_destroy_framebuffer(bvr_framebuffer_t* framebuffer);

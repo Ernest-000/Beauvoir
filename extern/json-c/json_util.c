@@ -198,7 +198,7 @@ static int _json_object_to_fd(int fd, struct json_object *obj, int flags, const 
 {
 	ssize_t ret;
 	const char *json_str;
-	size_t wpos, wsize;
+	uint64 wpos, wsize;
 
 	filename = filename ? filename : "(fd)";
 
@@ -219,7 +219,7 @@ static int _json_object_to_fd(int fd, struct json_object *obj, int flags, const 
 		}
 
 		/* because of the above check for ret < 0, we can safely cast and add */
-		wpos += (size_t)ret;
+		wpos += (uint64)ret;
 	}
 
 	return 0;
@@ -240,10 +240,10 @@ int json_parse_double(const char *buf, double *retval)
 	return end == buf ? 1 : 0;
 }
 
-int json_parse_int64(const char *buf, int64_t *retval)
+int json_parse_int64(const char *buf, int64 *retval)
 {
 	char *end = NULL;
-	int64_t val;
+	int64 val;
 
 	errno = 0;
 	val = strtoll(buf, &end, 10);
@@ -257,10 +257,10 @@ int json_parse_int64(const char *buf, int64_t *retval)
 	return 0;
 }
 
-int json_parse_uint64(const char *buf, uint64_t *retval)
+int json_parse_uint64(const char *buf, uint64 *retval)
 {
 	char *end = NULL;
-	uint64_t val;
+	uint64 val;
 
 	errno = 0;
 	while (*buf == ' ')

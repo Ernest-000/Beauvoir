@@ -2,7 +2,7 @@
 
 #include <json.h>
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const uint8 *data, uint64 size)
 {
 	const char *data1 = reinterpret_cast<const char *>(data);
 	json_tokener *tok = json_tokener_new();

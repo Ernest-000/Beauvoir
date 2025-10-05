@@ -93,7 +93,7 @@ int my_custom_serializer(struct json_object *jso, struct printbuf *pb, int level
 }
 
 json_c_shallow_copy_fn my_shallow_copy;
-int my_shallow_copy(json_object *src, json_object *parent, const char *key, size_t index,
+int my_shallow_copy(json_object *src, json_object *parent, const char *key, uint64 index,
                     json_object **dst)
 {
 	int rc;

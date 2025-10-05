@@ -238,7 +238,7 @@ JSON_EXPORT const char *json_object_to_json_string_ext(struct json_object *obj, 
  * @returns a string in JSON format and the length if not NULL
  */
 JSON_EXPORT const char *json_object_to_json_string_length(struct json_object *obj, int flags,
-                                                          size_t *length);
+                                                          uint64 *length);
 
 /**
  * Returns the userdata set by json_object_set_userdata() or
@@ -373,7 +373,7 @@ JSON_EXPORT int json_object_object_length(const struct json_object *obj);
 /** Get the sizeof (struct json_object).
  * @returns a size_t with the sizeof (struct json_object)
  */
-JSON_C_CONST_FUNCTION(JSON_EXPORT size_t json_c_object_sizeof(void));
+JSON_C_CONST_FUNCTION(JSON_EXPORT uint64 json_c_object_sizeof(void));
 
 /** Add an object field to a json_object of type json_type_object
  *
@@ -563,7 +563,7 @@ JSON_EXPORT struct array_list *json_object_get_array(const struct json_object *o
  * @param obj the json_object instance
  * @returns the length of the array
  */
-JSON_EXPORT size_t json_object_array_length(const struct json_object *obj);
+JSON_EXPORT uint64 json_object_array_length(const struct json_object *obj);
 
 /** Sorts the elements of jso of type json_type_array
 *
@@ -620,7 +620,7 @@ JSON_EXPORT int json_object_array_add(struct json_object *obj, struct json_objec
  * @param idx the index to insert the element at
  * @param val the json_object to be added
  */
-JSON_EXPORT int json_object_array_put_idx(struct json_object *obj, size_t idx,
+JSON_EXPORT int json_object_array_put_idx(struct json_object *obj, uint64 idx,
                                           struct json_object *val);
 
 /** Insert an element at a specified index in an array (a json_object of type json_type_array)
@@ -639,7 +639,7 @@ JSON_EXPORT int json_object_array_put_idx(struct json_object *obj, size_t idx,
  * @param idx the index to insert the element at
  * @param val the json_object to be added
  */
-JSON_EXPORT int json_object_array_insert_idx(struct json_object *obj, size_t idx,
+JSON_EXPORT int json_object_array_insert_idx(struct json_object *obj, uint64 idx,
                                              struct json_object *val);
 
 /** Get the element at specified index of array `obj` (which must be a json_object of type json_type_array)
@@ -656,7 +656,7 @@ JSON_EXPORT int json_object_array_insert_idx(struct json_object *obj, size_t idx
  * @returns the json_object at the specified index (or NULL)
  */
 JSON_EXPORT struct json_object *json_object_array_get_idx(const struct json_object *obj,
-                                                          size_t idx);
+                                                          uint64 idx);
 
 /** Delete an elements from a specified index in an array (a json_object of type json_type_array)
  *
@@ -669,7 +669,7 @@ JSON_EXPORT struct json_object *json_object_array_get_idx(const struct json_obje
  * @param count the number of elements to delete
  * @returns 0 if the elements were successfully deleted
  */
-JSON_EXPORT int json_object_array_del_idx(struct json_object *obj, size_t idx, size_t count);
+JSON_EXPORT int json_object_array_del_idx(struct json_object *obj, uint64 idx, uint64 count);
 
 /**
  * Shrink the internal memory allocation of the array to just
@@ -722,19 +722,19 @@ JSON_EXPORT int json_object_set_boolean(struct json_object *obj, json_bool new_v
  * @param i the integer
  * @returns a json_object of type json_type_int
  */
-JSON_EXPORT struct json_object *json_object_new_int(int32_t i);
+JSON_EXPORT struct json_object *json_object_new_int(int32 i);
 
 /** Create a new empty json_object of type json_type_int
  * @param i the integer
  * @returns a json_object of type json_type_int
  */
-JSON_EXPORT struct json_object *json_object_new_int64(int64_t i);
+JSON_EXPORT struct json_object *json_object_new_int64(int64 i);
 
 /** Create a new empty json_object of type json_type_uint
  * @param i the integer
  * @returns a json_object of type json_type_uint
  */
-JSON_EXPORT struct json_object *json_object_new_uint64(uint64_t i);
+JSON_EXPORT struct json_object *json_object_new_uint64(uint64 i);
 
 /** Get the int value of a json_object
  *
@@ -753,7 +753,7 @@ JSON_EXPORT struct json_object *json_object_new_uint64(uint64_t i);
  * @param obj the json_object instance
  * @returns an int
  */
-JSON_EXPORT int32_t json_object_get_int(const struct json_object *obj);
+JSON_EXPORT int32 json_object_get_int(const struct json_object *obj);
 
 /** Set the int value of a json_object
  *
@@ -781,7 +781,7 @@ JSON_EXPORT int json_object_set_int(struct json_object *obj, int new_value);
  * @param val the value to add
  * @returns 1 if the increment succeeded, 0 otherwise
  */
-JSON_EXPORT int json_object_int_inc(struct json_object *obj, int64_t val);
+JSON_EXPORT int json_object_int_inc(struct json_object *obj, int64 val);
 
 /** Get the int value of a json_object
  *
@@ -800,7 +800,7 @@ JSON_EXPORT int json_object_int_inc(struct json_object *obj, int64_t val);
  * @param obj the json_object instance
  * @returns an int64
  */
-JSON_EXPORT int64_t json_object_get_int64(const struct json_object *obj);
+JSON_EXPORT int64 json_object_get_int64(const struct json_object *obj);
 
 /** Get the uint value of a json_object
  *
@@ -819,7 +819,7 @@ JSON_EXPORT int64_t json_object_get_int64(const struct json_object *obj);
  * @param obj the json_object instance
  * @returns an uint64
  */
-JSON_EXPORT uint64_t json_object_get_uint64(const struct json_object *obj);
+JSON_EXPORT uint64 json_object_get_uint64(const struct json_object *obj);
 
 /** Set the int64_t value of a json_object
  *
@@ -831,7 +831,7 @@ JSON_EXPORT uint64_t json_object_get_uint64(const struct json_object *obj);
  * @param new_value the value to be set
  * @returns 1 if value is set correctly, 0 otherwise
  */
-JSON_EXPORT int json_object_set_int64(struct json_object *obj, int64_t new_value);
+JSON_EXPORT int json_object_set_int64(struct json_object *obj, int64 new_value);
 
 /** Set the uint64_t value of a json_object
  *
@@ -843,7 +843,7 @@ JSON_EXPORT int json_object_set_int64(struct json_object *obj, int64_t new_value
  * @param new_value the value to be set
  * @returns 1 if value is set correctly, 0 otherwise
  */
-JSON_EXPORT int json_object_set_uint64(struct json_object *obj, uint64_t new_value);
+JSON_EXPORT int json_object_set_uint64(struct json_object *obj, uint64 new_value);
 
 /* double type methods */
 
@@ -1073,7 +1073,7 @@ JSON_EXPORT int json_object_equal(struct json_object *obj1, struct json_object *
  * @return On success 1 or 2, -1 on errors
  */
 typedef int(json_c_shallow_copy_fn)(json_object *src, json_object *parent, const char *key,
-                                    size_t index, json_object **dst);
+                                    uint64 index, json_object **dst);
 
 /**
  * The default shallow copy implementation for use with json_object_deep_copy().

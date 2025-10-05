@@ -208,7 +208,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasPrimarySelectionText(void);
  *
  * \sa SDL_SetClipboardData
  */
-typedef const void *(SDLCALL *SDL_ClipboardDataCallback)(void *userdata, const char *mime_type, size_t *size);
+typedef const void *(SDLCALL *SDL_ClipboardDataCallback)(void *userdata, const char *mime_type, uint64 *size);
 
 /**
  * Callback function that will be called when the clipboard is cleared, or new
@@ -252,7 +252,7 @@ typedef void (SDLCALL *SDL_ClipboardCleanupCallback)(void *userdata);
  * \sa SDL_GetClipboardData
  * \sa SDL_HasClipboardData
  */
-extern SDL_DECLSPEC bool SDLCALL SDL_SetClipboardData(SDL_ClipboardDataCallback callback, SDL_ClipboardCleanupCallback cleanup, void *userdata, const char **mime_types, size_t num_mime_types);
+extern SDL_DECLSPEC bool SDLCALL SDL_SetClipboardData(SDL_ClipboardDataCallback callback, SDL_ClipboardCleanupCallback cleanup, void *userdata, const char **mime_types, uint64 num_mime_types);
 
 /**
  * Clear the clipboard data.
@@ -287,7 +287,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_ClearClipboardData(void);
  * \sa SDL_HasClipboardData
  * \sa SDL_SetClipboardData
  */
-extern SDL_DECLSPEC void * SDLCALL SDL_GetClipboardData(const char *mime_type, size_t *size);
+extern SDL_DECLSPEC void * SDLCALL SDL_GetClipboardData(const char *mime_type, uint64 *size);
 
 /**
  * Query whether there is data in the clipboard for the provided mime type.
@@ -320,7 +320,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasClipboardData(const char *mime_type);
  *
  * \sa SDL_SetClipboardData
  */
-extern SDL_DECLSPEC char ** SDLCALL SDL_GetClipboardMimeTypes(size_t *num_mime_types);
+extern SDL_DECLSPEC char ** SDLCALL SDL_GetClipboardMimeTypes(uint64 *num_mime_types);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

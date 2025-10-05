@@ -998,7 +998,7 @@ extern SDL_DECLSPEC const SDL_DisplayMode * SDLCALL SDL_GetWindowFullscreenMode(
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC void * SDLCALL SDL_GetWindowICCProfile(SDL_Window *window, size_t *size);
+extern SDL_DECLSPEC void * SDLCALL SDL_GetWindowICCProfile(SDL_Window *window, uint64 *size);
 
 /**
  * Get the pixel format associated with the window.

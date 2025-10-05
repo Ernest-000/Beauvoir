@@ -31,8 +31,8 @@
 
 static void string_replace_all_occurrences_with_char(char *s, const char *occur, char repl_char)
 {
-	size_t slen = strlen(s);
-	size_t skip = strlen(occur) - 1; /* length of the occurrence, minus the char we're replacing */
+	uint64 slen = strlen(s);
+	uint64 skip = strlen(occur) - 1; /* length of the occurrence, minus the char we're replacing */
 	char *p = s;
 	while ((p = strstr(p, occur)))
 	{
@@ -43,9 +43,9 @@ static void string_replace_all_occurrences_with_char(char *s, const char *occur,
 	}
 }
 
-static int is_valid_index(const char *path, size_t *idx)
+static int is_valid_index(const char *path, uint64 *idx)
 {
-	size_t i, len = strlen(path);
+	uint64 i, len = strlen(path);
 	/* this code-path optimizes a bit, for when we reference the 0-9 index range
 	 * in a JSON array and because leading zeros not allowed
 	 */
@@ -83,7 +83,7 @@ static int is_valid_index(const char *path, size_t *idx)
 }
 
 static int json_pointer_get_single_path(struct json_object *obj, char *path,
-                                        struct json_object **value, size_t *idx)
+                                        struct json_object **value, uint64 *idx)
 {
 	if (json_object_is_type(obj, json_type_array))
 	{
@@ -120,7 +120,7 @@ static int json_pointer_get_single_path(struct json_object *obj, char *path,
 	return 0;
 }
 
-static int json_object_array_put_idx_cb(struct json_object *parent, size_t idx,
+static int json_object_array_put_idx_cb(struct json_object *parent, uint64 idx,
 					struct json_object *value, void *priv)
 {
 	return json_object_array_put_idx(parent, idx, value);
@@ -132,7 +132,7 @@ static int json_pointer_set_single_path(struct json_object *parent, const char *
 {
 	if (json_object_is_type(parent, json_type_array))
 	{
-		size_t idx;
+		uint64 idx;
 		/* RFC (Chapter 4) states that '-' may be used to add new elements to an array */
 		if (path[0] == '-' && path[1] == '\0')
 			return json_object_array_add(parent, value);
@@ -158,7 +158,7 @@ static int json_pointer_result_get_recursive(struct json_object *obj, char *path
                                              struct json_pointer_get_result *res)
 {
 	struct json_object *parent_obj = obj;
-	size_t idx = 0;
+	uint64 idx = 0;
 	char *endp;
 	int rc;
 

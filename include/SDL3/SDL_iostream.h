@@ -119,7 +119,7 @@ typedef struct SDL_IOStreamInterface
      *
      *  \return the number of bytes read
      */
-    size_t (SDLCALL *read)(void *userdata, void *ptr, size_t size, SDL_IOStatus *status);
+    uint64 (SDLCALL *read)(void *userdata, void *ptr, uint64 size, SDL_IOStatus *status);
 
     /**
      *  Write exactly `size` bytes from the area pointed at by `ptr`
@@ -131,7 +131,7 @@ typedef struct SDL_IOStreamInterface
      *
      *  \return the number of bytes written
      */
-    size_t (SDLCALL *write)(void *userdata, const void *ptr, size_t size, SDL_IOStatus *status);
+    uint64 (SDLCALL *write)(void *userdata, const void *ptr, uint64 size, SDL_IOStatus *status);
 
     /**
      *  If the stream is buffering, make sure the data is written out.
@@ -313,7 +313,7 @@ extern SDL_DECLSPEC SDL_IOStream * SDLCALL SDL_IOFromFile(const char *file, cons
  * \sa SDL_TellIO
  * \sa SDL_WriteIO
  */
-extern SDL_DECLSPEC SDL_IOStream * SDLCALL SDL_IOFromMem(void *mem, size_t size);
+extern SDL_DECLSPEC SDL_IOStream * SDLCALL SDL_IOFromMem(void *mem, uint64 size);
 
 #define SDL_PROP_IOSTREAM_MEMORY_POINTER "SDL.iostream.memory.base"
 #define SDL_PROP_IOSTREAM_MEMORY_SIZE_NUMBER  "SDL.iostream.memory.size"
@@ -355,7 +355,7 @@ extern SDL_DECLSPEC SDL_IOStream * SDLCALL SDL_IOFromMem(void *mem, size_t size)
  * \sa SDL_SeekIO
  * \sa SDL_TellIO
  */
-extern SDL_DECLSPEC SDL_IOStream * SDLCALL SDL_IOFromConstMem(const void *mem, size_t size);
+extern SDL_DECLSPEC SDL_IOStream * SDLCALL SDL_IOFromConstMem(const void *mem, uint64 size);
 
 /**
  * Use this function to create an SDL_IOStream that is backed by dynamically
@@ -559,7 +559,7 @@ extern SDL_DECLSPEC Sint64 SDLCALL SDL_TellIO(SDL_IOStream *context);
  * \sa SDL_WriteIO
  * \sa SDL_GetIOStatus
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_ReadIO(SDL_IOStream *context, void *ptr, size_t size);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_ReadIO(SDL_IOStream *context, void *ptr, uint64 size);
 
 /**
  * Write to an SDL_IOStream data stream.
@@ -589,7 +589,7 @@ extern SDL_DECLSPEC size_t SDLCALL SDL_ReadIO(SDL_IOStream *context, void *ptr, 
  * \sa SDL_FlushIO
  * \sa SDL_GetIOStatus
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_WriteIO(SDL_IOStream *context, const void *ptr, size_t size);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_WriteIO(SDL_IOStream *context, const void *ptr, uint64 size);
 
 /**
  * Print to an SDL_IOStream data stream.
@@ -608,7 +608,7 @@ extern SDL_DECLSPEC size_t SDLCALL SDL_WriteIO(SDL_IOStream *context, const void
  * \sa SDL_IOvprintf
  * \sa SDL_WriteIO
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_IOprintf(SDL_IOStream *context, SDL_PRINTF_FORMAT_STRING const char *fmt, ...)  SDL_PRINTF_VARARG_FUNC(2);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_IOprintf(SDL_IOStream *context, SDL_PRINTF_FORMAT_STRING const char *fmt, ...)  SDL_PRINTF_VARARG_FUNC(2);
 
 /**
  * Print to an SDL_IOStream data stream.
@@ -626,7 +626,7 @@ extern SDL_DECLSPEC size_t SDLCALL SDL_IOprintf(SDL_IOStream *context, SDL_PRINT
  * \sa SDL_IOprintf
  * \sa SDL_WriteIO
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_IOvprintf(SDL_IOStream *context, SDL_PRINTF_FORMAT_STRING const char *fmt, va_list ap) SDL_PRINTF_VARARG_FUNCV(2);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_IOvprintf(SDL_IOStream *context, SDL_PRINTF_FORMAT_STRING const char *fmt, va_list ap) SDL_PRINTF_VARARG_FUNCV(2);
 
 /**
  * Flush any buffered data in the stream.
@@ -668,7 +668,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_FlushIO(SDL_IOStream *context);
  * \sa SDL_LoadFile
  * \sa SDL_SaveFile_IO
  */
-extern SDL_DECLSPEC void * SDLCALL SDL_LoadFile_IO(SDL_IOStream *src, size_t *datasize, bool closeio);
+extern SDL_DECLSPEC void * SDLCALL SDL_LoadFile_IO(SDL_IOStream *src, uint64 *datasize, bool closeio);
 
 /**
  * Load all the data from a file path.
@@ -689,7 +689,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_LoadFile_IO(SDL_IOStream *src, size_t *da
  * \sa SDL_LoadFile_IO
  * \sa SDL_SaveFile
  */
-extern SDL_DECLSPEC void * SDLCALL SDL_LoadFile(const char *file, size_t *datasize);
+extern SDL_DECLSPEC void * SDLCALL SDL_LoadFile(const char *file, uint64 *datasize);
 
 /**
  * Save all the data into an SDL data stream.
@@ -708,7 +708,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_LoadFile(const char *file, size_t *datasi
  * \sa SDL_SaveFile
  * \sa SDL_LoadFile_IO
  */
-extern SDL_DECLSPEC bool SDLCALL SDL_SaveFile_IO(SDL_IOStream *src, const void *data, size_t datasize, bool closeio);
+extern SDL_DECLSPEC bool SDLCALL SDL_SaveFile_IO(SDL_IOStream *src, const void *data, uint64 datasize, bool closeio);
 
 /**
  * Save all the data into a file path.
@@ -725,7 +725,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_SaveFile_IO(SDL_IOStream *src, const void *
  * \sa SDL_SaveFile_IO
  * \sa SDL_LoadFile
  */
-extern SDL_DECLSPEC bool SDLCALL SDL_SaveFile(const char *file, const void *data, size_t datasize);
+extern SDL_DECLSPEC bool SDLCALL SDL_SaveFile(const char *file, const void *data, uint64 datasize);
 
 /**
  *  \name Read endian functions

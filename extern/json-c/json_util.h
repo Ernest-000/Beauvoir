@@ -106,12 +106,12 @@ JSON_EXPORT const char *json_util_get_last_err(void);
  * are NOT considered errors, but errno will be set to ERANGE,
  * just like the strtol/strtoll functions do.
  */
-JSON_EXPORT int json_parse_int64(const char *buf, int64_t *retval);
+JSON_EXPORT int json_parse_int64(const char *buf, int64 *retval);
 /**
  * A parsing help for integer values, providing one extra bit of 
  * magnitude beyond json_parse_int64().
  */
-JSON_EXPORT int json_parse_uint64(const char *buf, uint64_t *retval);
+JSON_EXPORT int json_parse_uint64(const char *buf, uint64 *retval);
 /**
  * @deprecated
  */

@@ -1613,7 +1613,7 @@ typedef struct SDL_GPUColorTargetBlendState
  */
 typedef struct SDL_GPUShaderCreateInfo
 {
-    size_t code_size;             /**< The size in bytes of the code pointed to. */
+    uint64 code_size;             /**< The size in bytes of the code pointed to. */
     const Uint8 *code;            /**< A pointer to shader code. */
     const char *entrypoint;       /**< A pointer to a null-terminated UTF-8 string specifying the entry point function name for the shader. */
     SDL_GPUShaderFormat format;   /**< The format of the shader code. */
@@ -1828,7 +1828,7 @@ typedef struct SDL_GPUGraphicsPipelineCreateInfo
  */
 typedef struct SDL_GPUComputePipelineCreateInfo
 {
-    size_t code_size;                       /**< The size in bytes of the compute shader code pointed to. */
+    uint64 code_size;                       /**< The size in bytes of the compute shader code pointed to. */
     const Uint8 *code;                      /**< A pointer to compute shader code. */
     const char *entrypoint;                 /**< A pointer to a null-terminated UTF-8 string specifying the entry point function name for the shader. */
     SDL_GPUShaderFormat format;             /**< The format of the compute shader code. */

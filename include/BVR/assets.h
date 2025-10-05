@@ -2,10 +2,29 @@
 
 #include <BVR/config.h>
 #include <BVR/utils.h>
-#include <BVR/scene.h>
+#include <BVR/buffer.h>
 
 #define BVR_OPEN_READ  1
 #define BVR_OPEN_WRITE 2
+
+enum bvr_asset_reference_origin_e {
+    BVR_ASSET_ORIGIN_NONE,
+    BVR_ASSET_ORIGIN_RAW,
+    BVR_ASSET_ORIGIN_PATH,
+};
+
+struct bvr_asset_reference_s {
+    enum bvr_asset_reference_origin_e origin;
+
+    union {
+        // reference to an asset
+        bvr_uuid_t asset_id;
+
+        // raw data 
+        struct bvr_buffer_s raw_data;
+    } pointer __attribute__ ((packed));
+    
+} __attribute__ ((packed));
 
 typedef struct bvr_asset_s {
     bvr_uuid_t id;
@@ -14,9 +33,21 @@ typedef struct bvr_asset_s {
     char open_mode;
 } bvr_asset_t;
 
-bvr_asset_t* bvr_register_asset(bvr_book_t* book, const char* path, char open_mode);
-int bvr_find_asset(bvr_book_t* book, const char* path, bvr_asset_t* asset);
+/*
+    Add a new asset to the asset list
+*/
+bvr_uuid_t* bvr_register_asset(const char* path, char open_mode);
 
+/*
+    Retreive asset's informations from the list
+*/
+bvr_uuid_t* bvr_find_asset(const char* path, bvr_asset_t* asset);
+
+int bvr_find_asset_uuid(bvr_uuid_t uuid, bvr_asset_t* asset);
+
+/*
+    Open a file stream to a game asset
+*/
 BVR_H_FUNC FILE* bvr_open_asset(bvr_asset_t* asset){
     char open_mode[2] = "rb";
     if(asset->open_mode == BVR_OPEN_WRITE) {
@@ -25,19 +56,4 @@ BVR_H_FUNC FILE* bvr_open_asset(bvr_asset_t* asset){
 
     BVR_PRINTF("found %s", asset->path.string);
     return fopen(asset->path.string, open_mode);
-}
-
-void bvr_write_book_dataf(FILE* file, bvr_book_t* book);
-void bvr_open_book_dataf(FILE* file, bvr_book_t* book);
-
-BVR_H_FUNC void bvr_write_book(const char* path, bvr_book_t* book){
-    FILE* file = fopen(path, "wb");
-    bvr_write_book_dataf(file, book);
-    fclose(file);
-}
-
-BVR_H_FUNC void bvr_open_book(const char* path, bvr_book_t* book){
-    FILE* file = fopen(path, "rb");
-    bvr_open_book_dataf(file, book);
-    fclose(file);
 }

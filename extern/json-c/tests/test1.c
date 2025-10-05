@@ -80,8 +80,8 @@ void test_array_del_idx(void);
 void test_array_del_idx(void)
 {
 	int rc;
-	size_t ii;
-	size_t orig_array_len;
+	uint64 ii;
+	uint64 orig_array_len;
 	json_object *my_array;
 #ifdef TEST_FORMATTED
 	int sflags = 0;
@@ -146,8 +146,8 @@ void test_array_list_expand_internal(void);
 void test_array_list_expand_internal(void)
 {
 	int rc;
-	size_t ii;
-	size_t idx;
+	uint64 ii;
+	uint64 idx;
 	json_object *my_array;
 #ifdef TEST_FORMATTED
 	int sflags = 0;
@@ -228,7 +228,7 @@ void test_array_insert_idx(void)
 int main(int argc, char **argv)
 {
 	json_object *my_string, *my_int, *my_null, *my_object, *my_array;
-	size_t i;
+	uint64 i;
 #ifdef TEST_FORMATTED
 	int sflags = 0;
 #endif

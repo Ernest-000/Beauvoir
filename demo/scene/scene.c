@@ -22,7 +22,7 @@ static bvr_editor_t editor;
 int main(){
     /* create initial game's context */
     bvr_create_book(&book);
-    bvr_create_page(&book.page);
+    bvr_create_page(&book.page, "scene");
 
     /* create the window */
     bvr_create_window(&book.window, 800, 800, "Window", 0);
@@ -42,12 +42,12 @@ int main(){
 
         /* 
             create player's shader. 
-            the shader has the BVR_VERTEX_SHADER and BVR_FRAGMENT_SHADER meaning that it has a vertex and a fragment stage 
+            the shader has BVR_VERTEX_SHADER and BVR_FRAGMENT_SHADER flags, meaning that it has a vertex and a fragment stage 
         */
         bvr_create_shader(&player.shader, "monochrome.glsl", BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER);
 
         /*
-            cecause we want to define player's color inside the shader, we need to define this parameter (=uniform in OpenGL)
+            because we want to define player's color inside the shader, we need to define this parameter (=uniform in OpenGL)
             so, we firstly register the uniform (because it's an RGB color we use a vector3).
         */
         bvr_shader_register_uniform(&player.shader, BVR_VEC3, 1, "bvr_color");
@@ -65,7 +65,7 @@ int main(){
             BVR_DYNAMIC_ACTOR,
             BVR_COLLISION_ENABLE | /* means that we enable collision */
             BVR_DYNACTOR_AGGRESSIVE | /* means that this actor can respond to physics */
-            BVR_DYNACTOR_CREATE_COLLIDER_FROM_VERTICES /* means that we automaticly create collision boxes based on vertices */
+            BVR_DYNACTOR_CREATE_COLLIDER_FROM_BOUNDS /* means that we automaticly create collision boxes based on mesh's vertices */
         );
 
         /* link this object to a scene */
@@ -92,10 +92,10 @@ int main(){
             vec2 inputs;
             float speed = 5.0f;
 
-            inputs[0] = bvr_key_down(&book.window, BVR_KEY_RIGHT);
-            inputs[0] += -bvr_key_down(&book.window, BVR_KEY_LEFT);
-            inputs[1] = bvr_key_down(&book.window, BVR_KEY_UP);
-            inputs[1] += -bvr_key_down(&book.window, BVR_KEY_DOWN);
+            inputs[0] = bvr_key_down(BVR_KEY_RIGHT);
+            inputs[0] += -bvr_key_down(BVR_KEY_LEFT);
+            inputs[1] = bvr_key_down(BVR_KEY_UP);
+            inputs[1] += -bvr_key_down(BVR_KEY_DOWN);
 
             /* we scale input with the speed */
             vec2_scale(inputs, inputs, speed);

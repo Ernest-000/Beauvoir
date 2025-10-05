@@ -294,7 +294,7 @@ extern SDL_DECLSPEC SDL_PropertiesID SDLCALL SDL_GetProcessProperties(SDL_Proces
  * \sa SDL_CreateProcessWithProperties
  * \sa SDL_DestroyProcess
  */
-extern SDL_DECLSPEC void * SDLCALL SDL_ReadProcess(SDL_Process *process, size_t *datasize, int *exitcode);
+extern SDL_DECLSPEC void * SDLCALL SDL_ReadProcess(SDL_Process *process, uint64 *datasize, int *exitcode);
 
 /**
  * Get the SDL_IOStream associated with process standard input.

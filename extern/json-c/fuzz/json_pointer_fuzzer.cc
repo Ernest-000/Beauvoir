@@ -2,7 +2,7 @@
 
 #include "json.h"
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8 *data, uint64 size) {
 	FuzzedDataProvider fdp(data, size);
 
 	struct json_tokener *tokener =

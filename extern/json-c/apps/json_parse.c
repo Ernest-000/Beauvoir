@@ -87,23 +87,23 @@ static int parseit(int fd, int (*callback)(struct json_object *))
 	//  json_object_from_fd isn't flexible enough, and mirroring
 	//   everything you can do with a tokener into json_util.c seems
 	//   like the wrong approach.
-	size_t total_read = 0;
+	uint64 total_read = 0;
 	while ((ret = read(fd, buf, sizeof(buf))) > 0)
 	{
-		size_t retu = (size_t)ret;  // We know it's positive
+		uint64 retu = (uint64)ret;  // We know it's positive
 		total_read += retu;
-		size_t start_pos = 0;
+		uint64 start_pos = 0;
 		while (start_pos != retu)
 		{
 			obj = json_tokener_parse_ex(tok, &buf[start_pos], retu - start_pos);
 			enum json_tokener_error jerr = json_tokener_get_error(tok);
-			size_t parse_end = json_tokener_get_parse_end(tok);
+			uint64 parse_end = json_tokener_get_parse_end(tok);
 			if (obj == NULL && jerr != json_tokener_continue)
 			{
 				const char *aterr = (start_pos + parse_end < (int)sizeof(buf)) ?
 					&buf[start_pos + parse_end] : "";
 				fflush(stdout);
-				size_t fail_offset = total_read - retu + start_pos + parse_end;
+				uint64 fail_offset = total_read - retu + start_pos + parse_end;
 				fprintf(stderr, "Failed at offset %lu: %s %c\n", (unsigned long)fail_offset,
 				        json_tokener_error_desc(jerr), aterr[0]);
 				json_tokener_free(tok);

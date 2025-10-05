@@ -15,6 +15,8 @@
 #ifndef NK_SDL_GLES2_H_
 #define NK_SDL_GLES2_H_
 
+#include <stdint.h>
+
 #include <SDL3/SDL.h>
 
 #include <GLAD/glad.h>
@@ -69,7 +71,7 @@ struct nk_sdl_device {
     GLint uniform_proj;
     GLuint font_tex;
     GLsizei vs;
-    size_t vp, vt, vc;
+    uint64 vp, vt, vc;
 };
 
 struct nk_sdl_vertex {
@@ -257,8 +259,8 @@ nk_sdl_render(enum nk_anti_aliasing AA, int max_vertex_buffer, int max_element_b
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, max_element_buffer, NULL, GL_STREAM_DRAW);
 
         /* load vertices/elements directly into vertex/element buffer */
-        vertices = malloc((size_t)max_vertex_buffer);
-        elements = malloc((size_t)max_element_buffer);
+        vertices = malloc((uint64)max_vertex_buffer);
+        elements = malloc((uint64)max_element_buffer);
         {
             /* fill convert configuration */
             struct nk_convert_config config;
@@ -286,8 +288,8 @@ nk_sdl_render(enum nk_anti_aliasing AA, int max_vertex_buffer, int max_element_b
             nk_buffer_init_fixed(&ebuf, elements, (nk_size)max_element_buffer);
             nk_convert(&sdl.ctx, &dev->cmds, &vbuf, &ebuf, &config);}
         }
-        glBufferSubData(GL_ARRAY_BUFFER, 0, (size_t)max_vertex_buffer, vertices);
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, (size_t)max_element_buffer, elements);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, (uint64)max_vertex_buffer, vertices);
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, (uint64)max_element_buffer, elements);
         free(vertices);
         free(elements);
 
@@ -329,9 +331,9 @@ nk_sdl_clipboard_copy(nk_handle usr, const char *text, int len)
     char *str = 0;
     (void)usr;
     if (!len) return;
-    str = (char*)malloc((size_t)len+1);
+    str = (char*)malloc((uint64)len+1);
     if (!str) return;
-    memcpy(str, text, (size_t)len);
+    memcpy(str, text, (uint64)len);
     str[len] = '\0';
     SDL_SetClipboardText(str);
     free(str);
@@ -442,7 +444,6 @@ nk_sdl_handle_event(SDL_Event *evt)
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             {
                 int down = evt->type == SDL_EVENT_MOUSE_BUTTON_DOWN;
-                BVR_PRINT("button down");
                 const int x = evt->button.x, y = evt->button.y;
                 switch(evt->button.button)
                 {

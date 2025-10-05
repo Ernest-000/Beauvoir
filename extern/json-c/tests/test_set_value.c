@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 	json_object_set_int(tmp, 321);
 	assert(json_object_get_int(tmp) == 321);
 	printf("INT PASSED\n");
-	json_object_set_int64(tmp, (int64_t)321321321);
+	json_object_set_int64(tmp, (int64)321321321);
 	assert(json_object_get_int64(tmp) == 321321321);
 	json_object_put(tmp);
 	printf("INT64 PASSED\n");
@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 	assert(json_object_get_int64(tmp) == 123);
 	assert(json_object_get_uint64(tmp) == 123);
 	assert(json_object_get_double(tmp) == 123.000000);
-	json_object_set_uint64(tmp, (uint64_t)321321321);
+	json_object_set_uint64(tmp, (uint64)321321321);
 	assert(json_object_get_uint64(tmp) == 321321321);
 	json_object_set_uint64(tmp, 9223372036854775808U);
 	assert(json_object_get_int(tmp) == INT32_MAX);

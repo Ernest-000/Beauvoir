@@ -7,7 +7,9 @@
 
 typedef enum bvr_drawmode_e {
     BVR_DRAWMODE_LINES = 0x0001,
+    BVR_DRAWMODE_LINE_STRIPE = 0x0003,
     BVR_DRAWMODE_TRIANGLES = 0x0004,
+    BVR_DRAWMODE_TRIANGLES_STRIP = 0x0005,
     BVR_DRAWMODE_QUADS = 0x0007
 } bvr_drawmode_t;
 
@@ -45,31 +47,44 @@ typedef enum bvr_mesh_array_attrib_e {
         uvs         -> vec2
         normals     -> vec3 
     */
-    BVR_MESH_ATTRIB_V3UV2N3
+    BVR_MESH_ATTRIB_V3UV2N3,
+
+    /*
+        special attribute use for landscapes
+
+        0x00000011 -> tex id
+        0x00001100 -> altitude
+        0x00110000 -> normal yaw
+        0x11000000 -> normal pitch
+    */
+    BVR_MESH_ATTRIB_SINGLE
 } bvr_mesh_array_attrib_t;
 
 typedef struct bvr_vertex_group_s {
     bvr_string_t name;
 
-    uint32_t element_count;
-    uint32_t element_offset;
-} bvr_vertex_group_t;
+    uint32 element_count;
+    uint32 element_offset;
+
+    int texture;
+} __attribute__ ((packed)) bvr_vertex_group_t; 
 
 typedef struct bvr_mesh_s {
-    uint32_t array_buffer;
-    uint32_t vertex_buffer;
-    uint32_t element_buffer;
+    uint32 array_buffer;
+    uint32 vertex_buffer;
+    uint32 element_buffer;
 
-    uint32_t vertex_count;
-    uint32_t element_count;
-    struct bvr_buffer_s vertex_groups;
+    uint32 vertex_count;
+    uint32 element_count;
+    
+    bvr_pool_t vertex_groups;
 
     int element_type;
 
     bvr_mesh_array_attrib_t attrib;
 
-    uint8_t attrib_count;
-    uint16_t stride;
+    uint8 attrib_count;
+    uint16 stride;
 } bvr_mesh_t;
 
 /*
@@ -93,7 +108,7 @@ BVR_H_FUNC int bvr_create_mesh(bvr_mesh_t* mesh, const char* path, bvr_mesh_arra
     return status;
 }
 
-void bvr_mesh_draw(bvr_mesh_t* mesh, int drawmode);
+void bvr_triangulate(bvr_mesh_buffer_t* src, bvr_mesh_buffer_t* dest, const uint8 stride);
 
 void bvr_destroy_mesh(bvr_mesh_t* mesh);
 

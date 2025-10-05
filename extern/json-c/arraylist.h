@@ -31,8 +31,8 @@ typedef void(array_list_free_fn)(void *data);
 struct array_list
 {
 	void **array;
-	size_t length;
-	size_t size;
+	uint64 length;
+	uint64 size;
 	array_list_free_fn *free_fn;
 };
 typedef struct array_list array_list;
@@ -60,28 +60,28 @@ extern struct array_list *array_list_new2(array_list_free_fn *free_fn, int initi
 
 extern void array_list_free(struct array_list *al);
 
-extern void *array_list_get_idx(struct array_list *al, size_t i);
+extern void *array_list_get_idx(struct array_list *al, uint64 i);
 
-extern int array_list_insert_idx(struct array_list *al, size_t i, void *data);
+extern int array_list_insert_idx(struct array_list *al, uint64 i, void *data);
 
-extern int array_list_put_idx(struct array_list *al, size_t i, void *data);
+extern int array_list_put_idx(struct array_list *al, uint64 i, void *data);
 
 extern int array_list_add(struct array_list *al, void *data);
 
-extern size_t array_list_length(struct array_list *al);
+extern uint64 array_list_length(struct array_list *al);
 
 extern void array_list_sort(struct array_list *arr, int (*compar)(const void *, const void *));
 
 extern void *array_list_bsearch(const void **key, struct array_list *arr,
                                 int (*compar)(const void *, const void *));
 
-extern int array_list_del_idx(struct array_list *arr, size_t idx, size_t count);
+extern int array_list_del_idx(struct array_list *arr, uint64 idx, uint64 count);
 
 /**
  * Shrink the array list to just enough to fit the number of elements in it,
  * plus empty_slots.
  */
-extern int array_list_shrink(struct array_list *arr, size_t empty_slots);
+extern int array_list_shrink(struct array_list *arr, uint64 empty_slots);
 
 #ifdef __cplusplus
 }

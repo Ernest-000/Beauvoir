@@ -260,7 +260,7 @@ ZCONF_H
      typedef unsigned NO_SIZE_T z_size_t;
 #  elif defined(STDC)
 #    include <stddef.h>
-     typedef size_t z_size_t;
+     typedef uint64 z_size_t;
 #  else
      typedef unsigned long z_size_t;
 #  endif

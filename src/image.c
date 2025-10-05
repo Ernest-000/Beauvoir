@@ -19,7 +19,7 @@
 
 static int bvri_is_png(FILE* __file) {
     fseek(__file, 0, SEEK_SET);
-    uint8_t header[BVR_PNG_HEADER_LENGTH];
+    uint8 header[BVR_PNG_HEADER_LENGTH];
     fread(header, 1, BVR_PNG_HEADER_LENGTH, __file);
     return png_sig_cmp(header, 0, BVR_PNG_HEADER_LENGTH) == 0;
 }
@@ -90,14 +90,14 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
         break;
     }
 
-    size_t rowbytes = png_get_rowbytes(pngldr, pnginfo);
-    image->pixels = malloc(image->width * image->height * image->channels * sizeof(uint8_t));
+    uint64 rowbytes = png_get_rowbytes(pngldr, pnginfo);
+    image->pixels = malloc(image->width * image->height * image->channels * sizeof(uint8));
     BVR_ASSERT(image->pixels);
 
-    uint8_t** rowp = malloc(image->height * sizeof(uint8_t*));
+    uint8** rowp = malloc(image->height * sizeof(uint8*));
     BVR_ASSERT(rowp);
 
-    for (size_t i = 0; i < image->height; i++)
+    for (uint64 i = 0; i < image->height; i++)
     {
         rowp[image->height - i - 1] = image->pixels + i * rowbytes;
     }
@@ -119,24 +119,24 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
 */
 
 struct bvri_bmpheader_s {
-    uint8_t sig[2];
-    uint32_t size;
-    uint16_t res[2];
-    uint32_t offset;
+    uint8 sig[2];
+    uint32 size;
+    uint16 res[2];
+    uint32 offset;
 
-    uint32_t header_size;
-    uint32_t width;
-    uint32_t height;
-    uint16_t color_plane;
-    uint16_t bit_per_pixel;
-    uint32_t compression_method;
-    uint32_t image_size;
-    uint32_t horizontal_resolution;
-    uint32_t vertical_resolution;
-    uint32_t color_palette;
-    uint32_t important_color;
+    uint32 header_size;
+    uint32 width;
+    uint32 height;
+    uint16 color_plane;
+    uint16 bit_per_pixel;
+    uint32 compression_method;
+    uint32 image_size;
+    uint32 horizontal_resolution;
+    uint32 vertical_resolution;
+    uint32 color_palette;
+    uint32 important_color;
 
-    uint8_t* palette;
+    uint8* palette;
 };
 
 /*
@@ -158,7 +158,7 @@ static int bvri_is_bmp(FILE* file){
 /*
     Return the bigger number
 */
-static uint32_t bvri_bmpmax(uint32_t max, uint32_t i){
+static uint32 bvri_bmpmax(uint32 max, uint32 i){
     return i > max ? max : i;
 }
 
@@ -206,7 +206,7 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
     // create color palette
     if(header.bit_per_pixel < 8){
         header.palette = malloc(header.color_palette * 3);
-        for (size_t color = 0; color < header.color_palette; color++)
+        for (uint64 color = 0; color < header.color_palette; color++)
         {
             header.palette[color * 3 + 0] = bvr_freadu8_le(file);
             header.palette[color * 3 + 1] = bvr_freadu8_le(file);
@@ -243,18 +243,18 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
 
     // RAW compression
     if(header.compression_method == 0){
-        uint32_t packed_bytes = 0;
-        uint32_t unpacked_bytes = 0;
-        uint32_t stride_length = ((int)ceilf(image->width * header.bit_per_pixel) / 32 * 4 + 3) & ~3;
+        uint32 packed_bytes = 0;
+        uint32 unpacked_bytes = 0;
+        uint32 stride_length = ((int)ceilf(image->width * header.bit_per_pixel) / 32 * 4 + 3) & ~3;
 
         // load image from palette
         if(header.bit_per_pixel < 8){
             // because repetitive image might have a shorter stride length
             // we need to duplicate pixels to copy the correct number of pixels to get the full width.
-            uint32_t stride_rle = image->width / stride_length;
-            uint8_t buffer[4];
+            uint32 stride_rle = image->width / stride_length;
+            uint8 buffer[4];
 
-            for (size_t row = 0; row < image->height; row++)
+            for (uint64 row = 0; row < image->height; row++)
             {
                 packed_bytes = 0;
                 unpacked_bytes = 0;
@@ -265,7 +265,7 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
                     memcpy(
                         buffer,
                         header.palette + bvri_bmpmax(header.color_palette - 1, bvr_freadu8_le(file)) * image->channels,
-                        image->channels * sizeof(uint8_t)
+                        image->channels * sizeof(uint8)
                     );         
                            
                     while (packed_bytes * stride_rle - unpacked_bytes)
@@ -273,7 +273,7 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
                         // copy the buffer 'stride_rle' times
                         memcpy(
                             image->pixels + (row * image->width + unpacked_bytes) * image->channels,
-                            buffer, image->channels * sizeof(uint8_t)
+                            buffer, image->channels * sizeof(uint8)
                         );
 
                         unpacked_bytes++;
@@ -286,9 +286,9 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
         // load image with raw data
         else {
             // we just copy all data row per row
-            for (size_t row = 0; row < image->height; row++)
+            for (uint64 row = 0; row < image->height; row++)
             {
-                packed_bytes = fread(image->pixels + row * image->width * image->channels, sizeof(uint8_t), stride_length, file);
+                packed_bytes = fread(image->pixels + row * image->width * image->channels, sizeof(uint8), stride_length, file);
                 BVR_ASSERT(packed_bytes == stride_length);
             }
         }
@@ -319,24 +319,24 @@ struct bvri_tififd_s {
 };
 
 struct bvri_tifframe {
-    uint32_t width;
-    uint32_t height;
-    uint16_t compression;
+    uint32 width;
+    uint32 height;
+    uint16 compression;
 
-    uint32_t rows_per_strip;
-    uint32_t* strip_offsets;
-    uint32_t* strip_byte_counts;
-    uint32_t strip_count;
-    uint16_t samples_per_pixel;
-    uint32_t bits_per_sample;
-    uint32_t bit_count;
-    uint16_t planar_configuration;
-    uint16_t sample_format;
-    uint32_t image_length;
-    uint8_t orientation;
-    uint8_t fill_order;
-    uint32_t photometric_interpretation;
-    uint8_t is_tiled;
+    uint32 rows_per_strip;
+    uint32* strip_offsets;
+    uint32* strip_byte_counts;
+    uint32 strip_count;
+    uint16 samples_per_pixel;
+    uint32 bits_per_sample;
+    uint32 bit_count;
+    uint16 planar_configuration;
+    uint16 sample_format;
+    uint32 image_length;
+    uint8 orientation;
+    uint8 fill_order;
+    uint32 photometric_interpretation;
+    uint8 is_tiled;
 
     /*uint64_t photoshop_infos_count;
     uint8_t* photoshop_infos;*/
@@ -347,8 +347,8 @@ static int bvri_is_tif(FILE* file){
     char sig1 = bvr_freadu8_le(file);
     char sig2 = bvr_freadu8_le(file);
 
-    uint16_t version = bvr_fread16_le(file);
-    uint32_t offset = bvr_fread32_le(file);
+    uint16 version = bvr_fread16_le(file);
+    uint32 offset = bvr_fread32_le(file);
 
     return (sig1 == 'I' || sig1 == 'M') 
         && (sig2 == 'I' || sig2 == 'M') 
@@ -359,7 +359,7 @@ static int bvri_is_tif(FILE* file){
     Copy TIF data from a buffer into a pointer.
 */
 static void bvri_tif_copy_data(FILE* f, int offset, int size, void* data){
-    size_t prev = ftell(f);
+    uint64 prev = ftell(f);
     fseek(f, offset, SEEK_SET);
     fread(data, sizeof(char), size, f);
     fseek(f, prev, SEEK_SET);
@@ -390,7 +390,7 @@ static int bvri_tif_do_ranges_overlap(uint64_t xstart, uint64_t xend, uint64_t y
 /*
     Return the size of each tag's types
 */
-static uint32_t bvri_tif_sizeof(uint32_t size){
+static uint32 bvri_tif_sizeof(uint32 size){
     switch (size)
     {
     case 1: case 2:
@@ -427,7 +427,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
         
         // seek to the first bit
         fseek(file, idf.next, SEEK_SET);
-        uint16_t tag_count = bvr_fread16_le(file); // number of tags
+        uint16 tag_count = bvr_fread16_le(file); // number of tags
         idf.tags = malloc(sizeof(struct bvri_tiftag_s) * tag_count);
         BVR_ASSERT(idf.tags);
         
@@ -435,7 +435,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
         fread(idf.tags, sizeof(struct bvri_tiftag_s), tag_count, file);
 
         // find each tags
-        for (size_t tagi = 0; tagi < tag_count; tagi++)
+        for (uint64 tagi = 0; tagi < tag_count; tagi++)
         {
             int integer_id;
             memcpy(&integer_id, &idf.tags[tagi].id, sizeof(short));
@@ -454,7 +454,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
             case 258: { // bit per sample
                     frame.bit_count = idf.tags[tagi].data_count;
                     // we get each component sizes and add them together
-                    for (size_t ii = 0; ii < idf.tags[tagi].data_count; ii++)
+                    for (uint64 ii = 0; ii < idf.tags[tagi].data_count; ii++)
                     {
                         short bpp;
                         bvri_tif_copy_data(file, idf.tags[tagi].data_offset, sizeof(short), &bpp);
@@ -473,7 +473,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
             case 273: { // strip offsets
                     if(!frame.strip_offsets){
                         frame.strip_count = idf.tags[tagi].data_count;
-                        frame.strip_offsets = calloc(frame.strip_count, sizeof(uint32_t));
+                        frame.strip_offsets = calloc(frame.strip_count, sizeof(uint32));
                         if(frame.strip_offsets){
                             bvri_tif_copy_data(file, idf.tags[tagi].data_offset, 
                                 bvri_tif_sizeof(idf.tags[tagi].data_type) * idf.tags[tagi].data_count, 
@@ -499,7 +499,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
             case 279: {
                     if(!frame.strip_byte_counts){
                         frame.strip_count = idf.tags[tagi].data_count;
-                        frame.strip_byte_counts = calloc(frame.strip_count, sizeof(uint32_t));
+                        frame.strip_byte_counts = calloc(frame.strip_count, sizeof(uint32));
                         if(frame.strip_byte_counts){
                             bvri_tif_copy_data(file, idf.tags[tagi].data_offset, 
                                 bvri_tif_sizeof(idf.tags[tagi].data_type) * idf.tags[tagi].data_count, 
@@ -592,17 +592,17 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
             image->pixels = malloc(image->width * image->height * image->channels);
             BVR_ASSERT(image->pixels);
 
-            for (size_t strip = 0; strip < frame.strip_count; strip++)
+            for (uint64 strip = 0; strip < frame.strip_count; strip++)
             {
-                uint8_t* strip_buffer = calloc(frame.strip_byte_counts[strip], sizeof(uint8_t));
+                uint8* strip_buffer = calloc(frame.strip_byte_counts[strip], sizeof(uint8));
                 BVR_ASSERT(strip_buffer);
 
                 // read the entire strip into a buffer
                 fseek(file, frame.strip_offsets[strip], SEEK_SET);
-                fread(strip_buffer, sizeof(uint8_t), frame.strip_byte_counts[strip], file);
+                fread(strip_buffer, sizeof(uint8), frame.strip_byte_counts[strip], file);
 
-                size_t image_index = strip;
-                for (size_t strip_index = 0; strip_index < frame.strip_byte_counts[strip]; strip_index++)
+                uint64 image_index = strip;
+                for (uint64 strip_index = 0; strip_index < frame.strip_byte_counts[strip]; strip_index++)
                 {
                     // copy each pixels into the final image buffer
                     image->pixels[image_index] = strip_buffer[strip_index];
@@ -657,8 +657,8 @@ struct bvri_psdheader_s {
     char res[6];
     short channels;
 
-    uint32_t rows;
-    uint32_t columns;
+    uint32 rows;
+    uint32 columns;
     short depth;
 
     // Bitmap = 0; Grayscale = 1; Indexed = 2; RGB = 3; CMYK = 4;
@@ -668,17 +668,17 @@ struct bvri_psdheader_s {
 
 struct bvri_psdlayer_s {
     // top, left, bottom, right
-    uint32_t bounds[4];
+    uint32 bounds[4];
     short channel_count;
     struct bvri_psdlayerchannel_s {
         short id;
-        uint32_t length;
-        size_t position;
+        uint32 length;
+        uint64 position;
     }* channels;
     
     char sig[5];
     int blend_mode;
-    uint8_t opacity;
+    uint8 opacity;
     char clipping;
     char flags;
 
@@ -693,7 +693,7 @@ struct bvri_psdressource_s {
 };
 
 static int bvri_is_psd(FILE* file){
-    uint8_t sig[5];
+    uint8 sig[5];
     short version;
 
     fseek(file, 0, SEEK_SET);
@@ -710,7 +710,7 @@ static int bvri_is_psd(FILE* file){
 */
 static void bvri_psd_read_pascal_string(bvr_string_t* string, FILE* file){
     string->string = NULL;
-    string->length = (size_t)bvr_freadu8_le(file) + 1;
+    string->length = (uint64)bvr_freadu8_le(file) + 1;
 
     if(string->length - 1){
         string->string = malloc(string->length);
@@ -732,25 +732,25 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
     struct bvri_psdheader_s header;
     
     struct {
-        uint32_t size;
-        uint8_t* data;
+        uint32 size;
+        uint8* data;
     } color_mode_section;
 
     struct {
-        uint32_t size; // ressource's data full size
-        uint32_t end_position;
-        uint32_t count; //
+        uint32 size; // ressource's data full size
+        uint32 end_position;
+        uint32 count; //
         struct bvri_psdressource_s block;
     } ressources_section;
 
     struct {
-        size_t size;
-        size_t end_position;
+        uint64 size;
+        uint64 end_position;
 
-        size_t layer_size;
-        size_t mask_size;
+        uint64 layer_size;
+        uint64 mask_size;
 
-        uint8_t next_alpha_channel_is_global;
+        uint8 next_alpha_channel_is_global;
         short layer_count;
         struct bvri_psdlayer_s* layers;
     } layer_section;
@@ -759,13 +759,13 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
         short compression;
         short channels;
         short channel;
-        uint32_t rows;
-        uint32_t columns;
-        uint32_t unpacked_length;
-        uint32_t packed_length;
-        uint8_t* unpacked_buffer;
-        uint8_t* packed_buffer;
-        uint16_t* rle_pack_lengths;
+        uint32 rows;
+        uint32 columns;
+        uint32 unpacked_length;
+        uint32 packed_length;
+        uint8* unpacked_buffer;
+        uint8* packed_buffer;
+        uint16* rle_pack_lengths;
     } image_data_section;
 
     // reading psd's header
@@ -797,7 +797,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
             bvr_freadstr(ressources_section.block.sig, sizeof(ressources_section.block.sig), file);
             
             // check for signature
-            BVR_ASSERT(strcmp(ressources_section.block.sig, "8BIM") == 0);
+            BVR_ASSERT(strncmp(ressources_section.block.sig, "8BIM", 4) == 0);
 
             ressources_section.block.id = bvr_freadu16_be(file);
 
@@ -824,7 +824,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
     layer_section.size = bvr_freadu32_be(file);
     layer_section.end_position = ftell(file) + layer_section.size;
     {
-        size_t start_of_the_header = ftell(file);
+        uint64 start_of_the_header = ftell(file);
 
         layer_section.next_alpha_channel_is_global = 0;
         layer_section.layer_size = bvr_freadu32_be(file);
@@ -842,9 +842,9 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
         BVR_ASSERT(layer_section.layers);
         
         struct bvri_psdlayer_s* layer;
-        for (size_t layer_id = 0; layer_id < layer_section.layer_count; layer_id++)
+        for (uint64 layer_id = 0; layer_id < layer_section.layer_count; layer_id++)
         {
-            size_t end_of_header;
+            uint64 end_of_header;
 
             layer = &layer_section.layers[layer_id];
 
@@ -857,7 +857,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
 
             // skip channel info???
             layer->channels = calloc(layer->channel_count, sizeof(struct bvri_psdlayerchannel_s));
-            for (size_t channel = 0; channel < layer->channel_count; channel++)
+            for (uint64 channel = 0; channel < layer->channel_count; channel++)
             {
                 layer->channels[channel].id = bvr_freadu16_be(file);
                 layer->channels[channel].position = 0;
@@ -867,7 +867,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
             bvr_freadstr(layer->sig, 5, file);
             layer->blend_mode = bvr_freadu32_be(file);
 
-            BVR_ASSERT(strcmp(layer->sig, "8BIM") == 0);
+            BVR_ASSERT(strncmp(layer->sig, "8BIM", 4) == 0);
             // TODO: define blend mode
 
             layer->opacity = bvr_freadu8_be(file);
@@ -895,8 +895,8 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
 
                 bvr_freadstr(additional_data_sig, sizeof(additional_data_sig), file);
 
-                if(strcmp(additional_data_sig, "8BIM") == 0 || strcmp(additional_data_sig, "8B64") == 0){
-                    size_t data_size;
+                if(strncmp(additional_data_sig, "8BIM", 4) == 0 || strncmp(additional_data_sig, "8B64", 4) == 0){
+                    uint64 data_size;
                     
                     bvr_freadstr(additional_data_tag, sizeof(additional_data_tag), file);
                     // TODO: check tags
@@ -932,16 +932,14 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
     }
 
     image->pixels = malloc(image->width * image->height * image->channels * layer_section.layer_count);
-    BVR_ASSERT(image->pixels);
 
-    memset(image->pixels, 0, image->width * image->height * image->channels * layer_section.layer_count);
     
     image->layers.size = layer_section.layer_count * image->layers.elemsize;
     image->layers.data = calloc(layer_section.layer_count, image->layers.elemsize);
     BVR_ASSERT(image->layers.data);
 
     // initialize layers to make sure they're correct
-    for (size_t layer = 0; layer < layer_section.layer_count; layer++)
+    for (uint64 layer = 0; layer < layer_section.layer_count; layer++)
     {
         bvr_layer_t* layer_ptr = &((bvr_layer_t*)image->layers.data)[layer];
 
@@ -971,20 +969,20 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
         }
         else if(image_data_section.compression == 1){
             // do RLE uncompression
-            for (size_t layer = 0; layer < layer_section.layer_count; layer++)
+            for (uint64 layer = 0; layer < layer_section.layer_count; layer++)
             {
                 int layer_width = layer_section.layers[layer].bounds[3] - layer_section.layers[layer].bounds[1];
                 int layer_height = layer_section.layers[layer].bounds[2] - layer_section.layers[layer].bounds[0];
-                int layer_anchor_x = layer_section.layers[layer].bounds[1];
-                int layer_anchor_y = layer_section.layers[layer].bounds[0];
+                int layer_anchor_x = __min(layer_section.layers[layer].bounds[1], image->width - layer_width);
+                int layer_anchor_y = __min(layer_section.layers[layer].bounds[0], image->height - layer_height);
             
                 image_data_section.channels = layer_section.layers[layer].channel_count;
-                image_data_section.rle_pack_lengths = calloc(layer_height, sizeof(uint16_t));
+                image_data_section.rle_pack_lengths = calloc(layer_height, sizeof(uint16));
                 BVR_ASSERT(image_data_section.rle_pack_lengths);
 
-                for (size_t channel = 0; channel < image_data_section.channels; channel++)
+                for (uint64 channel = 0; channel < image_data_section.channels; channel++)
                 {
-                    size_t readed_size;
+                    uint64 readed_size;
 
                     layer_section.layers[layer].channels[channel].position = ftell(file);
                     image_data_section.channel = layer_section.layers[layer].channels[channel].id; 
@@ -1026,28 +1024,28 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
                     image_data_section.packed_length = 0;
                     image_data_section.unpacked_length = image_data_section.columns * image_data_section.rows;
 
-                    for (size_t j = 0; j < image_data_section.rows; j++)
+                    for (uint64 j = 0; j < image_data_section.rows; j++)
                     {
                         image_data_section.rle_pack_lengths[j] = bvr_freadu16_be(file);
                         image_data_section.packed_length += image_data_section.rle_pack_lengths[j];
                     }
                     
-                    image_data_section.packed_buffer = calloc(image_data_section.packed_length, sizeof(uint8_t));
-                    image_data_section.unpacked_buffer = calloc(image_data_section.unpacked_length, sizeof(uint8_t));
+                    image_data_section.packed_buffer = calloc(image_data_section.packed_length, sizeof(uint8));
+                    image_data_section.unpacked_buffer = calloc(image_data_section.unpacked_length, sizeof(uint8));
                     BVR_ASSERT(image_data_section.packed_buffer);
                     BVR_ASSERT(image_data_section.unpacked_buffer);
 
-                    readed_size = fread(image_data_section.packed_buffer, sizeof(uint8_t), image_data_section.packed_length, file);
+                    readed_size = fread(image_data_section.packed_buffer, sizeof(uint8), image_data_section.packed_length, file);
                     if(readed_size != image_data_section.packed_length){
                         BVR_PRINT("skipping layer");
                         continue;
                     }
 
-                    uint8_t character = 0;
-                    uint8_t count = 0;
-                    uint32_t count_as_int = 0;
-                    size_t offset = 0;
-                    size_t readed_bytes = 0;
+                    uint8 character = 0;
+                    uint8 count = 0;
+                    uint32 count_as_int = 0;
+                    uint64 offset = 0;
+                    uint64 readed_bytes = 0;
                     while (readed_bytes < image_data_section.packed_length 
                             && offset < image_data_section.unpacked_length)
                     {
@@ -1063,7 +1061,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
                             }
                             else if(count > 0x80){
                                 // 0x81 < byte < 0xFF
-                                count_as_int = (uint32_t)(0x101 - count);
+                                count_as_int = (uint32)(0x101 - count);
 
                                 BVR_ASSERT(offset + count_as_int <= image_data_section.unpacked_length);
 
@@ -1076,7 +1074,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
                             }
                             else {
                                 // 0x00 < byte < 0x7F
-                                count_as_int = (uint32_t)(count + 1);
+                                count_as_int = (uint32)(count + 1);
 
                                 BVR_ASSERT(offset + count_as_int <= image_data_section.unpacked_length);
 
@@ -1095,11 +1093,12 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
                         }
                     }
 
-                    for (size_t strip = 0; strip < image_data_section.rows; strip++)
+                    for (uint64 strip = 0; strip < image_data_section.rows; strip++)
                     {
-                        for (size_t column = 0; column < image_data_section.columns; column++)
+                        for (uint64 column = 0; column < image_data_section.columns; column++)
                         {
 #ifndef BVR_NO_FLIP
+
                             image->pixels[
                                 (((strip + layer_anchor_y) * image->width + column + layer_anchor_x) * image->channels + image_data_section.channel) +
                                 (image->width * image->height * image->channels * layer)
@@ -1138,7 +1137,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
     }
 
     // freeing data
-    for (size_t i = 0; i < layer_section.layer_count; i++)
+    for (uint64 i = 0; i < layer_section.layer_count; i++)
     {
         bvr_destroy_string(&layer_section.layers[i].name);
         
@@ -1177,18 +1176,18 @@ static void bvri_create_empty_layer(bvr_image_t* image){
 /*
     Flip vertically an array of pixels.
 */
-static void bvri_flip_image_vertically_raw(uint8_t* pixels, int stride, int width, int height, int channels) {
-    uint8_t buffer[BVR_BUFFER_SIZE];
+static void bvri_flip_image_vertically_raw(uint8* pixels, int stride, int width, int height, int channels) {
+    uint8 buffer[BVR_BUFFER_SIZE];
 
     for (int row = 0; row < (height >> 1); row++)
     {
-        uint8_t* row0 = pixels + row * stride;
-        uint8_t* row1 = pixels + (height - row - 1) * stride;
-        size_t bleft = stride;
+        uint8* row0 = pixels + row * stride;
+        uint8* row1 = pixels + (height - row - 1) * stride;
+        uint64 bleft = stride;
 
         while (bleft)
         {
-            size_t bcpy = sizeof(buffer);
+            uint64 bcpy = sizeof(buffer);
             if(bleft < sizeof(buffer)){
                 bcpy = bleft;
             }
@@ -1294,7 +1293,7 @@ int bvr_create_bitmap(bvr_image_t* bitmap, const char* path, int channel){
 void bvr_flip_image_vertically(bvr_image_t* image){
     BVR_ASSERT(image);
 
-    for (size_t layer = 0; layer < BVR_BUFFER_COUNT(image->layers); layer++){
+    for (uint64 layer = 0; layer < BVR_BUFFER_COUNT(image->layers); layer++){
         bvri_flip_image_vertically_raw(
             &image->pixels[image->width * image->height * image->channels * layer],
             image->width * image->channels, image->width, image->height, image->channels
@@ -1302,7 +1301,7 @@ void bvr_flip_image_vertically(bvr_image_t* image){
     }
 }
 
-int bvr_image_copy_channel(bvr_image_t* image, int channel, uint8_t* buffer){
+int bvr_image_copy_channel(bvr_image_t* image, int channel, uint8* buffer){
     BVR_ASSERT(image);
     BVR_ASSERT(image->pixels);
     BVR_ASSERT(buffer);
@@ -1327,9 +1326,9 @@ int bvr_image_copy_channel(bvr_image_t* image, int channel, uint8_t* buffer){
         }
     }
 
-    for (size_t y = 0; y < image->height; y++)
+    for (uint64 y = 0; y < image->height; y++)
     {
-        for (size_t x = 0; x < image->width; x++)
+        for (uint64 x = 0; x < image->width; x++)
         {
             buffer[y * image->width + x] = image->pixels[(y * image->width + x) * image->channels + channel];
         }
@@ -1339,7 +1338,7 @@ int bvr_image_copy_channel(bvr_image_t* image, int channel, uint8_t* buffer){
 void bvr_destroy_image(bvr_image_t* image){
     BVR_ASSERT(image);
 
-    for (size_t layer = 0; layer < BVR_BUFFER_COUNT(image->layers); layer++)
+    for (uint64 layer = 0; layer < BVR_BUFFER_COUNT(image->layers); layer++)
     {
         bvr_destroy_string(&((bvr_layer_t*)image->layers.data)[layer].name);
     }
@@ -1382,6 +1381,7 @@ int bvr_create_texture_from_image(bvr_texture_t* texture, bvr_image_t* image, in
     texture->filter = filter;
     texture->wrap = wrap;
     texture->id = 0;
+    texture->unit = 0;
 
     if(BVR_BUFFER_COUNT(image->layers) > 1){
         // TODO: compress images into one layer
@@ -1429,8 +1429,8 @@ int bvr_create_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap
     return bvr_create_texture_from_image(texture, &texture->image, filter, wrap);    
 }
 
-void bvr_texture_enable(bvr_texture_t* texture, int unit){
-    glActiveTexture(unit);
+void bvr_texture_enable(bvr_texture_t* texture){
+    glActiveTexture(BVR_TEXTURE_UNIT0 + texture->unit);
     glBindTexture(GL_TEXTURE_2D, texture->id);
 }
 
@@ -1446,18 +1446,21 @@ void bvr_destroy_texture(bvr_texture_t* texture){
     bvr_destroy_image(&texture->image);
 }
 
-
 int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file, 
-        uint32_t tile_width, uint32_t tile_height, int filter, int wrap){
+        uint32 tile_width, uint32 tile_height, int filter, int wrap){
 
     BVR_ASSERT(atlas);
     BVR_ASSERT(file);
+
     atlas->filter = filter;
     atlas->wrap = wrap;
     atlas->tile_width = tile_width;
     atlas->tile_height = tile_height;
+    atlas->tile_count_x = 0;
+    atlas->tile_count_y = 0;
 
     atlas->id = 0;
+    atlas->unit = 0;
     
     bvr_create_imagef(&atlas->image, file);
     if(!atlas->image.pixels){
@@ -1468,6 +1471,10 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
     if(BVR_BUFFER_COUNT(atlas->image.layers) > 1){
         // TODO: compress images into one layer
     }
+
+    atlas->tile_count_x = atlas->image.width / tile_width;
+    atlas->tile_count_y = atlas->image.height / tile_height;
+    const int tile_count = atlas->tile_count_x * atlas->tile_count_y;
 
     glGenTextures(1, &atlas->id);
     glBindTexture(GL_TEXTURE_2D_ARRAY, atlas->id);
@@ -1485,19 +1492,36 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
 
     glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, bvri_sizeof_format(atlas->image.format, atlas->image.depth), 
         atlas->tile_width, atlas->tile_height, 
-        (atlas->image.width / atlas->tile_width) * (atlas->image.height / atlas->tile_height)
+        tile_count
     );
 
-    for (size_t y = 0; y < atlas->image.height; y += atlas->tile_height)
+    for (uint64 y = 0; y < atlas->image.height; y += atlas->tile_height)
     {
-        for (size_t x = 0; x < atlas->image.width; x += atlas->tile_width)
+        for (uint64 x = 0; x < atlas->image.width; x += atlas->tile_width)
         {
+#ifndef BVR_NO_FLIP
             glTexSubImage3D(
-                GL_TEXTURE_2D_ARRAY, 0, 0, 0,
-                y * (atlas->image.width / atlas->tile_width) + x,
-                atlas->tile_width, atlas->tile_height, 1, atlas->image.format, GL_UNSIGNED_BYTE,
-                atlas->image.pixels + ((y * atlas->tile_height * atlas->image.width + x * atlas->tile_width) * atlas->image.channels)
+                GL_TEXTURE_2D_ARRAY, 0, 
+                0, 
+                0,
+                tile_count - ((y / atlas->tile_height) * atlas->tile_count_x + (atlas->tile_count_x - x / atlas->tile_width - 1)) - 1,
+                atlas->tile_width, 
+                atlas->tile_height, 
+                1, atlas->image.format, GL_UNSIGNED_BYTE,
+                atlas->image.pixels + (y * atlas->image.width + x) * atlas->image.channels
             );
+#else
+            glTexSubImage3D(
+                GL_TEXTURE_2D_ARRAY, 0, 
+                0, 
+                0,
+                ((y / atlas->tile_height) * atlas->tile_count_x + (x / atlas->tile_width)),
+                atlas->tile_width, 
+                atlas->tile_height, 
+                1, atlas->image.format, GL_UNSIGNED_BYTE,
+                atlas->image.pixels + (y * atlas->image.width + x) * atlas->image.channels
+            );
+#endif
         }
     }
     
@@ -1509,8 +1533,8 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
     return BVR_OK;
 }
 
-void bvr_texture_atlas_enablei(bvr_texture_atlas_t* atlas, int unit){
-    glActiveTexture(unit);
+void bvr_texture_atlas_enablei(bvr_texture_atlas_t* atlas){
+    glActiveTexture(BVR_TEXTURE_UNIT0 + atlas->unit);
     glBindTexture(GL_TEXTURE_2D_ARRAY, atlas->id);
 }
 
@@ -1532,6 +1556,7 @@ int bvr_create_layered_texturef(bvr_layered_texture_t* texture, FILE* file, int 
     texture->wrap = wrap;
 
     texture->id = 0;
+    texture->unit = 0;
 
     bvr_create_imagef(&texture->image, file);
     if(!texture->image.pixels){
@@ -1566,7 +1591,7 @@ int bvr_create_layered_texturef(bvr_layered_texture_t* texture, FILE* file, int 
         texture->image.layers.size / sizeof(bvr_layer_t)
     );
 
-    for (size_t layer = 0; layer < texture->image.layers.size / sizeof(bvr_layer_t); layer++)
+    for (uint64 layer = 0; layer < texture->image.layers.size / sizeof(bvr_layer_t); layer++)
     {
 
 #ifndef BVR_NO_FLIP
@@ -1602,14 +1627,14 @@ int bvr_create_layered_texturef(bvr_layered_texture_t* texture, FILE* file, int 
     return BVR_OK;
 }
 
-void bvr_layered_texture_enable(bvr_layered_texture_t* texture, int unit){
-    glActiveTexture(unit);
+/*void bvr_layered_texture_enable(bvr_layered_texture_t* texture){
+    glActiveTexture(BVR_TEXTURE_UNIT0 + texture->unit);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture->id);
 }
 
 void bvr_layered_texture_disable(void){
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-}
+}*/
 
 void bvr_destroy_layered_texture(bvr_layered_texture_t* texture){
     BVR_ASSERT(texture);

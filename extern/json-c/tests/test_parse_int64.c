@@ -12,7 +12,7 @@
 
 void checkit(const char *buf)
 {
-	int64_t cint64 = -666;
+	int64 cint64 = -666;
 
 	int retval = json_parse_int64(buf, &cint64);
 	printf("buf=%s parseit=%d, value=%" PRId64 " \n", buf, retval, cint64);
@@ -20,7 +20,7 @@ void checkit(const char *buf)
 
 void checkit_uint(const char *buf)
 {
-	uint64_t cuint64 = 666;
+	uint64 cuint64 = 666;
 
 	int retval = json_parse_uint64(buf, &cuint64);
 	printf("buf=%s parseit=%d, value=%" PRIu64 " \n", buf, retval, cuint64);

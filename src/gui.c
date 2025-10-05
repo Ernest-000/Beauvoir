@@ -3,8 +3,6 @@
 
 #ifdef BVR_INCLUDE_NUKLEAR
 
-#include <SDL3/SDL.h>
-
 #define NK_SDL_GLES2_IMPLEMENTATION
 #include "nuklear_sdl_gles2.h"
 
@@ -32,7 +30,7 @@ void bvr_nuklear_handle(bvr_nuklear_t* nuklear){
 
     if(((nuklear->window->events & SDL_EVENT_KEY_DOWN) == SDL_EVENT_KEY_DOWN) ||
         (nuklear->window->events & SDL_EVENT_KEY_UP) == SDL_EVENT_KEY_UP){
-        const uint8_t* state = (Uint8*)SDL_GetKeyboardState(0);
+        const uint8* state = (Uint8*)SDL_GetKeyboardState(0);
         
         if(nuklear->window->inputs.keys[BVR_KEY_RIGHT_SHIFT] ||
            nuklear->window->inputs.keys[BVR_KEY_LEFT_SHIFT]) {
@@ -83,22 +81,17 @@ void bvr_nuklear_handle(bvr_nuklear_t* nuklear){
         float x, y;
         SDL_GetMouseState(&x, &y);
 
-        if(nuklear->window->inputs.buttons[BVR_MOUSE_BUTTON_LEFT]){
-            int down = nuklear->window->inputs.buttons[BVR_MOUSE_BUTTON_LEFT] - 1;
+        {
+            int down = nuklear->window->inputs.buttons[BVR_MOUSE_BUTTON_LEFT];
 
-            if(nuklear->window->inputs.buttons[BVR_MOUSE_BUTTON_DOUBLE]){
+            if(nuklear->window->inputs.buttons[BVR_MOUSE_BUTTON_LEFT] == BVR_MOUSE_BUTTON_DOUBLE_PRESSED){
                 nk_input_button(nuklear->context, NK_BUTTON_DOUBLE, (int)x, (int)y, down);
             }
             nk_input_button(nuklear->context, NK_BUTTON_LEFT, (int)x, (int)y, down);
         }
-        if(nuklear->window->inputs.buttons[BVR_MOUSE_BUTTON_MIDDLE]){
-            nk_input_button(nuklear->context, NK_BUTTON_MIDDLE, (int)x, (int)y, 
-                nuklear->window->inputs.buttons[BVR_MOUSE_BUTTON_MIDDLE] - 1);
-        }
-        if(nuklear->window->inputs.buttons[BVR_MOUSE_BUTTON_RIGHT]){
-            nk_input_button(nuklear->context, NK_BUTTON_RIGHT, (int)x, (int)y, 
-                nuklear->window->inputs.buttons[BVR_MOUSE_BUTTON_RIGHT] - 1);
-        }
+        
+        nk_input_button(nuklear->context, NK_BUTTON_MIDDLE, (int)x, (int)y, nuklear->window->inputs.buttons[BVR_MOUSE_BUTTON_MIDDLE]);
+        nk_input_button(nuklear->context, NK_BUTTON_RIGHT, (int)x, (int)y, nuklear->window->inputs.buttons[BVR_MOUSE_BUTTON_RIGHT]);
     }
 
     if((nuklear->window->events & SDL_EVENT_MOUSE_MOTION) == SDL_EVENT_MOUSE_MOTION){

@@ -1061,8 +1061,8 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
 			}
 		}
 			{
-				int64_t num64;
-				uint64_t numuint64;
+				int64 num64;
+				uint64 numuint64;
 				double numd;
 				if (!tok->is_double && tok->pb->buf[0] == '-' &&
 				    json_parse_int64(tok->pb->buf, &num64) == 0)
@@ -1095,7 +1095,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
 					}
 					if (numuint64 <= INT64_MAX)
 					{
-						num64 = (uint64_t)numuint64;
+						num64 = (uint64)numuint64;
 						current = json_object_new_int64(num64);
 						if (current == NULL)
 						{
@@ -1400,10 +1400,10 @@ void json_tokener_set_flags(struct json_tokener *tok, int flags)
 	tok->flags = flags;
 }
 
-size_t json_tokener_get_parse_end(struct json_tokener *tok)
+uint64 json_tokener_get_parse_end(struct json_tokener *tok)
 {
 	assert(tok->char_offset >= 0); /* Drop this line when char_offset becomes a size_t */
-	return (size_t)tok->char_offset;
+	return (uint64)tok->char_offset;
 }
 
 static int json_tokener_parse_double(const char *buf, int len, double *retval)

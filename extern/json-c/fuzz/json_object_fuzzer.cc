@@ -5,11 +5,11 @@
 
 // Function to test json_c_visit
 static int emit_object(json_object *jso, int flags, json_object *parent_jso, const char *jso_key,
-                       size_t *jso_index, void *userarg) {
+                       uint64 *jso_index, void *userarg) {
 	return JSON_C_VISIT_RETURN_CONTINUE;
 }
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8 *data, uint64 size) {
 	FuzzedDataProvider fdp(data, size);
 	json_object *jso = json_tokener_parse(fdp.ConsumeRandomLengthString(20).c_str());
 
@@ -27,8 +27,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 	json_c_visit(jso, 0, emit_object, NULL);
 
 	json_object_set_int(jso, fdp.ConsumeIntegral<int>());
-	json_object_set_int64(jso, fdp.ConsumeIntegral<int64_t>());
-	json_object_set_uint64(jso, fdp.ConsumeIntegral<uint64_t>());
+	json_object_set_int64(jso, fdp.ConsumeIntegral<int64>());
+	json_object_set_uint64(jso, fdp.ConsumeIntegral<uint64>());
 	json_object_set_double(jso, fdp.ConsumeFloatingPoint<double>());
 	json_object_set_string(jso, fdp.ConsumeRandomLengthString(10).c_str());
 	json_object_set_boolean(jso, fdp.ConsumeBool());

@@ -16,8 +16,8 @@ typedef struct bvr_nuklear_s {
 
     struct nk_font_atlas* atlas;
     int antialiasing;
-    uint32_t vertex_buffer_length;
-    uint32_t element_buffer_length;
+    uint32 vertex_buffer_length;
+    uint32 element_buffer_length;
 } bvr_nuklear_t;
 
 int bvr_create_nuklear(bvr_nuklear_t* nuklear, bvr_window_t* window);

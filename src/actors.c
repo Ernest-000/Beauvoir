@@ -1,37 +1,49 @@
 #include <BVR/actors.h>
 
 #include <BVR/file.h>
+#include <BVR/graphics.h>
 
 #include <stdlib.h>
+#include <math.h>
 #include <memory.h>
 
 #include <GLAD/glad.h>
 
 /*
-    
+    calculate actor's transformation matrix
 */
-static void bvri_update_transform(struct bvr_actor_s* actor){
-    BVR_ASSERT(actor);
+static void bvri_update_transform(bvr_transform_t* transform){
+    BVR_ASSERT(transform);
 
-    BVR_IDENTITY_MAT4(actor->transform.matrix);
+    mat4x4 rotation_mat;
+
+    BVR_IDENTITY_MAT4(rotation_mat);
+    BVR_IDENTITY_MAT4(transform->matrix);
+
+    mat4_rotate(rotation_mat, transform->rotation);
 
     // copy translation to the translate matrix
-    actor->transform.matrix[3][0] = actor->transform.position[0];
-    actor->transform.matrix[3][1] = actor->transform.position[1];
-    actor->transform.matrix[3][2] = actor->transform.position[2];
+    transform->matrix[3][0] = transform->position[0];
+    transform->matrix[3][1] = transform->position[1];
+    transform->matrix[3][2] = transform->position[2];
 
     // scale matrix
-    actor->transform.matrix[0][0] = actor->transform.scale[0];
-    actor->transform.matrix[1][1] = actor->transform.scale[0];
-    actor->transform.matrix[2][2] = actor->transform.scale[0];
+    transform->matrix[0][0] = transform->scale[0];
+    transform->matrix[1][1] = transform->scale[0];
+    transform->matrix[2][2] = transform->scale[0];
+
+    mat4_mul(transform->matrix, transform->matrix, rotation_mat);
 }
 
+/*
+    Generic contructor for dynamics actors
+*/
 static void bvri_create_generic_dynactor(bvr_dynamic_actor_t* actor, int flags){
     bvr_create_collider(&actor->collider, NULL, 0);
     actor->collider.transform = &actor->object.transform;
 
     actor->collider.body.mode = BVR_COLLISION_DISABLE;
-    actor->collider.shape = BVR_COLLIDER_BOX;
+    actor->collider.shape = BVR_COLLIDER_EMPTY;
     
     if(BVR_HAS_FLAG(flags, BVR_COLLISION_ENABLE)){
         actor->collider.body.mode |= BVR_COLLISION_ENABLE;
@@ -54,51 +66,92 @@ static void bvri_create_dynamic_actor(bvr_dynamic_actor_t* actor, int flags){
     bvri_create_generic_dynactor(actor, flags);
 
     // generate bounding boxes by using mesh's vertices
-    if(BVR_HAS_FLAG(flags, BVR_DYNACTOR_CREATE_COLLIDER_FROM_VERTICES)){
+    if(BVR_HAS_FLAG(flags, BVR_DYNACTOR_CREATE_COLLIDER_FROM_BOUNDS)){
         if(actor->mesh.attrib == BVR_MESH_ATTRIB_V3 || 
             actor->mesh.attrib == BVR_MESH_ATTRIB_V3UV2){
             
             BVR_PRINT("cannot generate bounding box for 3d meshes!");
         }
-        else {
-            if(actor->mesh.vertex_buffer){
-                float* vertices_ptr;
-                struct bvr_bounds_s bounds;
-    
-                // get a pointer to mesh's vertices
-                glBindBuffer(GL_ARRAY_BUFFER, actor->mesh.vertex_buffer);
-                vertices_ptr = glMapBufferRange(GL_ARRAY_BUFFER, 0, actor->mesh.vertex_count, GL_MAP_READ_BIT);
-                BVR_ASSERT(vertices_ptr);
-    
-                vec2_copy(bounds.coords, actor->object.transform.position);
-                bounds.width = 0;
-                bounds.height = 0;
-    
-                // get max bounds
-                for (size_t i = 0; i < actor->mesh.vertex_count; i += actor->mesh.stride)
+        else if (actor->mesh.vertex_buffer) {
+            actor->collider.shape = BVR_COLLIDER_BOX;
+
+            float *vertices = NULL;
+            struct bvr_bounds_s bounds;
+
+            // get a pointer to mesh's vertices
+            glBindBuffer(GL_ARRAY_BUFFER, actor->mesh.vertex_buffer);
+            vertices = glMapBufferRange(GL_ARRAY_BUFFER, 0, actor->mesh.vertex_count, GL_MAP_READ_BIT);
+            BVR_ASSERT(vertices);
+
+            vec2_copy(bounds.coords, actor->object.transform.position);
+            bounds.width = 0;
+            bounds.height = 0;
+
+            // get max bounds
+            for (uint64 i = 0; i < actor->mesh.vertex_count; i += actor->mesh.stride)
+            {
+                if (abs(vertices[i + 0] * 2) > bounds.width)
                 {
-                    if(abs(vertices_ptr[i + 0] * 2) > bounds.width){
-                        bounds.width = abs(vertices_ptr[i + 0] * 2);
-                    }
-                    if(abs(vertices_ptr[i + 1] * 2) > bounds.height){
-                        bounds.height = abs(vertices_ptr[i + 1] * 2);
-                    }
+                    bounds.width = abs(vertices[i + 0] * 2);
                 }
-                
-                // allocate geometry
-                actor->collider.geometry.elemsize = sizeof(struct bvr_bounds_s);
-                actor->collider.geometry.size = 1 * sizeof(struct bvr_bounds_s);
-                actor->collider.geometry.data = malloc(actor->collider.geometry.size);
-                BVR_ASSERT(actor->collider.geometry.data);
-    
-                memcpy(actor->collider.geometry.data, &bounds, actor->collider.geometry.size);
-    
-                glUnmapBuffer(GL_ARRAY_BUFFER);
-                glBindBuffer(GL_ARRAY_BUFFER, 0);
+                if (abs(vertices[i + 1] * 2) > bounds.height)
+                {
+                    bounds.height = abs(vertices[i + 1] * 2);
+                }
             }
-            else {
-                BVR_PRINT("failed to copy vertices data!");
-            }
+
+            // allocate geometry
+            actor->collider.geometry.elemsize = sizeof(struct bvr_bounds_s);
+            actor->collider.geometry.size = 1 * sizeof(struct bvr_bounds_s);
+            actor->collider.geometry.data = malloc(actor->collider.geometry.size);
+            BVR_ASSERT(actor->collider.geometry.data);
+
+            memcpy(actor->collider.geometry.data, &bounds, actor->collider.geometry.size);
+
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+        }
+        else {
+            BVR_PRINT("failed to copy vertices data!");
+        }
+    }
+
+   
+    if(BVR_HAS_FLAG(flags, BVR_DYNACTOR_TRIANGULATE_COLLIDER_FROM_VERTICES)){
+        if(actor->mesh.attrib == BVR_MESH_ATTRIB_V3 || 
+            actor->mesh.attrib == BVR_MESH_ATTRIB_V3UV2){
+            
+            BVR_PRINT("cannot triangulate mesh for 3d meshes!");
+        }
+        else if(actor->mesh.vertex_buffer) {
+            actor->collider.shape = BVR_COLLIDER_TRIARRAY;
+            char* vmap;
+
+            // get raw data
+            glBindBuffer(GL_ARRAY_BUFFER, actor->mesh.vertex_buffer);
+            vmap = glMapBufferRange(GL_ARRAY_BUFFER, 0, actor->mesh.vertex_count, GL_MAP_READ_BIT);
+            BVR_ASSERT(vmap);
+
+            bvr_mesh_buffer_t sbuf, tbuf;
+            sbuf.type = BVR_FLOAT;
+            tbuf.type = BVR_FLOAT;
+            tbuf.count = 0;
+            sbuf.count = actor->mesh.vertex_count;
+            tbuf.data = NULL;
+            sbuf.data = vmap;
+
+            bvr_triangulate(&sbuf, &tbuf, 2);
+            
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+            // allocate and copy geometry
+            actor->collider.geometry.elemsize = sizeof(vec2) * 3;
+            actor->collider.geometry.size = tbuf.count * sizeof(float);
+            actor->collider.geometry.data = malloc(actor->collider.geometry.size);
+            BVR_ASSERT(actor->collider.geometry.data);
+
+            memcpy(actor->collider.geometry.data, tbuf.data, actor->collider.geometry.size);
         }
     }
 }
@@ -115,14 +168,14 @@ static void bvri_create_bitmap_layer(bvr_bitmap_layer_t* layer, int flags){
         BVR_ASSERT(layer->bitmap.image.pixels);
 
         struct bvr_bounds_s rects[BVR_BUFFER_SIZE / 2];
-        uint8_t* pixels = malloc(layer->bitmap.image.width * layer->bitmap.image.height);
+        uint8* pixels = malloc(layer->bitmap.image.width * layer->bitmap.image.height);
         memcpy(pixels, layer->bitmap.image.pixels, layer->bitmap.image.width * layer->bitmap.image.height);
 
         int x, y;
         int rect_width, rect_height, rc;
         int rect_count = 0;
 
-        for (size_t i = 0; i < layer->bitmap.image.width * layer->bitmap.image.height; i++)
+        for (uint64 i = 0; i < layer->bitmap.image.width * layer->bitmap.image.height; i++)
         {
             // skip null pixels
             if(pixels[i] == 0){
@@ -146,7 +199,7 @@ static void bvri_create_bitmap_layer(bvr_bitmap_layer_t* layer, int flags){
             while (y + rect_height < layer->bitmap.image.height && rc)
             {
                 // for each vertical line check if the width is still correct 
-                for (size_t dx = 0; dx < rect_width; dx++)
+                for (uint64 dx = 0; dx < rect_width; dx++)
                 {
                     // if not, it's the end of the rectangle
                     if(pixels[(y + rect_height) * layer->bitmap.image.width + x + dx] == 0){
@@ -159,9 +212,9 @@ static void bvri_create_bitmap_layer(bvr_bitmap_layer_t* layer, int flags){
             }
 
             // clear the rectangle that we found 
-            for (size_t dy = 0; dy < rect_height; dy++)
+            for (uint64 dy = 0; dy < rect_height; dy++)
             {
-                for (size_t dx = 0; dx < rect_width; dx++)
+                for (uint64 dx = 0; dx < rect_width; dx++)
                 {
                     pixels[(y + dy) * layer->bitmap.image.width + x + dx] = 0;
                 }
@@ -194,13 +247,52 @@ static void bvri_create_bitmap_layer(bvr_bitmap_layer_t* layer, int flags){
     }
 }
 
+static void bvri_create_landscape(bvr_landscape_actor_t* landscape, int flags){
+    // generate grid
+    const float count_x = landscape->dimension[0];
+    const float count_y = landscape->dimension[1];
+    const float tile_w = landscape->dimension[2];
+    const float tile_h = landscape->dimension[3];
+    
+    const int vertex_count = count_x * count_y * 2 + (count_y * 3); 
+
+    const int max_altitude = 50;
+    int altitude, texid;
+
+    int* vertices = malloc(vertex_count * sizeof(int));
+    BVR_ASSERT(vertices);
+
+    memset(vertices, 0, vertex_count * sizeof(int));
+
+    for (size_t i = 0; i < vertex_count; i++)
+    {
+        texid = 1;
+        altitude = 0;
+
+        vertices[i] = 0;
+        vertices[i] = ((texid << 8) | altitude);
+    }
+    
+    bvr_mesh_buffer_t vertices_buffer;
+    vertices_buffer.data = (char*) vertices;
+    vertices_buffer.type = BVR_INT32;
+    vertices_buffer.count = vertex_count;
+
+    bvr_mesh_buffer_t element_buffer;
+    element_buffer.data = (char*) NULL;
+    element_buffer.type = BVR_UNSIGNED_INT32;
+    element_buffer.count = vertex_count;
+
+    bvr_create_meshv(&landscape->mesh, &vertices_buffer, &element_buffer, BVR_MESH_ATTRIB_SINGLE);
+}
+
 void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_type_t type, int flags){
     BVR_ASSERT(actor);
 
     actor->type = type;
     actor->flags = flags;
-    
-    actor->transform.active = 1;
+    actor->order_in_layer = 0;
+    actor->active = 1;
     BVR_IDENTITY_VEC3(actor->transform.position);
     BVR_IDENTITY_VEC3(actor->transform.rotation);
     BVR_SCALE_VEC3(actor->transform.scale, 1.0f);
@@ -210,7 +302,6 @@ void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_typ
     bvr_create_uuid(actor->id);
 
     BVR_PRINTF("created a new actor %x", actor);
-
     switch (type)
     {
     case BVR_EMPTY_ACTOR:
@@ -229,6 +320,10 @@ void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_typ
     
     case BVR_DYNAMIC_ACTOR:
         bvri_create_dynamic_actor((bvr_dynamic_actor_t*)actor, flags);
+        break;
+
+    case BVR_LANDSCAPE_ACTOR:
+        bvri_create_landscape((bvr_landscape_actor_t*)actor, flags);
         break;
 
     default:
@@ -256,6 +351,13 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
             bvr_destroy_texture(&((bvr_bitmap_layer_t*)actor)->bitmap);
         }
         break;
+    case BVR_LAYER_ACTOR:
+        {
+            bvr_destroy_mesh(&((bvr_layer_actor_t*)actor)->mesh);
+            bvr_destroy_shader(&((bvr_layer_actor_t*)actor)->shader);
+            bvr_destroy_layered_texture(&((bvr_layer_actor_t*)actor)->texture);
+        }
+        break;
     case BVR_STATIC_ACTOR:
         {
             bvr_destroy_mesh(&((bvr_static_actor_t*)actor)->mesh);
@@ -268,20 +370,147 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
             bvr_destroy_collider(&((bvr_dynamic_actor_t*)actor)->collider);
         }
         break;
+    case BVR_LANDSCAPE_ACTOR:
+        {
+            bvr_destroy_mesh(&((bvr_landscape_actor_t*)actor)->mesh);
+            bvr_destroy_shader(&((bvr_landscape_actor_t*)actor)->shader);
+            bvr_destroy_texture_atlas(&((bvr_landscape_actor_t*)actor)->atlas);
+        }
+        break;
     default:
         break;
     }
+
+    actor->type = BVR_NULL_ACTOR;
+    
+    BVR_IDENTITY_VEC3(actor->transform.position);
+    BVR_IDENTITY_VEC3(actor->transform.rotation);
+    BVR_SCALE_VEC3(actor->transform.scale, 1.0f);
+
+    BVR_IDENTITY_MAT4(actor->transform.matrix);
 }
 
-void bvr_draw_actor(bvr_static_actor_t* actor, int drawmode){
-    if(!actor->object.transform.active){
+static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
+    struct bvr_draw_command_s cmd;
+
+    const bvr_shader_uniform_t* layer_uniform = bvr_find_uniform(&actor->shader, "bvr_texture_z");
+
+    bvr_layer_t* layer;
+    for (int id = BVR_BUFFER_COUNT(actor->texture.image.layers); id >= 0; id--)
+    {
+        layer = &((bvr_layer_t*)actor->texture.image.layers.data)[id];
+        if(!layer->opacity){
+            continue;
+        }        
+
+        bvr_texture_atlas_enablei((bvr_texture_atlas_t*)&actor->texture);
+
+        bvr_shader_enable(&actor->shader);
+        bvri_update_transform(&actor->object.transform);
+
+        bvr_shader_use_uniform(&actor->shader.uniforms[0], &actor->object.transform.matrix[0][0]);
+        bvr_shader_set_uniformi(layer_uniform, &id);
+
+        cmd.order = actor->object.order_in_layer + id;
+        if(BVR_HAS_FLAG(layer->flags, BVR_LAYER_Y_SORTED)){
+            cmd.order += layer->anchor_y;
+        }
+
+        cmd.array_buffer = actor->mesh.array_buffer;
+        cmd.vertex_buffer = actor->mesh.vertex_buffer;
+        cmd.element_buffer = actor->mesh.element_buffer;
+        cmd.attrib_count = actor->mesh.attrib_count;
+        cmd.element_type = actor->mesh.element_type;
+
+        cmd.shader = &actor->shader;
+
+        cmd.draw_mode = drawmode;
+        cmd.vertex_group = *(bvr_vertex_group_t*)bvr_pool_try_get(&actor->mesh.vertex_groups, 0);
+        cmd.vertex_group.texture = actor->texture.id;
+
+        bvr_pipeline_draw_cmd(&cmd);
+    }
+
+    bvr_shader_disable();
+}
+
+static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){
+    bvr_shader_enable(&actor->shader);
+
+    bvri_update_transform(&actor->object.transform);
+    bvr_shader_set_uniformi(&actor->shader.uniforms[0], actor->object.transform.matrix);
+    
+    struct bvr_draw_command_s cmd;
+    cmd.order = actor->object.order_in_layer;
+
+    cmd.array_buffer = actor->mesh.array_buffer;
+    cmd.vertex_buffer = actor->mesh.vertex_buffer;
+    cmd.element_buffer = 0;
+    cmd.attrib_count = actor->mesh.attrib_count;
+    cmd.element_type = actor->mesh.element_type;
+
+    cmd.shader = &actor->shader;
+    cmd.draw_mode = BVR_DRAWMODE_TRIANGLES_STRIP;
+
+    cmd.vertex_group.name.string = NULL;
+    cmd.vertex_group.name.length = 0;
+    cmd.vertex_group.texture = 0;
+    cmd.vertex_group.element_offset = 0;
+    cmd.vertex_group.element_count = actor->mesh.vertex_count;
+
+    bvr_pipeline_add_draw_cmd(&cmd);
+
+    bvr_shader_disable();
+}
+
+void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
+    // skip actor if 
+    if(bvr_is_actor_null(actor) || !actor->active){
         return;
     }
 
-    bvri_update_transform((struct bvr_actor_s*)actor);
+    // empty actors cannot be drawn
+    if(actor->type == BVR_EMPTY_ACTOR){
+        return;
+    }
 
-    bvr_shader_enable(&actor->shader);
-    bvr_shader_use_uniform(&actor->shader.uniforms[0], &actor->object.transform.matrix[0][0]);
+    // layered actors are drawn differentlty
+    if(actor->type == BVR_LAYER_ACTOR){
+        bvri_draw_layer_actor((bvr_layer_actor_t*)actor, drawmode);
+        return;
+    }
 
-    bvr_mesh_draw(&actor->mesh, drawmode);
+    if(actor->type == BVR_LANDSCAPE_ACTOR){
+        bvri_draw_landscape_actor((bvr_landscape_actor_t*)actor);
+        return;
+    }
+
+    // update shaders transform
+    bvri_update_transform(&actor->transform);
+
+    bvr_static_actor_t* sactor = (bvr_static_actor_t*)actor;
+
+    bvr_shader_enable(&sactor->shader);
+    bvr_shader_use_uniform(&sactor->shader.uniforms[0], actor->transform.matrix);
+
+    struct bvr_draw_command_s cmd;
+    
+    cmd.order = actor->order_in_layer;
+
+    cmd.array_buffer = sactor->mesh.array_buffer;
+    cmd.vertex_buffer = sactor->mesh.vertex_buffer;
+    cmd.element_buffer = sactor->mesh.element_buffer;
+    cmd.attrib_count = sactor->mesh.attrib_count;
+    cmd.element_type = sactor->mesh.element_type;
+
+    cmd.shader = &sactor->shader;
+    cmd.draw_mode = drawmode;
+
+    bvr_vertex_group_t group;
+    BVR_POOL_FOR_EACH(group, sactor->mesh.vertex_groups){
+        cmd.vertex_group = group;
+        bvr_pipeline_add_draw_cmd(&cmd);
+    }
+
+    bvr_shader_disable();
 }

@@ -387,7 +387,7 @@ void *alloca(size_t);
  *
  * \since This macro is available since SDL 3.1.3.
  */
-typedef int8_t Sint8;
+typedef int8 Sint8;
 #define SDL_MAX_SINT8   ((Sint8)0x7F)           /* 127 */
 #define SDL_MIN_SINT8   ((Sint8)(~0x7F))        /* -128 */
 
@@ -396,7 +396,7 @@ typedef int8_t Sint8;
  *
  * \since This macro is available since SDL 3.1.3.
  */
-typedef uint8_t Uint8;
+typedef uint8 Uint8;
 #define SDL_MAX_UINT8   ((Uint8)0xFF)           /* 255 */
 #define SDL_MIN_UINT8   ((Uint8)0x00)           /* 0 */
 
@@ -405,7 +405,7 @@ typedef uint8_t Uint8;
  *
  * \since This macro is available since SDL 3.1.3.
  */
-typedef int16_t Sint16;
+typedef int16 Sint16;
 #define SDL_MAX_SINT16  ((Sint16)0x7FFF)        /* 32767 */
 #define SDL_MIN_SINT16  ((Sint16)(~0x7FFF))     /* -32768 */
 
@@ -414,7 +414,7 @@ typedef int16_t Sint16;
  *
  * \since This macro is available since SDL 3.1.3.
  */
-typedef uint16_t Uint16;
+typedef uint16 Uint16;
 #define SDL_MAX_UINT16  ((Uint16)0xFFFF)        /* 65535 */
 #define SDL_MIN_UINT16  ((Uint16)0x0000)        /* 0 */
 
@@ -423,7 +423,7 @@ typedef uint16_t Uint16;
  *
  * \since This macro is available since SDL 3.1.3.
  */
-typedef int32_t Sint32;
+typedef int32 Sint32;
 #define SDL_MAX_SINT32  ((Sint32)0x7FFFFFFF)    /* 2147483647 */
 #define SDL_MIN_SINT32  ((Sint32)(~0x7FFFFFFF)) /* -2147483648 */
 
@@ -432,7 +432,7 @@ typedef int32_t Sint32;
  *
  * \since This macro is available since SDL 3.1.3.
  */
-typedef uint32_t Uint32;
+typedef uint32 Uint32;
 #define SDL_MAX_UINT32  ((Uint32)0xFFFFFFFFu)   /* 4294967295 */
 #define SDL_MIN_UINT32  ((Uint32)0x00000000)    /* 0 */
 
@@ -443,7 +443,7 @@ typedef uint32_t Uint32;
  *
  * \sa SDL_SINT64_C
  */
-typedef int64_t Sint64;
+typedef int64 Sint64;
 #define SDL_MAX_SINT64  SDL_SINT64_C(0x7FFFFFFFFFFFFFFF)   /* 9223372036854775807 */
 #define SDL_MIN_SINT64  ~SDL_SINT64_C(0x7FFFFFFFFFFFFFFF)  /* -9223372036854775808 */
 
@@ -454,7 +454,7 @@ typedef int64_t Sint64;
  *
  * \sa SDL_UINT64_C
  */
-typedef uint64_t Uint64;
+typedef uint64 Uint64;
 #define SDL_MAX_UINT64  SDL_UINT64_C(0xFFFFFFFFFFFFFFFF)   /* 18446744073709551615 */
 #define SDL_MIN_UINT64  SDL_UINT64_C(0x0000000000000000)   /* 0 */
 
@@ -1127,7 +1127,7 @@ SDL_COMPILE_TIME_ASSERT(sint32_size, sizeof(Sint32) == 4);
 SDL_COMPILE_TIME_ASSERT(uint64_size, sizeof(Uint64) == 8);
 SDL_COMPILE_TIME_ASSERT(sint64_size, sizeof(Sint64) == 8);
 SDL_COMPILE_TIME_ASSERT(uint64_longlong, sizeof(Uint64) <= sizeof(unsigned long long));
-SDL_COMPILE_TIME_ASSERT(size_t_longlong, sizeof(size_t) <= sizeof(unsigned long long));
+SDL_COMPILE_TIME_ASSERT(size_t_longlong, sizeof(uint64) <= sizeof(unsigned long long));
 typedef struct SDL_alignment_test
 {
     Uint8 a;
@@ -1284,7 +1284,7 @@ extern "C" {
  * \sa SDL_realloc
  * \sa SDL_aligned_alloc
  */
-extern SDL_DECLSPEC SDL_MALLOC void * SDLCALL SDL_malloc(size_t size);
+extern SDL_DECLSPEC SDL_MALLOC void * SDLCALL SDL_malloc(uint64 size);
 
 /**
  * Allocate a zero-initialized array.
@@ -1305,7 +1305,7 @@ extern SDL_DECLSPEC SDL_MALLOC void * SDLCALL SDL_malloc(size_t size);
  * \sa SDL_malloc
  * \sa SDL_realloc
  */
-extern SDL_DECLSPEC SDL_MALLOC SDL_ALLOC_SIZE2(1, 2) void * SDLCALL SDL_calloc(size_t nmemb, size_t size);
+extern SDL_DECLSPEC SDL_MALLOC SDL_ALLOC_SIZE2(1, 2) void * SDLCALL SDL_calloc(uint64 nmemb, uint64 size);
 
 /**
  * Change the size of allocated memory.
@@ -1340,7 +1340,7 @@ extern SDL_DECLSPEC SDL_MALLOC SDL_ALLOC_SIZE2(1, 2) void * SDLCALL SDL_calloc(s
  * \sa SDL_malloc
  * \sa SDL_calloc
  */
-extern SDL_DECLSPEC SDL_ALLOC_SIZE(2) void * SDLCALL SDL_realloc(void *mem, size_t size);
+extern SDL_DECLSPEC SDL_ALLOC_SIZE(2) void * SDLCALL SDL_realloc(void *mem, uint64 size);
 
 /**
  * Free allocated memory.
@@ -1379,7 +1379,7 @@ extern SDL_DECLSPEC void SDLCALL SDL_free(void *mem);
  * \sa SDL_GetMemoryFunctions
  * \sa SDL_SetMemoryFunctions
  */
-typedef void *(SDLCALL *SDL_malloc_func)(size_t size);
+typedef void *(SDLCALL *SDL_malloc_func)(uint64 size);
 
 /**
  * A callback used to implement SDL_calloc().
@@ -1400,7 +1400,7 @@ typedef void *(SDLCALL *SDL_malloc_func)(size_t size);
  * \sa SDL_GetMemoryFunctions
  * \sa SDL_SetMemoryFunctions
  */
-typedef void *(SDLCALL *SDL_calloc_func)(size_t nmemb, size_t size);
+typedef void *(SDLCALL *SDL_calloc_func)(uint64 nmemb, uint64 size);
 
 /**
  * A callback used to implement SDL_realloc().
@@ -1421,7 +1421,7 @@ typedef void *(SDLCALL *SDL_calloc_func)(size_t nmemb, size_t size);
  * \sa SDL_GetMemoryFunctions
  * \sa SDL_SetMemoryFunctions
  */
-typedef void *(SDLCALL *SDL_realloc_func)(void *mem, size_t size);
+typedef void *(SDLCALL *SDL_realloc_func)(void *mem, uint64 size);
 
 /**
  * A callback used to implement SDL_free().
@@ -1538,7 +1538,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_SetMemoryFunctions(SDL_malloc_func malloc_f
  *
  * \sa SDL_aligned_free
  */
-extern SDL_DECLSPEC SDL_MALLOC void * SDLCALL SDL_aligned_alloc(size_t alignment, size_t size);
+extern SDL_DECLSPEC SDL_MALLOC void * SDLCALL SDL_aligned_alloc(uint64 alignment, uint64 size);
 
 /**
  * Free memory allocated by SDL_aligned_alloc().
@@ -1857,7 +1857,7 @@ typedef int (SDLCALL *SDL_CompareCallback)(const void *a, const void *b);
  * \sa SDL_bsearch
  * \sa SDL_qsort_r
  */
-extern SDL_DECLSPEC void SDLCALL SDL_qsort(void *base, size_t nmemb, size_t size, SDL_CompareCallback compare);
+extern SDL_DECLSPEC void SDLCALL SDL_qsort(void *base, uint64 nmemb, uint64 size, SDL_CompareCallback compare);
 
 /**
  * Perform a binary search on a previously sorted array.
@@ -1907,7 +1907,7 @@ extern SDL_DECLSPEC void SDLCALL SDL_qsort(void *base, size_t nmemb, size_t size
  * \sa SDL_bsearch_r
  * \sa SDL_qsort
  */
-extern SDL_DECLSPEC void * SDLCALL SDL_bsearch(const void *key, const void *base, size_t nmemb, size_t size, SDL_CompareCallback compare);
+extern SDL_DECLSPEC void * SDLCALL SDL_bsearch(const void *key, const void *base, uint64 nmemb, uint64 size, SDL_CompareCallback compare);
 
 /**
  * A callback used with SDL sorting and binary search functions.
@@ -1977,7 +1977,7 @@ typedef int (SDLCALL *SDL_CompareCallback_r)(void *userdata, const void *a, cons
  * \sa SDL_bsearch_r
  * \sa SDL_qsort
  */
-extern SDL_DECLSPEC void SDLCALL SDL_qsort_r(void *base, size_t nmemb, size_t size, SDL_CompareCallback_r compare, void *userdata);
+extern SDL_DECLSPEC void SDLCALL SDL_qsort_r(void *base, uint64 nmemb, uint64 size, SDL_CompareCallback_r compare, void *userdata);
 
 /**
  * Perform a binary search on a previously sorted array, passing a userdata
@@ -2035,7 +2035,7 @@ extern SDL_DECLSPEC void SDLCALL SDL_qsort_r(void *base, size_t nmemb, size_t si
  * \sa SDL_bsearch
  * \sa SDL_qsort_r
  */
-extern SDL_DECLSPEC void * SDLCALL SDL_bsearch_r(const void *key, const void *base, size_t nmemb, size_t size, SDL_CompareCallback_r compare, void *userdata);
+extern SDL_DECLSPEC void * SDLCALL SDL_bsearch_r(const void *key, const void *base, uint64 nmemb, uint64 size, SDL_CompareCallback_r compare, void *userdata);
 
 /**
  * Compute the absolute value of `x`.
@@ -2364,7 +2364,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_tolower(int x);
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC Uint16 SDLCALL SDL_crc16(Uint16 crc, const void *data, size_t len);
+extern SDL_DECLSPEC Uint16 SDLCALL SDL_crc16(Uint16 crc, const void *data, uint64 len);
 
 /**
  * Calculate a CRC-32 value.
@@ -2385,7 +2385,7 @@ extern SDL_DECLSPEC Uint16 SDLCALL SDL_crc16(Uint16 crc, const void *data, size_
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC Uint32 SDLCALL SDL_crc32(Uint32 crc, const void *data, size_t len);
+extern SDL_DECLSPEC Uint32 SDLCALL SDL_crc32(Uint32 crc, const void *data, uint64 len);
 
 /**
  * Calculate a 32-bit MurmurHash3 value for a block of data.
@@ -2411,7 +2411,7 @@ extern SDL_DECLSPEC Uint32 SDLCALL SDL_crc32(Uint32 crc, const void *data, size_
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC Uint32 SDLCALL SDL_murmur3_32(const void *data, size_t len, Uint32 seed);
+extern SDL_DECLSPEC Uint32 SDLCALL SDL_murmur3_32(const void *data, uint64 len, Uint32 seed);
 
 /**
  * Copy non-overlapping memory.
@@ -2431,7 +2431,7 @@ extern SDL_DECLSPEC Uint32 SDLCALL SDL_murmur3_32(const void *data, size_t len, 
  *
  * \sa SDL_memmove
  */
-extern SDL_DECLSPEC void * SDLCALL SDL_memcpy(SDL_OUT_BYTECAP(len) void *dst, SDL_IN_BYTECAP(len) const void *src, size_t len);
+extern SDL_DECLSPEC void * SDLCALL SDL_memcpy(SDL_OUT_BYTECAP(len) void *dst, SDL_IN_BYTECAP(len) const void *src, uint64 len);
 
 /* Take advantage of compiler optimizations for memcpy */
 #ifndef SDL_SLOW_MEMCPY
@@ -2487,7 +2487,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_memcpy(SDL_OUT_BYTECAP(len) void *dst, SD
  *
  * \sa SDL_memcpy
  */
-extern SDL_DECLSPEC void * SDLCALL SDL_memmove(SDL_OUT_BYTECAP(len) void *dst, SDL_IN_BYTECAP(len) const void *src, size_t len);
+extern SDL_DECLSPEC void * SDLCALL SDL_memmove(SDL_OUT_BYTECAP(len) void *dst, SDL_IN_BYTECAP(len) const void *src, uint64 len);
 
 /* Take advantage of compiler optimizations for memmove */
 #ifndef SDL_SLOW_MEMMOVE
@@ -2515,7 +2515,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_memmove(SDL_OUT_BYTECAP(len) void *dst, S
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC void * SDLCALL SDL_memset(SDL_OUT_BYTECAP(len) void *dst, int c, size_t len);
+extern SDL_DECLSPEC void * SDLCALL SDL_memset(SDL_OUT_BYTECAP(len) void *dst, int c, uint64 len);
 
 /**
  * Initialize all 32-bit words of buffer of memory to a specific value.
@@ -2535,7 +2535,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_memset(SDL_OUT_BYTECAP(len) void *dst, in
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC void * SDLCALL SDL_memset4(void *dst, Uint32 val, size_t dwords);
+extern SDL_DECLSPEC void * SDLCALL SDL_memset4(void *dst, Uint32 val, uint64 dwords);
 
 /* Take advantage of compiler optimizations for memset */
 #ifndef SDL_SLOW_MEMSET
@@ -2617,7 +2617,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_memset4(void *dst, Uint32 val, size_t dwo
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC int SDLCALL SDL_memcmp(const void *s1, const void *s2, size_t len);
+extern SDL_DECLSPEC int SDLCALL SDL_memcmp(const void *s1, const void *s2, uint64 len);
 
 /**
  * This works exactly like wcslen() but doesn't require access to a C runtime.
@@ -2644,7 +2644,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_memcmp(const void *s1, const void *s2, size_
  * \sa SDL_utf8strlen
  * \sa SDL_utf8strnlen
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_wcslen(const wchar_t *wstr);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_wcslen(const wchar_t *wstr);
 
 /**
  * This works exactly like wcsnlen() but doesn't require access to a C
@@ -2675,7 +2675,7 @@ extern SDL_DECLSPEC size_t SDLCALL SDL_wcslen(const wchar_t *wstr);
  * \sa SDL_utf8strlen
  * \sa SDL_utf8strnlen
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_wcsnlen(const wchar_t *wstr, size_t maxlen);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_wcsnlen(const wchar_t *wstr, uint64 maxlen);
 
 /**
  * Copy a wide string.
@@ -2702,7 +2702,7 @@ extern SDL_DECLSPEC size_t SDLCALL SDL_wcsnlen(const wchar_t *wstr, size_t maxle
  *
  * \sa SDL_wcslcat
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_wcslcpy(SDL_OUT_Z_CAP(maxlen) wchar_t *dst, const wchar_t *src, size_t maxlen);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_wcslcpy(SDL_OUT_Z_CAP(maxlen) wchar_t *dst, const wchar_t *src, uint64 maxlen);
 
 /**
  * Concatenate wide strings.
@@ -2731,7 +2731,7 @@ extern SDL_DECLSPEC size_t SDLCALL SDL_wcslcpy(SDL_OUT_Z_CAP(maxlen) wchar_t *ds
  *
  * \sa SDL_wcslcpy
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_wcslcat(SDL_INOUT_Z_CAP(maxlen) wchar_t *dst, const wchar_t *src, size_t maxlen);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_wcslcat(SDL_INOUT_Z_CAP(maxlen) wchar_t *dst, const wchar_t *src, uint64 maxlen);
 
 /**
  * Allocate a copy of a wide string.
@@ -2794,7 +2794,7 @@ extern SDL_DECLSPEC wchar_t * SDLCALL SDL_wcsstr(const wchar_t *haystack, const 
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC wchar_t * SDLCALL SDL_wcsnstr(const wchar_t *haystack, const wchar_t *needle, size_t maxlen);
+extern SDL_DECLSPEC wchar_t * SDLCALL SDL_wcsnstr(const wchar_t *haystack, const wchar_t *needle, uint64 maxlen);
 
 /**
  * Compare two null-terminated wide strings.
@@ -2844,7 +2844,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_wcscmp(const wchar_t *str1, const wchar_t *s
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC int SDLCALL SDL_wcsncmp(const wchar_t *str1, const wchar_t *str2, size_t maxlen);
+extern SDL_DECLSPEC int SDLCALL SDL_wcsncmp(const wchar_t *str1, const wchar_t *str2, uint64 maxlen);
 
 /**
  * Compare two null-terminated wide strings, case-insensitively.
@@ -2916,7 +2916,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_wcscasecmp(const wchar_t *str1, const wchar_
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC int SDLCALL SDL_wcsncasecmp(const wchar_t *str1, const wchar_t *str2, size_t maxlen);
+extern SDL_DECLSPEC int SDLCALL SDL_wcsncasecmp(const wchar_t *str1, const wchar_t *str2, uint64 maxlen);
 
 /**
  * Parse a `long` from a wide string.
@@ -2963,7 +2963,7 @@ extern SDL_DECLSPEC long SDLCALL SDL_wcstol(const wchar_t *str, wchar_t **endp, 
  * \sa SDL_utf8strlen
  * \sa SDL_utf8strnlen
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_strlen(const char *str);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_strlen(const char *str);
 
 /**
  * This works exactly like strnlen() but doesn't require access to a C
@@ -2987,7 +2987,7 @@ extern SDL_DECLSPEC size_t SDLCALL SDL_strlen(const char *str);
  * \sa SDL_utf8strlen
  * \sa SDL_utf8strnlen
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_strnlen(const char *str, size_t maxlen);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_strnlen(const char *str, uint64 maxlen);
 
 /**
  * Copy a string.
@@ -3016,7 +3016,7 @@ extern SDL_DECLSPEC size_t SDLCALL SDL_strnlen(const char *str, size_t maxlen);
  * \sa SDL_strlcat
  * \sa SDL_utf8strlcpy
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_strlcpy(SDL_OUT_Z_CAP(maxlen) char *dst, const char *src, size_t maxlen);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_strlcpy(SDL_OUT_Z_CAP(maxlen) char *dst, const char *src, uint64 maxlen);
 
 /**
  * Copy an UTF-8 string.
@@ -3044,7 +3044,7 @@ extern SDL_DECLSPEC size_t SDLCALL SDL_strlcpy(SDL_OUT_Z_CAP(maxlen) char *dst, 
  *
  * \sa SDL_strlcpy
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_utf8strlcpy(SDL_OUT_Z_CAP(dst_bytes) char *dst, const char *src, size_t dst_bytes);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_utf8strlcpy(SDL_OUT_Z_CAP(dst_bytes) char *dst, const char *src, uint64 dst_bytes);
 
 /**
  * Concatenate strings.
@@ -3072,7 +3072,7 @@ extern SDL_DECLSPEC size_t SDLCALL SDL_utf8strlcpy(SDL_OUT_Z_CAP(dst_bytes) char
  *
  * \sa SDL_strlcpy
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_strlcat(SDL_INOUT_Z_CAP(maxlen) char *dst, const char *src, size_t maxlen);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_strlcat(SDL_INOUT_Z_CAP(maxlen) char *dst, const char *src, uint64 maxlen);
 
 /**
  * Allocate a copy of a string.
@@ -3115,7 +3115,7 @@ extern SDL_DECLSPEC SDL_MALLOC char * SDLCALL SDL_strdup(const char *str);
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC SDL_MALLOC char * SDLCALL SDL_strndup(const char *str, size_t maxlen);
+extern SDL_DECLSPEC SDL_MALLOC char * SDLCALL SDL_strndup(const char *str, uint64 maxlen);
 
 /**
  * Reverse a string's contents.
@@ -3260,7 +3260,7 @@ extern SDL_DECLSPEC char * SDLCALL SDL_strstr(const char *haystack, const char *
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC char * SDLCALL SDL_strnstr(const char *haystack, const char *needle, size_t maxlen);
+extern SDL_DECLSPEC char * SDLCALL SDL_strnstr(const char *haystack, const char *needle, uint64 maxlen);
 
 /**
  * Search a UTF-8 string for the first instance of a specific substring,
@@ -3345,7 +3345,7 @@ extern SDL_DECLSPEC char * SDLCALL SDL_strtok_r(char *str, const char *delim, ch
  * \sa SDL_utf8strnlen
  * \sa SDL_strlen
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_utf8strlen(const char *str);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_utf8strlen(const char *str);
 
 /**
  * Count the number of codepoints in a UTF-8 string, up to n bytes.
@@ -3378,7 +3378,7 @@ extern SDL_DECLSPEC size_t SDLCALL SDL_utf8strlen(const char *str);
  * \sa SDL_utf8strlen
  * \sa SDL_strnlen
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_utf8strnlen(const char *str, size_t bytes);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_utf8strnlen(const char *str, uint64 bytes);
 
 /**
  * Convert an integer into a string.
@@ -3804,7 +3804,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_strcmp(const char *str1, const char *str2);
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC int SDLCALL SDL_strncmp(const char *str1, const char *str2, size_t maxlen);
+extern SDL_DECLSPEC int SDLCALL SDL_strncmp(const char *str1, const char *str2, uint64 maxlen);
 
 /**
  * Compare two null-terminated UTF-8 strings, case-insensitively.
@@ -3872,7 +3872,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_strcasecmp(const char *str1, const char *str
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC int SDLCALL SDL_strncasecmp(const char *str1, const char *str2, size_t maxlen);
+extern SDL_DECLSPEC int SDLCALL SDL_strncasecmp(const char *str1, const char *str2, uint64 maxlen);
 
 /**
  * Searches a string for the first occurence of any character contained in a
@@ -3950,7 +3950,7 @@ extern SDL_DECLSPEC char * SDLCALL SDL_strpbrk(const char *str, const char *brea
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC Uint32 SDLCALL SDL_StepUTF8(const char **pstr, size_t *pslen);
+extern SDL_DECLSPEC Uint32 SDLCALL SDL_StepUTF8(const char **pstr, uint64 *pslen);
 
 /**
  * Decode a UTF-8 string in reverse, one Unicode codepoint at a time.
@@ -4079,7 +4079,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_vsscanf(const char *text, SDL_SCANF_FORMAT_S
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC int SDLCALL SDL_snprintf(SDL_OUT_Z_CAP(maxlen) char *text, size_t maxlen, SDL_PRINTF_FORMAT_STRING const char *fmt, ...) SDL_PRINTF_VARARG_FUNC(3);
+extern SDL_DECLSPEC int SDLCALL SDL_snprintf(SDL_OUT_Z_CAP(maxlen) char *text, uint64 maxlen, SDL_PRINTF_FORMAT_STRING const char *fmt, ...) SDL_PRINTF_VARARG_FUNC(3);
 
 /**
  * This works exactly like swprintf() but doesn't require access to a C
@@ -4113,7 +4113,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_snprintf(SDL_OUT_Z_CAP(maxlen) char *text, s
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC int SDLCALL SDL_swprintf(SDL_OUT_Z_CAP(maxlen) wchar_t *text, size_t maxlen, SDL_PRINTF_FORMAT_STRING const wchar_t *fmt, ...) SDL_WPRINTF_VARARG_FUNC(3);
+extern SDL_DECLSPEC int SDLCALL SDL_swprintf(SDL_OUT_Z_CAP(maxlen) wchar_t *text, uint64 maxlen, SDL_PRINTF_FORMAT_STRING const wchar_t *fmt, ...) SDL_WPRINTF_VARARG_FUNC(3);
 
 /**
  * This works exactly like vsnprintf() but doesn't require access to a C
@@ -4133,7 +4133,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_swprintf(SDL_OUT_Z_CAP(maxlen) wchar_t *text
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC int SDLCALL SDL_vsnprintf(SDL_OUT_Z_CAP(maxlen) char *text, size_t maxlen, SDL_PRINTF_FORMAT_STRING const char *fmt, va_list ap) SDL_PRINTF_VARARG_FUNCV(3);
+extern SDL_DECLSPEC int SDLCALL SDL_vsnprintf(SDL_OUT_Z_CAP(maxlen) char *text, uint64 maxlen, SDL_PRINTF_FORMAT_STRING const char *fmt, va_list ap) SDL_PRINTF_VARARG_FUNCV(3);
 
 /**
  * This works exactly like vswprintf() but doesn't require access to a C
@@ -4154,7 +4154,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_vsnprintf(SDL_OUT_Z_CAP(maxlen) char *text, 
  *
  * \since This function is available since SDL 3.1.3.
  */
-extern SDL_DECLSPEC int SDLCALL SDL_vswprintf(SDL_OUT_Z_CAP(maxlen) wchar_t *text, size_t maxlen, SDL_PRINTF_FORMAT_STRING const wchar_t *fmt, va_list ap) SDL_WPRINTF_VARARG_FUNCV(3);
+extern SDL_DECLSPEC int SDLCALL SDL_vswprintf(SDL_OUT_Z_CAP(maxlen) wchar_t *text, uint64 maxlen, SDL_PRINTF_FORMAT_STRING const wchar_t *fmt, va_list ap) SDL_WPRINTF_VARARG_FUNCV(3);
 
 /**
  * This works exactly like asprintf() but doesn't require access to a C
@@ -5805,9 +5805,9 @@ extern SDL_DECLSPEC int SDLCALL SDL_iconv_close(SDL_iconv_t cd);
  * \sa SDL_iconv_close
  * \sa SDL_iconv_string
  */
-extern SDL_DECLSPEC size_t SDLCALL SDL_iconv(SDL_iconv_t cd, const char **inbuf,
-                                         size_t *inbytesleft, char **outbuf,
-                                         size_t *outbytesleft);
+extern SDL_DECLSPEC uint64 SDLCALL SDL_iconv(SDL_iconv_t cd, const char **inbuf,
+                                         uint64 *inbytesleft, char **outbuf,
+                                         uint64 *outbytesleft);
 
 #define SDL_ICONV_ERROR     (size_t)-1  /**< Generic error. Check SDL_GetError()? */
 #define SDL_ICONV_E2BIG     (size_t)-2  /**< Output buffer was too small. */
@@ -5843,7 +5843,7 @@ extern SDL_DECLSPEC size_t SDLCALL SDL_iconv(SDL_iconv_t cd, const char **inbuf,
 extern SDL_DECLSPEC char * SDLCALL SDL_iconv_string(const char *tocode,
                                                const char *fromcode,
                                                const char *inbuf,
-                                               size_t inbytesleft);
+                                               uint64 inbytesleft);
 
 /* Some helper macros for common SDL_iconv_string cases... */
 
@@ -5992,7 +5992,7 @@ char *strdup(const char *str);
  *
  * \since This function is available since SDL 3.1.3.
  */
-SDL_FORCE_INLINE bool SDL_size_mul_check_overflow(size_t a, size_t b, size_t *ret)
+SDL_FORCE_INLINE bool SDL_size_mul_check_overflow(uint64 a, uint64 b, uint64 *ret)
 {
     if (a != 0 && b > SDL_SIZE_MAX / a) {
         return false;
@@ -6006,7 +6006,7 @@ SDL_FORCE_INLINE bool SDL_size_mul_check_overflow(size_t a, size_t b, size_t *re
 /* This needs to be wrapped in an inline rather than being a direct #define,
  * because __builtin_mul_overflow() is type-generic, but we want to be
  * consistent about interpreting a and b as size_t. */
-SDL_FORCE_INLINE bool SDL_size_mul_check_overflow_builtin(size_t a, size_t b, size_t *ret)
+SDL_FORCE_INLINE bool SDL_size_mul_check_overflow_builtin(uint64 a, uint64 b, uint64 *ret)
 {
     return (__builtin_mul_overflow(a, b, ret) == 0);
 }
@@ -6031,7 +6031,7 @@ SDL_FORCE_INLINE bool SDL_size_mul_check_overflow_builtin(size_t a, size_t b, si
  *
  * \since This function is available since SDL 3.1.3.
  */
-SDL_FORCE_INLINE bool SDL_size_add_check_overflow(size_t a, size_t b, size_t *ret)
+SDL_FORCE_INLINE bool SDL_size_add_check_overflow(uint64 a, uint64 b, uint64 *ret)
 {
     if (b > SDL_SIZE_MAX - a) {
         return false;
@@ -6044,7 +6044,7 @@ SDL_FORCE_INLINE bool SDL_size_add_check_overflow(size_t a, size_t b, size_t *re
 #if SDL_HAS_BUILTIN(__builtin_add_overflow)
 /* This needs to be wrapped in an inline rather than being a direct #define,
  * the same as the call to __builtin_mul_overflow() above. */
-SDL_FORCE_INLINE bool SDL_size_add_check_overflow_builtin(size_t a, size_t b, size_t *ret)
+SDL_FORCE_INLINE bool SDL_size_add_check_overflow_builtin(uint64 a, uint64 b, uint64 *ret)
 {
     return (__builtin_add_overflow(a, b, ret) == 0);
 }

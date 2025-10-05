@@ -1,22 +1,18 @@
+#ifndef BVR_H_IMPL
+#define BVR_H_IMPL
 
-// Core includes
-/*
-#include <BVR/window.h>
-#include <BVR/audio.h>
-#include <bvr/math.h>
+#include <BVR/config.h>
+#include <BVR/utils.h>
+#include <BVR/math.h>
 
-// Graphics includes
-#include <BVR/image.h>
-#include <BVR/shader.h>
-#include <BVR/mesh.h>
-*/
-
-// Engine includes
 #include <BVR/scene.h>
 #include <BVR/assets.h>
+#include <BVR/assets.book.h>
 #include <BVR/gui.h>
 
 #ifdef BVR_INCLUDE_NUKLEAR
     #define NK_INCLUDE_FIXED_TYPES 
     #include <nuklear.h>
+#endif
+
 #endif

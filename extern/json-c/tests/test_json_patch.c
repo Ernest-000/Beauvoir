@@ -77,7 +77,7 @@ void test_json_patch_using_file(const char *testdir, const char *filename)
 {
 	char full_filename[PATH_MAX];
 	(void)snprintf(full_filename, sizeof(full_filename), "%s/%s", testdir, filename);
-	size_t ii;
+	uint64 ii;
 
 	printf("Testing using file %s\n", filename);
 	json_object *jo = json_object_from_file(full_filename);

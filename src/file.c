@@ -4,10 +4,10 @@
 #include <malloc.h>
 #include <memory.h>
 
-size_t bvr_get_file_size(FILE* file){
-    size_t currp = ftell(file);
+uint64 bvr_get_file_size(FILE* file){
+    uint64 currp = ftell(file);
     fseek(file, 0, SEEK_END);
-    size_t size = ftell(file);
+    uint64 size = ftell(file);
     fseek(file, currp, SEEK_SET);
     return size;
 }
@@ -16,8 +16,8 @@ int bvr_read_file(bvr_string_t* string, FILE* file){
     BVR_ASSERT(string);
     BVR_ASSERT(file);
 
-    size_t file_size = bvr_get_file_size(file) - ftell(file);
-    size_t string_p = string->length;
+    uint64 file_size = bvr_get_file_size(file) - ftell(file);
+    uint64 string_p = string->length;
 
     if(string->string){
         BVR_ASSERT(0 || "cannot copy on a previously allocated string :(");
@@ -28,7 +28,7 @@ int bvr_read_file(bvr_string_t* string, FILE* file){
         string->string = malloc(string->length);
         BVR_ASSERT(string->string);
 
-        size_t final_size = fread(string->string, sizeof(char), file_size, file);
+        uint64 final_size = fread(string->string, sizeof(char), file_size, file);
         string->string[string->length - 1] = '\0';
     }
 
@@ -36,14 +36,14 @@ int bvr_read_file(bvr_string_t* string, FILE* file){
 }
 
 short bvr_fread16_le(FILE* file){
-    uint8_t a, b;
+    uint8 a, b;
     a = bvr_freadu8_le(file);
     b = bvr_freadu8_le(file);
     return (short)((b << 8) | a);
 }
 
 int bvr_fread32_le(FILE* file){
-    uint8_t a, b, c, d;
+    uint8 a, b, c, d;
     a = bvr_freadu8_le(file);
     b = bvr_freadu8_le(file);
     c = bvr_freadu8_le(file);
@@ -51,14 +51,14 @@ int bvr_fread32_le(FILE* file){
     return (int)((((d << 8) | c) << 8 | b) << 8 | a);
 }
 
-uint8_t bvr_freadu8_le(FILE* file){
+uint8 bvr_freadu8_le(FILE* file){
     int v = getc(file);
     if(v == EOF){
         BVR_PRINTF("failed to read character %i", errno);
         return 0;
     }
 
-    return (uint8_t)v;
+    return (uint8)v;
 }
 
 float bvr_freadf(FILE* file){
@@ -67,25 +67,25 @@ float bvr_freadf(FILE* file){
     return f;
 }
 
-void bvr_freadstr(char* string, size_t size, FILE* file){
+void bvr_freadstr(char* string, uint64 size, FILE* file){
     if(string){
-        fread(string, sizeof(uint8_t), size - 1, file);
+        fread(string, sizeof(uint8), size - 1, file);
         string[size - 1] = '\0';
     }
 }
 
-uint16_t bvr_freadu16_le(FILE* file){
-    uint8_t a, b;
+uint16 bvr_freadu16_le(FILE* file){
+    uint8 a, b;
     a = bvr_freadu8_le(file);
     b = bvr_freadu8_le(file);
-    return (uint16_t)((b << 8) | a);
+    return (uint16)((b << 8) | a);
 }
 
-uint32_t bvr_freadu32_le(FILE* file){
-    uint8_t a, b, c, d;
+uint32 bvr_freadu32_le(FILE* file){
+    uint8 a, b, c, d;
     a = bvr_freadu8_le(file);
     b = bvr_freadu8_le(file);
     c = bvr_freadu8_le(file);
     d = bvr_freadu8_le(file);
-    return (uint32_t)((((d << 8) | c) << 8 | b) << 8 | a);
+    return (uint32)((((d << 8) | c) << 8 | b) << 8 | a);
 }

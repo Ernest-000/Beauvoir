@@ -1,4 +1,6 @@
-#include <bvr/utils.h>
+#include <BVR/utils.h>
+
+#include <BVR/config.h>
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -12,26 +14,92 @@
 	#include <signal.h>
 #endif
 
-int bvr_sizeof(int type){
+int bvr_sizeof(const int type){
     switch (type)
     {
         case BVR_INT8: case BVR_UNSIGNED_INT8: return 1;
         case BVR_INT16: case BVR_UNSIGNED_INT16: return 2;
-        case BVR_FLOAT: case BVR_INT32: case BVR_UNSIGNED_INT32: return 4;
+        case BVR_FLOAT: 
+        case BVR_INT32: case BVR_UNSIGNED_INT32: return 4;
+        case BVR_DOUBLE: case BVR_INT64: case BVR_UNSIGNED_INT64: return 8;
+        case BVR_VEC2: return 8;
         case BVR_VEC3: return 12;
         case BVR_VEC4: return 16;
         case BVR_MAT3: return 36;
         case BVR_MAT4: return 64;
-        default: return 0L;
+        case BVR_TEXTURE_2D:
+        case BVR_TEXTURE_2D_ARRAY: return 8;
+        default: return 0;
+    }
+}
+
+void bvr_nameof(const int type, char* name){
+    switch (type)
+    {
+        case BVR_INT8: 
+            strcpy(name, "INT8");
+            return;
+
+        case BVR_UNSIGNED_INT8:
+            strcpy(name, "UNSIGNED_INT8");
+            return;
+
+        case BVR_INT16: 
+            strcpy(name, "INT16");
+            return;
+
+        case BVR_UNSIGNED_INT16:
+            strcpy(name, "UNSIGNED_INT16");
+            return;
+ 
+        case BVR_FLOAT:
+            strcpy(name, "FLOAT");
+            return;
+ 
+        case BVR_INT32:
+            strcpy(name, "INT32");
+            return;
+
+        case BVR_UNSIGNED_INT32: 
+            strcpy(name, "UNSIGNED_INT32");
+            return;
+
+        case BVR_VEC2: 
+            strcpy(name, "VEC2");
+            return;
+
+        case BVR_VEC3: 
+            strcpy(name, "VEC3");
+            return;
+
+        case BVR_VEC4: 
+            strcpy(name, "VEC4");
+            return;
+
+        case BVR_MAT3: 
+            strcpy(name, "MAT3");
+            return;
+
+        case BVR_MAT4: 
+            strcpy(name, "MAT4");
+            return;
+        case BVR_TEXTURE_2D:
+            strcpy(name, "TEXTURE_2D");
+            return;
+        
+        case BVR_TEXTURE_2D_ARRAY:
+            strcpy(name, "TEXTURE_2D_ARRAY");
+            return;
+
+        default:
+            return;
     }
 }
 
 void bvr_create_uuid(bvr_uuid_t uuid){
-    const char hex_digits[] = { 
-        "0123456789abcdefABCDEF" 
-    };
+    const char hex_digits[] = "0123456789abcdefABCDEF";
 
-    for (size_t i = 0; i < 36; i++)
+    for (uint64 i = 0; i < 36; i++)
     {
         (uuid)[i] = hex_digits[rand() % 22];
     }
@@ -43,8 +111,12 @@ void bvr_create_uuid(bvr_uuid_t uuid){
     (uuid)[36] = '\0';
 }
 
-int bvr_compare_uuid(bvr_uuid_t a, bvr_uuid_t b){
-    return strcmp(a, b) == 0;
+void bvr_copy_uuid(bvr_uuid_t src, bvr_uuid_t dest){
+    memcpy(dest, src, sizeof(bvr_uuid_t));
+}
+
+int bvr_uuid_equals(bvr_uuid_t const a, bvr_uuid_t const b){
+    return strncmp(a, b, sizeof(bvr_uuid_t)) == 0;
 }
 
 #ifdef BVR_INCLUDE_DEBUG

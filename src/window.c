@@ -1,5 +1,6 @@
 #include <BVR/window.h>
 
+#include <BVR/scene.h>
 #include <BVR/utils.h>
 
 #include <string.h>
@@ -10,7 +11,7 @@
 
 #include <glad/glad.h>
 
-int bvr_create_window(bvr_window_t* window, int width, int height, const char* title, int flags){
+int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 height, const char* title, const int flags){
     BVR_ASSERT(window);
     BVR_ASSERT(width > 0 && height > 0);
 
@@ -33,11 +34,11 @@ int bvr_create_window(bvr_window_t* window, int width, int height, const char* t
     window->handle = NULL;
     window->context = NULL;
     
-    int window_flags = SDL_WINDOW_OPENGL;
-    window_flags |= SDL_WINDOW_RESIZABLE;
+    int wflags = SDL_WINDOW_OPENGL;
+    //wflags |= SDL_WINDOW_RESIZABLE;
 
     // create a new window
-    window->handle = SDL_CreateWindow(title, width, height, window_flags);
+    window->handle = SDL_CreateWindow(title, width, height, wflags);
     BVR_ASSERT(window->handle);
 
     // create a new context
@@ -68,7 +69,8 @@ int bvr_create_window(bvr_window_t* window, int width, int height, const char* t
     window->awake = 1;
 }
 
-void bvr_window_poll_events(bvr_window_t* window){
+void bvr_window_poll_events(){
+    bvr_window_t* window = &bvr_get_book_instance()->window;
     SDL_Event event;
 
     SDL_StartTextInput(window->handle);
@@ -86,9 +88,11 @@ void bvr_window_poll_events(bvr_window_t* window){
         case SDL_EVENT_KEY_UP:
         case SDL_EVENT_KEY_DOWN:
             {
-                int down = (event.type == SDL_EVENT_KEY_DOWN) + BVR_KEY_UP;
+                //= BVR_INPUT_DOWN if SDL_EVENT_KEY_DOWN
+                int down = (event.type == SDL_EVENT_KEY_DOWN);
+                
                 int kevent = down;
-                if(!event.key.repeat && down - BVR_KEY_UP){
+                if(!event.key.repeat && down){
                     kevent = BVR_KEY_PRESSED;
                 }
                 
@@ -116,16 +120,19 @@ void bvr_window_poll_events(bvr_window_t* window){
                     default: break;
                     }
                 }
-                
                 window->inputs.keys[event.key.scancode] = kevent;
             }
             break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             {
-                int down = event.type == SDL_EVENT_MOUSE_BUTTON_DOWN;
-                window->inputs.buttons[event.button.button] = down + 1;
-                window->inputs.buttons[BVR_MOUSE_BUTTON_DOUBLE] = (event.button.clicks > 1);
+                int bevent = (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN);
+
+                if(event.button.clicks > 1){
+                    bevent = BVR_MOUSE_BUTTON_DOUBLE_PRESSED;
+                }
+
+                window->inputs.buttons[event.button.button] = bevent;
             }
             break;
         case SDL_EVENT_MOUSE_MOTION:
@@ -156,7 +163,7 @@ void bvr_window_poll_events(bvr_window_t* window){
             break;
         case SDL_EVENT_TEXT_INPUT:
             {
-                for (size_t i = 0; i < sizeof(window->inputs.text_input); i++)
+                for (uint64 i = 0; i < sizeof(window->inputs.text_input); i++)
                 {
                     window->inputs.text_input[i] = event.text.text[i];
                     if(event.text.text[i] == '\0') {
@@ -174,8 +181,8 @@ void bvr_window_poll_events(bvr_window_t* window){
     glViewport(0, 0, window->framebuffer.width, window->framebuffer.height);
 }
 
-void bvr_window_push_buffers(bvr_window_t* window){
-    SDL_GL_SwapWindow(window->handle);
+void bvr_window_push_buffers(){
+    SDL_GL_SwapWindow(bvr_get_book_instance()->window.handle);
 }
 
 void bvr_destroy_window(bvr_window_t* window){
@@ -188,25 +195,26 @@ void bvr_destroy_window(bvr_window_t* window){
     window->handle = NULL;
 }
 
-int bvr_key_presssed(bvr_window_t* window, uint16_t key){
-    return window->inputs.keys[key] == BVR_KEY_PRESSED;
+int bvr_key_presssed(uint16 key){
+    return bvr_get_book_instance()->window.inputs.keys[key] == BVR_KEY_PRESSED;
 }
 
-int bvr_key_down(bvr_window_t* window, uint16_t key){
-    return window->inputs.keys[key] == BVR_KEY_DOWN || window->inputs.keys[key] == BVR_KEY_PRESSED;
+int bvr_key_down(uint16 key){
+    return  bvr_get_book_instance()->window.inputs.keys[key] == BVR_KEY_DOWN || 
+            bvr_get_book_instance()->window.inputs.keys[key] == BVR_KEY_PRESSED;
 }
 
-int bvr_button_down(bvr_window_t* window, uint16_t button){
-    return window->inputs.buttons[button] == BVR_KEY_DOWN;
+int bvr_button_down(uint16 button){
+    return bvr_get_book_instance()->window.inputs.buttons[button] == 1;
 }
 
-void bvr_mouse_position(bvr_window_t* window, float* x, float* y){
+void bvr_mouse_position(float* x, float* y){
     SDL_GetMouseState(x, y);
 }
 
-void bvr_mouse_relative_position(bvr_window_t* window, float* x, float *y){
-    *x = window->inputs.relative_motion[0];
-    *y = window->inputs.relative_motion[1];
+void bvr_mouse_relative_position(float* x, float *y){
+    *x = bvr_get_book_instance()->window.inputs.relative_motion[0];
+    *y = bvr_get_book_instance()->window.inputs.relative_motion[1];
 }
 
 void bvri_file_dialog_callback(void (*userdata) (bvr_string_t* path), const char * const *filelist, int filter){
@@ -229,10 +237,10 @@ void bvr_open_file_dialog(void (*callback) (bvr_string_t* path)){
     );
 }
 
-uint64_t bvr_frames(){
+uint64 bvr_frames(){
     return SDL_GetTicks();
 }
 
-void bvr_delay(uint64_t ms){
+void bvr_delay(uint64 ms){
     SDL_Delay(ms);
 }

@@ -38,7 +38,7 @@ struct json_patch_error {
 	 * The index into the patch array of the operation that failed,
 	 * or SIZE_T_MAX for overall errors.
 	 */
-	size_t patch_failure_idx;
+	uint64 patch_failure_idx;
 
 	/**
 	 * A human readable error message.

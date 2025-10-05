@@ -12,10 +12,10 @@
 # Modeled after libxml-config.
 
 version="1.6.48"
-prefix="D:/Dev/Beauvoir"
-exec_prefix="D:/Dev/Beauvoir"
-libdir="D:/Dev/Beauvoir/lib"
-includedir="D:/Dev/Beauvoir/include/libpng16"
+prefix="F:/Dev/Beauvoir"
+exec_prefix="F:/Dev/Beauvoir"
+libdir="F:/Dev/Beauvoir/lib"
+includedir="F:/Dev/Beauvoir/include/libpng16"
 libs="-lpng16"
 all_libs="-lpng16 -lz -lm"
 I_opts="-I${includedir}"

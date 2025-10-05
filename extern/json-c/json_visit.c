@@ -14,7 +14,7 @@
 #include "linkhash.h"
 
 static int _json_c_visit(json_object *jso, json_object *parent_jso, const char *jso_key,
-                         size_t *jso_index, json_c_visit_userfunc *userfunc, void *userarg);
+                         uint64 *jso_index, json_c_visit_userfunc *userfunc, void *userarg);
 
 int json_c_visit(json_object *jso, int future_flags, json_c_visit_userfunc *userfunc, void *userarg)
 {
@@ -29,7 +29,7 @@ int json_c_visit(json_object *jso, int future_flags, json_c_visit_userfunc *user
 	}
 }
 static int _json_c_visit(json_object *jso, json_object *parent_jso, const char *jso_key,
-                         size_t *jso_index, json_c_visit_userfunc *userfunc, void *userarg)
+                         uint64 *jso_index, json_c_visit_userfunc *userfunc, void *userarg)
 {
 	int userret = userfunc(jso, 0, parent_jso, jso_key, jso_index, userarg);
 	switch (userret)
@@ -77,8 +77,8 @@ static int _json_c_visit(json_object *jso, json_object *parent_jso, const char *
 	}
 	case json_type_array:
 	{
-		size_t array_len = json_object_array_length(jso);
-		size_t ii;
+		uint64 array_len = json_object_array_length(jso);
+		uint64 ii;
 		for (ii = 0; ii < array_len; ii++)
 		{
 			json_object *child = json_object_array_get_idx(jso, ii);

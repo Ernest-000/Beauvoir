@@ -8,7 +8,9 @@
 
 #define BVR_GROWTH_FACTOR 2
 
-static int bvri_grow_buffer(void* ptr, size_t* size){
+static int bvri_grow_buffer(void* ptr, uint64* size);
+
+static int bvri_grow_buffer(void* ptr, uint64* size){
     if(ptr && size){
         ptr = realloc(ptr, (*size *= BVR_GROWTH_FACTOR));
         return ptr != NULL;
@@ -40,7 +42,7 @@ void bvr_create_memstream(bvr_memstream_t* stream, unsigned long long const size
     }
 }
 
-void bvr_memstream_write(bvr_memstream_t* stream, const void* data, const size_t size){
+void bvr_memstream_write(bvr_memstream_t* stream, const void* data, const uint64 size){
     BVR_ASSERT(stream && stream->data);
     BVR_ASSERT(data);
 
@@ -70,7 +72,7 @@ void bvr_memstream_write(bvr_memstream_t* stream, const void* data, const size_t
     }
 }
 
-void bvr_memstream_read(bvr_memstream_t* stream, void* dest, const size_t size){
+void bvr_memstream_read(bvr_memstream_t* stream, void* dest, const uint64 size){
     BVR_ASSERT(stream && stream->data);
     BVR_ASSERT(dest);
 
@@ -83,7 +85,7 @@ void bvr_memstream_read(bvr_memstream_t* stream, void* dest, const size_t size){
     }
 }
 
-void bvr_memstream_seek(bvr_memstream_t* stream, size_t position, int mode){
+void bvr_memstream_seek(bvr_memstream_t* stream, uint64 position, int mode){
     BVR_ASSERT(stream);
 
     switch (mode)
@@ -143,6 +145,11 @@ void bvr_memstream_clear(bvr_memstream_t* stream){
 void bvr_destroy_memstream(bvr_memstream_t* stream){
     BVR_ASSERT(stream);
 
+    // clear all stream data
+    // so that it will be an empty chunk if we're trying to access
+    // to the stream's data after it has been freed.
+    memset(stream->data, 0, stream->size);
+
     free(stream->data);
 
     stream->size = 0;
@@ -160,6 +167,27 @@ void bvr_create_string(bvr_string_t* string, const char* value){
         string->string = malloc(string->length);
         BVR_ASSERT(string->string);
 
+        memcpy(string->string, value, string->length - 1);
+        string->string[string->length - 1] = '\0';
+    }
+}
+
+void bvr_overwrite_string(bvr_string_t* string, const char* value, const uint32 length){
+    BVR_ASSERT(string);
+
+    if(!string->string){
+        bvr_create_string(string, value);
+        return;
+    }
+
+    if(value && length){
+
+        if(string->length < length){
+            string->string = realloc(string->string, length);
+            BVR_ASSERT(string->string);
+        }
+
+        string->length = length;
         memcpy(string->string, value, string->length - 1);
         string->string[string->length - 1] = '\0';
     }
@@ -205,7 +233,7 @@ void bvr_string_create_and_copy(bvr_string_t* dest, bvr_string_t* source){
     }
 }
 
-void bvr_string_insert(bvr_string_t* string, const size_t offset, const char* value){
+void bvr_string_insert(bvr_string_t* string, const uint64 offset, const char* value){
     BVR_ASSERT(string);
     BVR_ASSERT(string->string);
     BVR_ASSERT(value);
@@ -214,7 +242,7 @@ void bvr_string_insert(bvr_string_t* string, const size_t offset, const char* va
     bvr_string_create_and_copy(&prev, string);
 
     if(value) {
-        const size_t vlen = strlen(value);
+        const uint64 vlen = strlen(value);
         //BVR_PRINTF("string %x ; string size %i", string->data, string->length);
 
         string->length += vlen;
@@ -239,7 +267,7 @@ void bvr_destroy_string(bvr_string_t* string){
     string->length = 0;
 }
 
-void bvr_create_pool(bvr_pool_t* pool, size_t size, size_t count){
+void bvr_create_pool(bvr_pool_t* pool, uint64 size, uint64 count){
     BVR_ASSERT(pool);
     BVR_ASSERT(size < 255);
 
@@ -256,7 +284,7 @@ void bvr_create_pool(bvr_pool_t* pool, size_t size, size_t count){
         pool->next = (struct bvr_pool_block_s*)pool->data;
 
         struct bvr_pool_block_s* block = (struct bvr_pool_block_s*)pool->data;
-        for (size_t i = 0; i < pool->capacity - 1; i++)
+        for (uint64 i = 0; i < pool->capacity - 1; i++)
         {
             block->next = i;
             block = (struct bvr_pool_block_s*)(pool->data + i * (pool->elemsize + sizeof(struct bvr_pool_block_s)));
@@ -315,7 +343,7 @@ void bvr_pool_free(bvr_pool_t* pool, void* ptr){
 
         struct bvr_pool_block_s* prev = pool->next;
         pool->next = (struct bvr_pool_block_s*)((char*)ptr - sizeof(struct bvr_pool_block_s));
-        pool->next->next = ((size_t)prev / (pool->elemsize + sizeof(struct bvr_pool_block_s))) - (size_t)pool->data;
+        pool->next->next = ((uint64)prev / (pool->elemsize + sizeof(struct bvr_pool_block_s))) - (uint64)pool->data;
     }
 }
 

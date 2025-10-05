@@ -135,7 +135,7 @@ void SDLCALL SDLTest_TextWindowAddText(SDLTest_TextWindow *textwin, SDL_PRINTF_F
  *
  *  \since This function is available since SDL 3.1.3.
  */
-void SDLCALL SDLTest_TextWindowAddTextWithLength(SDLTest_TextWindow *textwin, const char *text, size_t len);
+void SDLCALL SDLTest_TextWindowAddTextWithLength(SDLTest_TextWindow *textwin, const char *text, uint64 len);
 
 /*
  *  Clear the text in a multi-line text output window

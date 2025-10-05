@@ -57,7 +57,7 @@ void SDLCALL SDLTest_Log(SDL_PRINTF_FORMAT_STRING const char *fmt, ...) SDL_PRIN
  * \param buffer Raw data to be escaped.
  * \param size Number of bytes in buffer.
  */
-void SDLCALL SDLTest_LogEscapedString(const char *prefix, const void *buffer, size_t size);
+void SDLCALL SDLTest_LogEscapedString(const char *prefix, const void *buffer, uint64 size);
 
 /**
  * Prints given message with a timestamp in the TEST category and the ERROR priority.

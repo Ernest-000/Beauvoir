@@ -4,16 +4,16 @@
 
 #include <BVR/math.h>
 #include <BVR/utils.h>
+#include <BVR/scene.h>
 
 #include <memory.h>
 #include <malloc.h>
 
-void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* state){
+void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
     BVR_ASSERT(state);
 
     if(state->blending){
         glEnable(GL_BLEND);
-
         switch(state->blending)
         {
         case BVR_BLEND_FUNC_ALPHA_ONE_MINUS:
@@ -81,18 +81,62 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* state){
     }
 }
 
-void bvr_error(){
+void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
+    bvr_shader_enable(cmd->shader);
+
+    glBindVertexArray(cmd->array_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, cmd->vertex_buffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cmd->element_buffer);
+
+    for (uint64 i = 0; i < cmd->attrib_count; i++)
+    {
+        glEnableVertexAttribArray(i);
+    }
+    
+    // if use element 
+    if(cmd->element_buffer){ 
+        glDrawElementsBaseVertex(cmd->draw_mode, 
+            cmd->vertex_group.element_count, 
+            cmd->element_type, 
+            NULL, 
+            cmd->vertex_group.element_offset
+        );
+    }
+    else {
+        glDrawArrays(cmd->draw_mode, cmd->vertex_group.element_offset, cmd->vertex_group.element_count);
+    }
+
+    for (uint64 i = 0; i < cmd->attrib_count; i++)
+    {
+        glDisableVertexAttribArray(i);
+    }
+
+    glBindVertexArray(cmd->array_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, cmd->vertex_buffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cmd->element_buffer);
+
+    bvr_shader_disable();
+}
+
+void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd){
+    BVR_ASSERT(cmd);
+
+    if(bvr_get_book_instance()->pipeline.command_count + 1 < BVR_MAX_DRAW_COMMAND){
+        memcpy(
+            &bvr_get_book_instance()->pipeline.commands[bvr_get_book_instance()->pipeline.command_count++], 
+            cmd, sizeof(struct bvr_draw_command_s)
+        );
+    }
+}
+
+void bvr_poll_errors(void){
     char found_error = 0;
-    uint32_t err;
+    uint32 err;
 
     while ((err = glGetError()) != GL_NO_ERROR)
     {
         switch (err)
         {
-        case GL_NO_ERROR:
-            BVR_PRINT("GL_NO_ERROR");
-            break;
-    
         case GL_INVALID_ENUM:
             BVR_PRINT("GL_INVALID_ENUM");
             break;
@@ -106,29 +150,39 @@ void bvr_error(){
             break;
     
         case GL_STACK_OVERFLOW:
+            found_error = 1;
+            
             BVR_PRINT("GL_STACK_OVERFLOW");
             break;
     
         case GL_STACK_UNDERFLOW:
+            found_error = 1;
+            
             BVR_PRINT("GL_STACK_UNDERFLOW");
             break;
     
         case GL_OUT_OF_MEMORY:
+            found_error = 1;
+            
             BVR_PRINT("GL_OUT_OF_MEMORY");
             break;
+
         case GL_INVALID_FRAMEBUFFER_OPERATION:
             BVR_PRINT("GL_INVALID_FRAMEBUFFER_OPERATION");
             break;
+
         default:
             BVR_ASSERT(0);
         }
-        found_error = 1;
     }
 
-    BVR_ASSERT(!found_error || "Opengl has throw error(s)!");
+    // break if a fatal error is catch
+    if(found_error){
+        BVR_BREAK();
+    }
 }
 
-int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, int width, int height, const char* shader){
+int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, const uint16 width, const uint16 height, const char* shader){
     BVR_ASSERT(framebuffer);
     BVR_ASSERT(width > 0 && height > 0);
 
@@ -239,8 +293,8 @@ void bvr_framebuffer_disable(bvr_framebuffer_t* framebuffer){
     glViewport(0, 0, framebuffer->target_width, framebuffer->target_height);
 }
 
-void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 color){
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 const color){
+    glClearColor(color[0], color[1], color[2], 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 

@@ -134,7 +134,7 @@ struct json_tokener
  *
  * See json_tokener_parse_ex() for an example of how to use this.
  */
-JSON_EXPORT size_t json_tokener_get_parse_end(struct json_tokener *tok);
+JSON_EXPORT uint64 json_tokener_get_parse_end(struct json_tokener *tok);
 
 /**
  * @deprecated Unused in json-c code

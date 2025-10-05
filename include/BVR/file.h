@@ -14,7 +14,7 @@
 /*
     Return size of a file.
 */
-size_t bvr_get_file_size(FILE* file);
+uint64 bvr_get_file_size(FILE* file);
 
 /*
     Read all the file and copy data into a string.
@@ -34,17 +34,17 @@ int bvr_fread32_le(FILE* file);
 /*
     Read a single unsigned char from a stream.
 */
-uint8_t bvr_freadu8_le(FILE* file);
+uint8 bvr_freadu8_le(FILE* file);
 
 /*
     Read a single unsigned short from a stream.
 */
-uint16_t bvr_freadu16_le(FILE* file);
+uint16 bvr_freadu16_le(FILE* file);
 
 /*
     Read a single unsigned int from a stream.
 */
-uint32_t bvr_freadu32_le(FILE* file);
+uint32 bvr_freadu32_le(FILE* file);
 
 /*
     Read a single float from a stream.
@@ -54,27 +54,27 @@ float bvr_freadf(FILE* file);
 /*
     Read a null terminate string from a stream.
 */
-void bvr_freadstr(char* string, size_t size, FILE* file);
+void bvr_freadstr(char* string, uint64 size, FILE* file);
 
 /*
     Read a single unsigned char from a stream and translate big-endian to little-endian.
 */
-static inline uint8_t bvr_freadu8_be(FILE* file){
+static inline uint8 bvr_freadu8_be(FILE* file){
     return bvr_freadu8_le(file);
 }
 
 /*
     Read a single unsigned short from a stream and translate big-endian to little-endian.
 */
-static inline uint16_t bvr_freadu16_be(FILE* file){
-    uint16_t value = bvr_freadu16_le(file);
+static inline uint16 bvr_freadu16_be(FILE* file){
+    uint16 value = bvr_freadu16_le(file);
     return BVR_BE_TO_LE_U16(value);
 }
 
 /*
     Read a single unsigned int from a stream and translate big-endian to little-endian.
 */
-static inline uint32_t bvr_freadu32_be(FILE* file){
-    uint32_t value = bvr_freadu32_le(file);
+static inline uint32 bvr_freadu32_be(FILE* file){
+    uint32 value = bvr_freadu32_le(file);
     return BVR_BE_TO_LE_U32(value);
 }

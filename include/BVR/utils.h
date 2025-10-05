@@ -15,22 +15,29 @@
 #define BVR_OK      0x1
 
 /*   based on OpenGLES   */  
-#define BVR_NULL                0x00
-#define BVR_FLOAT               0x1406
-#define BVR_INT8                0x1400
-#define BVR_INT16               0x1402
-#define BVR_INT32               0x1404
-#define BVR_UNSIGNED_INT8       0x1401
-#define BVR_UNSIGNED_INT16      0x1403
-#define BVR_UNSIGNED_INT32      0x1405
-#define BVR_VEC3                0x1408
-#define BVR_VEC4                0x140A
-#define BVR_MAT3                0x140D
-#define BVR_MAT4                0x140E
+#define BVR_NULL                    0x00
+#define BVR_FLOAT                   0x1406
+#define BVR_BOOL                    0x1399
+#define BVR_INT8                    0x1400
+#define BVR_INT16                   0x1402
+#define BVR_INT32                   0x1404
+#define BVR_UNSIGNED_INT8           0x1401
+#define BVR_UNSIGNED_INT16          0x1403
+#define BVR_UNSIGNED_INT32          0x1405
+#define BVR_VEC2                    0x1407
+#define BVR_VEC3                    0x1408
+#define BVR_VEC4                    0x140A
+#define BVR_MAT3                    0x140B
+#define BVR_MAT4                    0x140C
+
+#define BVR_DOUBLE                  0x140D
+#define BVR_INT64                   0x140E
+#define BVR_UNSIGNED_INT64          0x140F
 
 /*   custom   */  
-#define BVR_TEXTURE_2D          0x140B
-#define BVR_TEXTURE_2D_ARRAY    0x140C
+#define BVR_TEXTURE_2D              0x141A
+#define BVR_TEXTURE_2D_ARRAY        0x141B
+#define BVR_TEXTURE_2D_LAYER        0x141C
 
 #define BVR_INCLUDE_BUFFER
 #define BVR_INCLUDE_DEBUG
@@ -39,12 +46,29 @@
 /*          UTILS               */
 /*                              */
 
-typedef char bvr_uuid_t[37];
+typedef char bvr_uuid_t[37] __attribute__ ((aligned(8), packed));
 
-int bvr_sizeof(int type);
+/*
+    Return the size of a beauvoir type.
+*/
+int bvr_sizeof(const int type);
 
+/*
+    Return the name of a type as a string.
+    WARNING: VERY UNSAFE, if 'name' isn't big enough it might overwrite the next memory chunk!
+*/
+void bvr_nameof(const int type, char* name);
+
+/*
+    Create a new uuid
+*/
 void bvr_create_uuid(bvr_uuid_t uuid);
-int bvr_compare_uuid(bvr_uuid_t a, bvr_uuid_t b);
+void bvr_copy_uuid(bvr_uuid_t src, bvr_uuid_t dest);
+
+/*
+    Check if two uuid are equals
+*/
+int bvr_uuid_equals(bvr_uuid_t const a, bvr_uuid_t const b);
 
 #define BVR_HAS_FLAG(x, f) ((int)((x & f) == f))
 

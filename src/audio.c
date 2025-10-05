@@ -1,6 +1,5 @@
 #include <BVR/audio.h>
-
-#include <stdint.h>
+#include <BVR/config.h>
 
 #include <portaudio.h>
 
@@ -11,7 +10,7 @@ static int bvri_audio_callback(const void* input, void* output,
     bvr_audio_buffer_t* buffer = (bvr_audio_buffer_t*) data;
     float* outbuffer = (float*)output;
 
-    for(uint32_t i = 0; i < framesPerBuffer; i++){
+    for(uint32 i = 0; i < framesPerBuffer; i++){
         *outbuffer++ = buffer->left_phase;
         *outbuffer++ = buffer->right_phase;
 

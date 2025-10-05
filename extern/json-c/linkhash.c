@@ -252,21 +252,21 @@ acceptable.  Do NOT use for cryptographic purposes.
 */
 
 /* clang-format off */
-static uint32_t hashlittle(const void *key, size_t length, uint32_t initval)
+static uint32 hashlittle(const void *key, uint64 length, uint32 initval)
 {
-	uint32_t a,b,c; /* internal state */
+	uint32 a,b,c; /* internal state */
 	union
 	{
 		const void *ptr;
-		size_t i;
+		uint64 i;
 	} u; /* needed for Mac Powerbook G4 */
 
 	/* Set up the internal state */
-	a = b = c = 0xdeadbeef + ((uint32_t)length) + initval;
+	a = b = c = 0xdeadbeef + ((uint32)length) + initval;
 
 	u.ptr = key;
 	if (HASH_LITTLE_ENDIAN && ((u.i & 0x3) == 0)) {
-		const uint32_t *k = (const uint32_t *)key; /* read 32-bit chunks */
+		const uint32 *k = (const uint32 *)key; /* read 32-bit chunks */
 
 		/*------ all but last block: aligned reads and affect 32 bits of (a,b,c) */
 		while (length > 12)
@@ -344,45 +344,45 @@ static uint32_t hashlittle(const void *key, size_t length, uint32_t initval)
 	}
 	else if (HASH_LITTLE_ENDIAN && ((u.i & 0x1) == 0))
 	{
-		const uint16_t *k = (const uint16_t *)key; /* read 16-bit chunks */
-		const uint8_t  *k8;
+		const uint16 *k = (const uint16 *)key; /* read 16-bit chunks */
+		const uint8  *k8;
 
 		/*--------------- all but last block: aligned reads and different mixing */
 		while (length > 12)
 		{
-			a += k[0] + (((uint32_t)k[1])<<16);
-			b += k[2] + (((uint32_t)k[3])<<16);
-			c += k[4] + (((uint32_t)k[5])<<16);
+			a += k[0] + (((uint32)k[1])<<16);
+			b += k[2] + (((uint32)k[3])<<16);
+			c += k[4] + (((uint32)k[5])<<16);
 			mix(a,b,c);
 			length -= 12;
 			k += 6;
 		}
 
 		/*----------------------------- handle the last (probably partial) block */
-		k8 = (const uint8_t *)k;
+		k8 = (const uint8 *)k;
 		switch(length)
 		{
-		case 12: c+=k[4]+(((uint32_t)k[5])<<16);
-			 b+=k[2]+(((uint32_t)k[3])<<16);
-			 a+=k[0]+(((uint32_t)k[1])<<16);
+		case 12: c+=k[4]+(((uint32)k[5])<<16);
+			 b+=k[2]+(((uint32)k[3])<<16);
+			 a+=k[0]+(((uint32)k[1])<<16);
 			 break;
-		case 11: c+=((uint32_t)k8[10])<<16;     /* fall through */
+		case 11: c+=((uint32)k8[10])<<16;     /* fall through */
 		case 10: c+=k[4];
-			 b+=k[2]+(((uint32_t)k[3])<<16);
-			 a+=k[0]+(((uint32_t)k[1])<<16);
+			 b+=k[2]+(((uint32)k[3])<<16);
+			 a+=k[0]+(((uint32)k[1])<<16);
 			 break;
 		case 9 : c+=k8[8];                      /* fall through */
-		case 8 : b+=k[2]+(((uint32_t)k[3])<<16);
-			 a+=k[0]+(((uint32_t)k[1])<<16);
+		case 8 : b+=k[2]+(((uint32)k[3])<<16);
+			 a+=k[0]+(((uint32)k[1])<<16);
 			 break;
-		case 7 : b+=((uint32_t)k8[6])<<16;      /* fall through */
+		case 7 : b+=((uint32)k8[6])<<16;      /* fall through */
 		case 6 : b+=k[2];
-			 a+=k[0]+(((uint32_t)k[1])<<16);
+			 a+=k[0]+(((uint32)k[1])<<16);
 			 break;
 		case 5 : b+=k8[4];                      /* fall through */
-		case 4 : a+=k[0]+(((uint32_t)k[1])<<16);
+		case 4 : a+=k[0]+(((uint32)k[1])<<16);
 			 break;
-		case 3 : a+=((uint32_t)k8[2])<<16;      /* fall through */
+		case 3 : a+=((uint32)k8[2])<<16;      /* fall through */
 		case 2 : a+=k[0];
 			 break;
 		case 1 : a+=k8[0];
@@ -394,23 +394,23 @@ static uint32_t hashlittle(const void *key, size_t length, uint32_t initval)
 	else
 	{
 		/* need to read the key one byte at a time */
-		const uint8_t *k = (const uint8_t *)key;
+		const uint8 *k = (const uint8 *)key;
 
 		/*--------------- all but the last block: affect some 32 bits of (a,b,c) */
 		while (length > 12)
 		{
 			a += k[0];
-			a += ((uint32_t)k[1])<<8;
-			a += ((uint32_t)k[2])<<16;
-			a += ((uint32_t)k[3])<<24;
+			a += ((uint32)k[1])<<8;
+			a += ((uint32)k[2])<<16;
+			a += ((uint32)k[3])<<24;
 			b += k[4];
-			b += ((uint32_t)k[5])<<8;
-			b += ((uint32_t)k[6])<<16;
-			b += ((uint32_t)k[7])<<24;
+			b += ((uint32)k[5])<<8;
+			b += ((uint32)k[6])<<16;
+			b += ((uint32)k[7])<<24;
 			c += k[8];
-			c += ((uint32_t)k[9])<<8;
-			c += ((uint32_t)k[10])<<16;
-			c += ((uint32_t)k[11])<<24;
+			c += ((uint32)k[9])<<8;
+			c += ((uint32)k[10])<<16;
+			c += ((uint32)k[11])<<24;
 			mix(a,b,c);
 			length -= 12;
 			k += 12;
@@ -419,17 +419,17 @@ static uint32_t hashlittle(const void *key, size_t length, uint32_t initval)
 		/*-------------------------------- last block: affect all 32 bits of (c) */
 		switch(length) /* all the case statements fall through */
 		{
-		case 12: c+=((uint32_t)k[11])<<24; /* FALLTHRU */
-		case 11: c+=((uint32_t)k[10])<<16; /* FALLTHRU */
-		case 10: c+=((uint32_t)k[9])<<8; /* FALLTHRU */
+		case 12: c+=((uint32)k[11])<<24; /* FALLTHRU */
+		case 11: c+=((uint32)k[10])<<16; /* FALLTHRU */
+		case 10: c+=((uint32)k[9])<<8; /* FALLTHRU */
 		case 9 : c+=k[8]; /* FALLTHRU */
-		case 8 : b+=((uint32_t)k[7])<<24; /* FALLTHRU */
-		case 7 : b+=((uint32_t)k[6])<<16; /* FALLTHRU */
-		case 6 : b+=((uint32_t)k[5])<<8; /* FALLTHRU */
+		case 8 : b+=((uint32)k[7])<<24; /* FALLTHRU */
+		case 7 : b+=((uint32)k[6])<<16; /* FALLTHRU */
+		case 6 : b+=((uint32)k[5])<<8; /* FALLTHRU */
 		case 5 : b+=k[4]; /* FALLTHRU */
-		case 4 : a+=((uint32_t)k[3])<<24; /* FALLTHRU */
-		case 3 : a+=((uint32_t)k[2])<<16; /* FALLTHRU */
-		case 2 : a+=((uint32_t)k[1])<<8; /* FALLTHRU */
+		case 4 : a+=((uint32)k[3])<<24; /* FALLTHRU */
+		case 3 : a+=((uint32)k[2])<<16; /* FALLTHRU */
+		case 2 : a+=((uint32)k[1])<<8; /* FALLTHRU */
 		case 1 : a+=k[0];
 			 break;
 		case 0 : return c;
@@ -488,7 +488,7 @@ static unsigned long lh_char_hash(const void *k)
 #endif
 	}
 
-	return hashlittle((const char *)k, strlen((const char *)k), (uint32_t)random_seed);
+	return hashlittle((const char *)k, strlen((const char *)k), (uint32)random_seed);
 }
 
 int lh_char_equal(const void *k1, const void *k2)

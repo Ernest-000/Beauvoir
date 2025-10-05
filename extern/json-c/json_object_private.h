@@ -43,7 +43,7 @@ typedef enum json_object_int_type
 struct json_object
 {
 	enum json_type o_type;
-	uint32_t _ref_count;
+	uint32 _ref_count;
 	json_object_to_json_string_fn *_to_json_string;
 	struct printbuf *_pb;
 	json_object_delete_fn *_user_delete;
@@ -79,8 +79,8 @@ struct json_object_int
 	enum json_object_int_type cint_type;
 	union
 	{
-		int64_t c_int64;
-		uint64_t c_uint64;
+		int64 c_int64;
+		uint64 c_uint64;
 	} cint;
 };
 struct json_object_string

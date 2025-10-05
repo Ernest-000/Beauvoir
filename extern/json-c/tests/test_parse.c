@@ -38,7 +38,7 @@ static void do_clear_serializer(json_object *jso);
 
 static void single_incremental_parse(const char *test_string, int clear_serializer)
 {
-	size_t ii;
+	uint64 ii;
 	int chunksize = atoi(getenv("TEST_PARSE_CHUNKSIZE"));
 	struct json_tokener *tok;
 	enum json_tokener_error jerr;
@@ -53,7 +53,7 @@ static void single_incremental_parse(const char *test_string, int clear_serializ
 	all_at_once_str = json_object_to_json_string(all_at_once_obj);
 
 	tok = json_tokener_new();
-	size_t test_string_len = strlen(test_string) + 1; // Including '\0' !
+	uint64 test_string_len = strlen(test_string) + 1; // Including '\0' !
 	for (ii = 0; ii < test_string_len; ii += chunksize)
 	{
 		int len_to_parse = chunksize;
@@ -219,7 +219,7 @@ static void do_clear_serializer(json_object *jso)
 }
 
 static int clear_serializer(json_object *jso, int flags, json_object *parent_jso,
-                            const char *jso_key, size_t *jso_index, void *userarg)
+                            const char *jso_key, uint64 *jso_index, void *userarg)
 {
 	if (jso)
 		json_object_set_serializer(jso, NULL, NULL, NULL);
@@ -712,7 +712,7 @@ static void test_incremental_parse(void)
 		int this_step_ok = 0;
 		struct incremental_step *step = &incremental_steps[ii];
 		int length = step->length;
-		size_t expected_char_offset;
+		uint64 expected_char_offset;
 
 		json_tokener_set_flags(tok, step->tok_flags);
 

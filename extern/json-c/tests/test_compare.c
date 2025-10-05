@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 	struct json_object *uint1 = json_object_new_uint64(0);
 	struct json_object *uint2 = json_object_new_uint64(1);
 	struct json_object *uint3 = json_object_new_uint64(1);
-	struct json_object *uint4 = json_object_new_uint64((uint64_t)INT64_MAX + 100);
+	struct json_object *uint4 = json_object_new_uint64((uint64)INT64_MAX + 100);
 
 	if (!json_object_equal(int1, int2))
 		printf("JSON integer comparison is correct\n");

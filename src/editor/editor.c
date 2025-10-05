@@ -45,15 +45,18 @@ static void bvri_draw_editor_transform(bvr_transform_t* transform){
     {
         nk_layout_row_dynamic(__editor->gui.context, 15, 1);
         nk_label(__editor->gui.context, "TRANSFORM", NK_TEXT_ALIGN_CENTERED);
+        
+        nk_layout_row_dynamic(__editor->gui.context, 15, 3);
      
         nk_property_float(__editor->gui.context, "x", -100000.0f, &transform->position[0], 100000.0f, 0.1f, 0.1f);
         nk_property_float(__editor->gui.context, "y", -100000.0f, &transform->position[1], 100000.0f, 0.1f, 0.1f);
         nk_property_float(__editor->gui.context, "z", -100000.0f, &transform->position[2], 100000.0f, 0.1f, 0.1f);
         
-        nk_property_float(__editor->gui.context, "roll", -100000.0f, &transform->rotation[0], 100000.0f, 0.1f, 0.1f);
-        nk_property_float(__editor->gui.context, "pitch", -100000.0f, &transform->rotation[1], 100000.0f, 0.1f, 0.1f);
-        nk_property_float(__editor->gui.context, "yaw", -100000.0f, &transform->rotation[2], 100000.0f, 0.1f, 0.1f);
+        nk_property_float(__editor->gui.context, "r", -100000.0f, &transform->rotation[0], 100000.0f, 0.1f, 0.1f);
+        nk_property_float(__editor->gui.context, "p", -100000.0f, &transform->rotation[1], 100000.0f, 0.1f, 0.1f);
+        nk_property_float(__editor->gui.context, "y", -100000.0f, &transform->rotation[2], 100000.0f, 0.1f, 0.1f);
         
+        nk_layout_row_dynamic(__editor->gui.context, 15, 1);
         float scale = transform->scale[0];
         nk_property_float(__editor->gui.context, "size", 0.0f, &scale, 100000.0f, 0.1f, 0.1f);
         BVR_SCALE_VEC3(transform->scale, scale);
@@ -746,58 +749,62 @@ void bvr_editor_draw_inspector(){
 
                 // apply y axis
                 const int vertices_per_row = actor->dimension[0] * 2 + 3;
-                int target_tile = __editor->inspector_cmd.user_data2 * vertices_per_row;
 
+                int target_tile = __editor->inspector_cmd.user_data2 * vertices_per_row;
                 // apply x axis
                 target_tile += (int)clamp(__editor->inspector_cmd.user_data * 2.0f, 0.0f, vertices_per_row - 2.0f);
-
                 // start offset 
                 target_tile += 3;
 
                 BVR_ASSERT(target_tile < actor->mesh.vertex_count);
-                //BVR_PRINTF("target vertices %i", target_tile);
 
                 nk_layout_row_dynamic(__editor->gui.context, 15, 1);
 
                 {
-                    nk_label(__editor->gui.context, "TILE OVERWRITE", NK_TEXT_ALIGN_LEFT);
-
+                    nk_label(__editor->gui.context, "TILE INFORMATIONS", NK_TEXT_ALIGN_LEFT);
+                    
                     glBindBuffer(GL_ARRAY_BUFFER, actor->mesh.vertex_buffer);
                     int* vertices_map = glMapBufferRange(GL_ARRAY_BUFFER, 0, actor->mesh.vertex_count * sizeof(int), GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
 
                     if(vertices_map){
                         // extract each values through bitwise operations
-                        int altitude[4];
                         int texture_id = (0xff00 & vertices_map[target_tile]) >> 8;
+                        int altitude[2] = {0, 0};
 
                         altitude[0] = 0xff & vertices_map[target_tile + 0];
                         altitude[1] = 0xff & vertices_map[target_tile + 1];
-                        altitude[2] = 0xff & vertices_map[target_tile + 0];
-                        altitude[3] = 0xff & vertices_map[target_tile + 1];
 
+                        //TODO: better texture id selection
                         nk_property_int(__editor->gui.context, "texture id", 0, &texture_id, actor->atlas.tile_count_x * actor->atlas.tile_count_y, 1, .5f);
                         
                         nk_layout_row_dynamic(__editor->gui.context, 15, 2);
                         nk_property_int(__editor->gui.context, "Altutide 0", 0, &altitude[0], 255, 1, 1.0f);
                         nk_property_int(__editor->gui.context, "Altutide 1", 0, &altitude[1], 255, 1, 1.0f);
-                        nk_property_int(__editor->gui.context, "Altutide 2", 0, &altitude[2], 255, 1, 1.0f);
-                        nk_property_int(__editor->gui.context, "Altutide 3", 0, &altitude[3], 255, 1, 1.0f);
 
                         nk_layout_row_dynamic(__editor->gui.context, 15, 1);
-                        // if values are differents
-
+                        
                         // if values are differents
                         if(texture_id != ((0xff00 & vertices_map[target_tile + 0]) >> 8)){
+                            // write texture id on the two opposites vertices
+                            // bitmask: remove all previous texture id and overwrite with the new texid value shifted 8 bits 
                             vertices_map[target_tile + 0] = (vertices_map[target_tile + 0] & ~0xff00) | (texture_id) << 8;
                             vertices_map[target_tile + 1] = (vertices_map[target_tile + 1] & ~0xff00) | (texture_id) << 8;
                         }
 
+                        // check for altitude on the first vertex
                         if(altitude[0] != (0xff & vertices_map[target_tile + 0])){
+                            // try to overwrite the vertex on the other side of the edge (on top of it)
+                            int prev_row_vertex = (int)clamp(target_tile - vertices_per_row + 1, 0, actor->mesh.vertex_count);
                             vertices_map[target_tile + 0] = (vertices_map[target_tile + 0] & ~0xff) | altitude[0];
+                            vertices_map[prev_row_vertex] = (vertices_map[prev_row_vertex] & ~0xff) | altitude[0];
                         }
 
                         if(altitude[1] != (0xff & vertices_map[target_tile + 1])){
+                            // try to overwrite the vertex on the other side of the edge (bottom)
+                            int next_row_vertex = (int)clamp(target_tile + vertices_per_row, 0, actor->mesh.vertex_count);
+                            
                             vertices_map[target_tile + 1] = (vertices_map[target_tile + 1] & ~0xff) | altitude[1];
+                            vertices_map[next_row_vertex] = (vertices_map[next_row_vertex] & ~0xff) | altitude[1];
                         }
 
                         glUnmapBuffer(GL_ARRAY_BUFFER);

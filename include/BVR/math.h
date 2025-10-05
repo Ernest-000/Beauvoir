@@ -59,7 +59,9 @@ struct bvr_bounds_s {
     tr.position[0] = x;                                     \
     tr.position[1] = y;                                     \
     tr.position[2] = z;                                     \
-    quat_euler(tr.rotation, roll, pitch, yaw);              \
+    tr.rotation[0] = roll;                                  \
+    tr.rotation[1] = pitch;                                 \
+    tr.rotation[2] = yaw;                                   \
     BVR_SCALE_VEC3(tr.scale, scalev)                         
 
 BVR_H_FUNC float flerp(float a, float b, float t){

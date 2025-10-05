@@ -254,13 +254,25 @@ static void bvri_create_landscape(bvr_landscape_actor_t* landscape, int flags){
     const float tile_w = landscape->dimension[2];
     const float tile_h = landscape->dimension[3];
     
-    const int vertex_count = count_x * count_y * 2; 
+    const int vertex_count = count_x * count_y * 2 + (count_y * 3); 
+
+    const int max_altitude = 50;
+    int altitude, texid;
 
     int* vertices = malloc(vertex_count * sizeof(int));
     BVR_ASSERT(vertices);
 
     memset(vertices, 0, vertex_count * sizeof(int));
 
+    for (size_t i = 0; i < vertex_count; i++)
+    {
+        texid = 1;
+        altitude = 0;
+
+        vertices[i] = 0;
+        vertices[i] = ((texid << 8) | altitude);
+    }
+    
     bvr_mesh_buffer_t vertices_buffer;
     vertices_buffer.data = (char*) vertices;
     vertices_buffer.type = BVR_INT32;
@@ -440,7 +452,11 @@ static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){
     cmd.shader = &actor->shader;
     cmd.draw_mode = BVR_DRAWMODE_TRIANGLES_STRIP;
 
-    cmd.vertex_group = *(bvr_vertex_group_t*)bvr_pool_try_get(&actor->mesh.vertex_groups, 0);
+    cmd.vertex_group.name.string = NULL;
+    cmd.vertex_group.name.length = 0;
+    cmd.vertex_group.texture = 0;
+    cmd.vertex_group.element_offset = 0;
+    cmd.vertex_group.element_count = actor->mesh.vertex_count;
 
     bvr_pipeline_add_draw_cmd(&cmd);
 

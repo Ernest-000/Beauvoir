@@ -10,6 +10,7 @@
 *vcxproj.user
 *.filters
 *.sln
+*.trace
 Makefile
 CMakeCache.txt
 

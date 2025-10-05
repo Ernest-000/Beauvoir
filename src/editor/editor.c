@@ -733,6 +733,89 @@ void bvr_editor_draw_inspector(){
 
                 bvri_draw_editor_transform(&actor->object.transform);
 
+                nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+                nk_label(__editor->gui.context, "LANDSCAPE", NK_TEXT_ALIGN_CENTERED);
+
+                nk_layout_row_dynamic(__editor->gui.context, 15, 2);
+                nk_property_int(__editor->gui.context, "tile x", 0, &__editor->inspector_cmd.user_data, actor->dimension[0] - 1, 1, .5f);
+                nk_property_int(__editor->gui.context, "tile y", 0, &__editor->inspector_cmd.user_data2, actor->dimension[1] - 1, 1, .5f);
+
+                // apply y axis
+                const int vertices_per_row = actor->dimension[0] * 2 + 3;
+                int target_tile = __editor->inspector_cmd.user_data2 * vertices_per_row;
+
+                // apply x axis
+                target_tile += (int)clamp(__editor->inspector_cmd.user_data * 2.0f, 0.0f, vertices_per_row - 2.0f);
+
+                // start offset 
+                target_tile += 3;
+
+                BVR_ASSERT(target_tile < actor->mesh.vertex_count);
+                //BVR_PRINTF("target vertices %i", target_tile);
+
+                nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+
+                {
+                    nk_label(__editor->gui.context, "TILE OVERWRITE", NK_TEXT_ALIGN_LEFT);
+
+                    glBindBuffer(GL_ARRAY_BUFFER, actor->mesh.vertex_buffer);
+                    int* vertices_map = glMapBufferRange(GL_ARRAY_BUFFER, 0, actor->mesh.vertex_count * sizeof(int), GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
+
+                    if(vertices_map){
+                        // extract each values through bitwise operations
+                        int altitude[4];
+                        int texture_id = (0xff00 & vertices_map[target_tile]) >> 8;
+
+                        nk_property_int(__editor->gui.context, "texture id", 0, &texture_id, actor->atlas.tile_count_x * actor->atlas.tile_count_y, 1, .5f);
+                        
+                        // if values are differents
+
+                        // if values are differents
+                        if(texture_id != ((0xff00 & vertices_map[target_tile + 0]) >> 8)){
+                            vertices_map[target_tile + 0] = (vertices_map[target_tile + 0] & ~0xff00) | (texture_id) << 8;
+                            vertices_map[target_tile + 1] = (vertices_map[target_tile + 1] & ~0xff00) | (texture_id) << 8;
+                        }
+
+                        glUnmapBuffer(GL_ARRAY_BUFFER);
+                        glBindBuffer(GL_ARRAY_BUFFER, 0);
+                    }
+                }
+
+                {
+                    vec2 tile_position, half_size;
+                    tile_position[0] = __editor->inspector_cmd.user_data;
+                    tile_position[1] = __editor->inspector_cmd.user_data2;
+
+                    half_size[0] = actor->dimension[2] * 0.5f;
+                    half_size[1] = actor->dimension[3] * 0.5f - actor->dimension[3];
+
+                    vec2_add(tile_position, actor->object.transform.position, tile_position);
+                    tile_position[0] *= actor->dimension[2];
+                    tile_position[1] *= -actor->dimension[3];
+
+                    vec2_add(tile_position, half_size, tile_position);
+
+                    float vertices[] = {
+                        tile_position[0] + actor->dimension[2] * -0.5f, tile_position[1] + actor->dimension[3] * +0.5f, 0.1f,
+                        tile_position[0] + actor->dimension[2] * +0.5f, tile_position[1] + actor->dimension[3] * +0.5f, 0.1f,
+                        tile_position[0] + actor->dimension[2] * +0.5f, tile_position[1] + actor->dimension[3] * -0.5f, 0.1f,
+                        tile_position[0] + actor->dimension[2] * -0.5f, tile_position[1] + actor->dimension[3] * -0.5f, 0.1f,
+                        tile_position[0] + actor->dimension[2] * -0.5f, tile_position[1] + actor->dimension[3] * +0.5f, 0.1f,
+                    };
+
+                    vec3 draw_color = {1.0, 0.0, 0.0};
+                    bvr_shader_set_uniform(&__editor->device.shader, "bvr_color", &draw_color);
+
+                    bvri_bind_editor_buffers(__editor->device.array_buffer, __editor->device.vertex_buffer);
+                    bvri_set_editor_buffers(vertices, sizeof(vertices) / sizeof(vec3), 3);
+                    bvri_bind_editor_buffers(0, 0);
+                    
+                    __editor->draw_cmd.drawmode = BVR_DRAWMODE_LINE_STRIPE;
+                    __editor->draw_cmd.element_offset = 0;
+                    __editor->draw_cmd.element_count = sizeof(vertices) / sizeof(vec3);
+                }
+                
+
                 bvri_draw_editor_shader(&actor->shader);
                 bvri_draw_editor_image(&actor->atlas.image);
                 bvri_draw_editor_mesh(&actor->mesh);

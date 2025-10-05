@@ -1266,10 +1266,10 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
     case BVR_MESH_ATTRIB_SINGLE:
         {
             mesh->attrib_count = 1;
-            mesh->stride = sizeof(vertex_type);
+            mesh->stride = bvr_sizeof(vertex_type);
 
             glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 1, vertex_type, GL_FALSE, mesh->stride, (void*)0);
+            glVertexAttribIPointer(0, 1, vertex_type, mesh->stride, (void*)0);
         }
         break;
 

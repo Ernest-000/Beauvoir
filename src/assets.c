@@ -332,6 +332,24 @@ void bvr_write_book_dataf(FILE* file, bvr_book_t* book){
                 }
                 break;
 
+            case BVR_LANDSCAPE_ACTOR:
+                {
+                    bvr_landscape_actor_t* landscape = (bvr_landscape_actor_t*)actor;
+                    uint32 landscape_byte_length = landscape->mesh.vertex_count * sizeof(int);
+
+                    fwrite(&landscape->dimension, sizeof(landscape->dimension), 1, file);
+                    fwrite(&landscape_byte_length, sizeof(uint32), 1, file);
+                    
+                    glBindBuffer(GL_ARRAY_BUFFER, landscape->mesh.vertex_buffer);
+                    float* map = glMapBufferRange(GL_ARRAY_BUFFER, 0, landscape_byte_length, GL_MAP_READ_BIT);
+                    
+                    if(map){
+                        fwrite(map, landscape_byte_length, 1, file);
+                        
+                        glUnmapBuffer(GL_ARRAY_BUFFER);
+                        glBindBuffer(GL_ARRAY_BUFFER, 0);
+                    }
+                }
             default:
                 break;
             }
@@ -555,7 +573,31 @@ void bvr_open_book_dataf(FILE* file, bvr_book_t* book){
                     }
                 }
                 break;
+            case BVR_LANDSCAPE_ACTOR:
+                {
+                    bvr_landscape_actor_t* landscape = (bvr_landscape_actor_t*)target;
 
+                    // landscape's dimensions
+                    landscape->dimension[0] = bvr_fread32_le(file);
+                    landscape->dimension[1] = bvr_fread32_le(file);
+                    landscape->dimension[2] = bvr_fread32_le(file);
+                    landscape->dimension[3] = bvr_fread32_le(file);
+
+                    // size of the landscape buffer
+                    uint32 landscape_bytes_length = bvr_fread32_le(file);
+                    
+                    if(landscape->mesh.array_buffer && landscape->mesh.vertex_buffer){
+                        glBindBuffer(GL_ARRAY_BUFFER, landscape->mesh.vertex_buffer);
+                        float* map = glMapBufferRange(GL_ARRAY_BUFFER, 0, landscape_bytes_length, GL_MAP_WRITE_BIT);
+                        
+                        if(map){
+                            fread(map, sizeof(char), landscape_bytes_length, file);
+                            glUnmapBuffer(GL_ARRAY_BUFFER);
+                            glBindBuffer(GL_ARRAY_BUFFER, 0);
+                        }
+                    }
+
+                }
             default:
                 break;
             }

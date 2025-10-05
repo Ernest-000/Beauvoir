@@ -31,6 +31,9 @@ typedef struct bvr_editor_s {
 
         uint32 array_buffer; 
         uint32 vertex_buffer;
+
+        mat4x4 transform;
+        bool is_gui_hovered;
     } device;
 
     struct {
@@ -48,6 +51,7 @@ typedef struct bvr_editor_s {
         uint32 element_offset;
         uint32 element_count;
     } draw_cmd;
+
 } bvr_editor_t;
 
 void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book);

@@ -199,7 +199,10 @@ void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book){
         BVR_ASSERT(bvr_shader_register_block(&editor->device.shader, BVR_UNIFORM_CAMERA_NAME, BVR_MAT4, 2, BVR_UNIFORM_BLOCK_CAMERA));
 
         vec3 color = {0.0f, 1.0f, 0.0f};
+        BVR_IDENTITY_MAT4(editor->device.transform);
+        
         bvr_shader_set_uniformi(&editor->device.shader.uniforms[1], &color);
+        
     }
 
     if(bvri_create_editor_render_buffers(
@@ -229,6 +232,8 @@ void bvr_editor_handle(){
     if(__editor->state != BVR_EDITOR_STATE_HIDDEN){
         __editor->state = BVR_EDITOR_STATE_HANDLE;
     }
+
+    __editor->device.is_gui_hovered = 0;
 }
 
 void bvr_editor_draw_page_hierarchy(){
@@ -377,7 +382,7 @@ void bvr_editor_draw_page_hierarchy(){
             nk_group_end(__editor->gui.context);
         }
         
-
+        __editor->device.is_gui_hovered |= nk_window_is_hovered(__editor->gui.context);
         nk_end(__editor->gui.context);
     }
 }
@@ -400,7 +405,6 @@ void bvr_editor_draw_inspector(){
 
     BVR_ASSERT(__editor->state == BVR_EDITOR_STATE_DRAWING);
 
-    
     if(nk_begin(__editor->gui.context, BVR_FORMAT("inspector '%s'", __editor->inspector_cmd.name.string), BVR_INSPECTOR_RECT(0, 0), 
         NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE)){
     
@@ -766,8 +770,20 @@ void bvr_editor_draw_inspector(){
                         int altitude[4];
                         int texture_id = (0xff00 & vertices_map[target_tile]) >> 8;
 
+                        altitude[0] = 0xff & vertices_map[target_tile + 0];
+                        altitude[1] = 0xff & vertices_map[target_tile + 1];
+                        altitude[2] = 0xff & vertices_map[target_tile + 0];
+                        altitude[3] = 0xff & vertices_map[target_tile + 1];
+
                         nk_property_int(__editor->gui.context, "texture id", 0, &texture_id, actor->atlas.tile_count_x * actor->atlas.tile_count_y, 1, .5f);
                         
+                        nk_layout_row_dynamic(__editor->gui.context, 15, 2);
+                        nk_property_int(__editor->gui.context, "Altutide 0", 0, &altitude[0], 255, 1, 1.0f);
+                        nk_property_int(__editor->gui.context, "Altutide 1", 0, &altitude[1], 255, 1, 1.0f);
+                        nk_property_int(__editor->gui.context, "Altutide 2", 0, &altitude[2], 255, 1, 1.0f);
+                        nk_property_int(__editor->gui.context, "Altutide 3", 0, &altitude[3], 255, 1, 1.0f);
+
+                        nk_layout_row_dynamic(__editor->gui.context, 15, 1);
                         // if values are differents
 
                         // if values are differents
@@ -776,11 +792,20 @@ void bvr_editor_draw_inspector(){
                             vertices_map[target_tile + 1] = (vertices_map[target_tile + 1] & ~0xff00) | (texture_id) << 8;
                         }
 
+                        if(altitude[0] != (0xff & vertices_map[target_tile + 0])){
+                            vertices_map[target_tile + 0] = (vertices_map[target_tile + 0] & ~0xff) | altitude[0];
+                        }
+
+                        if(altitude[1] != (0xff & vertices_map[target_tile + 1])){
+                            vertices_map[target_tile + 1] = (vertices_map[target_tile + 1] & ~0xff) | altitude[1];
+                        }
+
                         glUnmapBuffer(GL_ARRAY_BUFFER);
                         glBindBuffer(GL_ARRAY_BUFFER, 0);
                     }
                 }
 
+                // drawing tile selector gizmo
                 {
                     vec2 tile_position, half_size;
                     tile_position[0] = __editor->inspector_cmd.user_data;
@@ -796,11 +821,11 @@ void bvr_editor_draw_inspector(){
                     vec2_add(tile_position, half_size, tile_position);
 
                     float vertices[] = {
-                        tile_position[0] + actor->dimension[2] * -0.5f, tile_position[1] + actor->dimension[3] * +0.5f, 0.1f,
-                        tile_position[0] + actor->dimension[2] * +0.5f, tile_position[1] + actor->dimension[3] * +0.5f, 0.1f,
-                        tile_position[0] + actor->dimension[2] * +0.5f, tile_position[1] + actor->dimension[3] * -0.5f, 0.1f,
-                        tile_position[0] + actor->dimension[2] * -0.5f, tile_position[1] + actor->dimension[3] * -0.5f, 0.1f,
-                        tile_position[0] + actor->dimension[2] * -0.5f, tile_position[1] + actor->dimension[3] * +0.5f, 0.1f,
+                        tile_position[0] + actor->dimension[2] * -0.5f, tile_position[1] + actor->dimension[3] * +0.5f,0.1f,
+                        tile_position[0] + actor->dimension[2] * +0.5f, tile_position[1] + actor->dimension[3] * +0.5f,0.1f,
+                        tile_position[0] + actor->dimension[2] * +0.5f, tile_position[1] + actor->dimension[3] * -0.5f,0.1f,
+                        tile_position[0] + actor->dimension[2] * -0.5f, tile_position[1] + actor->dimension[3] * -0.5f,0.1f,
+                        tile_position[0] + actor->dimension[2] * -0.5f, tile_position[1] + actor->dimension[3] * +0.5f,0.1f,
                     };
 
                     vec3 draw_color = {1.0, 0.0, 0.0};
@@ -825,6 +850,7 @@ void bvr_editor_draw_inspector(){
             break;
         }
 
+        __editor->device.is_gui_hovered |= nk_window_is_hovered(__editor->gui.context);
         nk_end(__editor->gui.context);
     }
 }
@@ -846,6 +872,7 @@ void bvr_editor_render(){
         bvri_bind_editor_buffers(0, 0);
 
         bvr_shader_disable();
+
     }
 
     bvr_nuklear_render(&__editor->gui);

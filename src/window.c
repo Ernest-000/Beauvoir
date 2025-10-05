@@ -205,7 +205,7 @@ int bvr_key_down(uint16 key){
 }
 
 int bvr_button_down(uint16 button){
-    return bvr_get_book_instance()->window.inputs.buttons[button] == 2;
+    return bvr_get_book_instance()->window.inputs.buttons[button] == 1;
 }
 
 void bvr_mouse_position(float* x, float* y){

@@ -52,6 +52,17 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     window->inputs.scroll = 0.0f;
     window->inputs.grab = 0;
 
+    // create default keyaxis
+    window->inputs.axis.horizontal.keys[0] = BVR_KEY_RIGHT;
+    window->inputs.axis.horizontal.keys[1] = BVR_KEY_LEFT;
+    window->inputs.axis.horizontal.alt_keys[0] = BVR_KEY_D;
+    window->inputs.axis.horizontal.alt_keys[1] = BVR_KEY_A;
+
+    window->inputs.axis.vertical.keys[0] = BVR_KEY_UP;
+    window->inputs.axis.vertical.keys[1] = BVR_KEY_DOWN;
+    window->inputs.axis.vertical.alt_keys[0] = BVR_KEY_W;
+    window->inputs.axis.vertical.alt_keys[1] = BVR_KEY_S;
+
     SDL_GetMouseState(&window->inputs.mouse[0], &window->inputs.mouse[1]);
 
     // initialize GLAD
@@ -75,6 +86,8 @@ void bvr_window_poll_events(){
 
     SDL_StartTextInput(window->handle);
 
+    window->inputs.scroll = 0.0f;
+
     window->events = 0;
     while(SDL_PollEvent(&event)){
         window->events |= event.type;
@@ -89,11 +102,11 @@ void bvr_window_poll_events(){
         case SDL_EVENT_KEY_DOWN:
             {
                 //= BVR_INPUT_DOWN if SDL_EVENT_KEY_DOWN
-                int down = (event.type == SDL_EVENT_KEY_DOWN);
+                bool down = (event.type == SDL_EVENT_KEY_DOWN);
                 
-                int kevent = down;
+                int kevent = down * BVR_INPUT_DOWN;
                 if(!event.key.repeat && down){
-                    kevent = BVR_KEY_PRESSED;
+                    kevent = BVR_INPUT_PRESSED;
                 }
                 
                 if(event.key.mod){
@@ -120,9 +133,11 @@ void bvr_window_poll_events(){
                     default: break;
                     }
                 }
-                window->inputs.keys[event.key.scancode] = kevent;
+                
+                window->inputs.keys[event.key.scancode] = kevent * BVR_INPUT_DOWN;
             }
             break;
+
         case SDL_EVENT_MOUSE_BUTTON_UP:
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             {
@@ -132,7 +147,7 @@ void bvr_window_poll_events(){
                     bevent = BVR_MOUSE_BUTTON_DOUBLE_PRESSED;
                 }
 
-                window->inputs.buttons[event.button.button] = bevent;
+                window->inputs.buttons[event.button.button] = bevent * BVR_INPUT_DOWN;
             }
             break;
         case SDL_EVENT_MOUSE_MOTION:
@@ -196,16 +211,28 @@ void bvr_destroy_window(bvr_window_t* window){
 }
 
 int bvr_key_presssed(uint16 key){
-    return bvr_get_book_instance()->window.inputs.keys[key] == BVR_KEY_PRESSED;
+    return bvr_get_book_instance()->window.inputs.keys[key] == BVR_INPUT_PRESSED;
 }
 
 int bvr_key_down(uint16 key){
-    return  bvr_get_book_instance()->window.inputs.keys[key] == BVR_KEY_DOWN || 
-            bvr_get_book_instance()->window.inputs.keys[key] == BVR_KEY_PRESSED;
+    return  bvr_get_book_instance()->window.inputs.keys[key] == BVR_INPUT_DOWN || 
+            bvr_get_book_instance()->window.inputs.keys[key] == BVR_INPUT_PRESSED;
+}
+
+int bvr_axis_down(bvr_keyaxis_t* axis){
+    int positive = bvr_key_down(axis->keys[0]) || bvr_key_down(axis->alt_keys[0]);
+    int negative = bvr_key_down(axis->keys[1]) || bvr_key_down(axis->alt_keys[1]);
+    return positive - negative;
+}
+
+int bvr_axis_presssed(bvr_keyaxis_t* axis){
+    int positive = bvr_key_presssed(axis->keys[0]) || bvr_key_presssed(axis->alt_keys[0]);
+    int negative = bvr_key_presssed(axis->keys[1]) || bvr_key_presssed(axis->alt_keys[1]);
+    return positive - negative;
 }
 
 int bvr_button_down(uint16 button){
-    return bvr_get_book_instance()->window.inputs.buttons[button] == 1;
+    return bvr_get_book_instance()->window.inputs.buttons[button] == BVR_INPUT_DOWN;
 }
 
 void bvr_mouse_position(float* x, float* y){

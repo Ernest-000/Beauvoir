@@ -1,12 +1,12 @@
 #include <BVR/editor/camera.h>
 #include <BVR/window.h>
 
-void bvr_init_free_camera(bvr_book_t* book, struct bvr_free_camera_s* _camera_controller, float speed){
-    _camera_controller->forward_speed = speed;
-    _camera_controller->strafe_speed = speed;
-    _camera_controller->updown_speed = speed;
-    _camera_controller->rot_speed = speed;
-    _camera_controller->pitch_speed = speed;
+void bvr_init_free_camera(bvr_book_t* book, struct bvr_free_camera_s* _camera_controller, float movement_speed, float rotation_speed){
+    _camera_controller->forward_speed = movement_speed;
+    _camera_controller->strafe_speed = movement_speed;
+    _camera_controller->updown_speed = movement_speed;
+    _camera_controller->rot_speed = rotation_speed;
+    _camera_controller->pitch_speed = rotation_speed;
 
     _camera_controller->rotation = book->page.camera.transform.rotation[1];
     _camera_controller->tilt = book->page.camera.transform.rotation[2];
@@ -31,22 +31,11 @@ void bvr_update_free_camera(bvr_book_t* book, struct bvr_free_camera_s* _camera_
     _camera_controller->forward = 0;
     _camera_controller->strafe = 0;
 
-    if(bvr_key_down(BVR_KEY_UP)){
-        _camera_controller->forward += _camera_controller->forward_speed * book->timer.delta_time;
-    }
-    
-    if(bvr_key_down(BVR_KEY_DOWN)){
-        _camera_controller->forward -= _camera_controller->forward_speed * book->timer.delta_time;
-    }
-    
-    if(bvr_key_down(BVR_KEY_LEFT)){
-        _camera_controller->strafe += _camera_controller->strafe_speed * book->timer.delta_time;
-    }
-    
-    if(bvr_key_down(BVR_KEY_RIGHT)){
-        _camera_controller->strafe -= _camera_controller->strafe_speed * book->timer.delta_time;
-    }
+    _camera_controller->forward += bvr_axis_down(&book->window.inputs.axis.vertical) * _camera_controller->forward_speed * book->timer.delta_time;
+    _camera_controller->strafe  -= bvr_axis_down(&book->window.inputs.axis.horizontal) * _camera_controller->strafe_speed * book->timer.delta_time;
 
     book->page.camera.transform.position[0] += _camera_controller->strafe;
     book->page.camera.transform.position[1] += _camera_controller->forward;
+
+    book->page.camera.field_of_view.scale += book->window.inputs.scroll * _camera_controller->forward_speed * book->timer.delta_time;
 }

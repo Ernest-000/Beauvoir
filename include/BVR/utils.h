@@ -60,6 +60,11 @@ int bvr_sizeof(const int type);
 void bvr_nameof(const int type, char* name);
 
 /*
+    java hash function
+*/
+unsigned int bvr_hash(const char* string);
+
+/*
     Create a new uuid
 */
 void bvr_create_uuid(bvr_uuid_t uuid);

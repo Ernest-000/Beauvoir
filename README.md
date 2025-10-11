@@ -1,7 +1,6 @@
 # Beauvoir
 > 'Beauvoir' just like Simone de Beauvoir
 
-![](./.github/beauvoir_rendu.png)
 ## Overview
 Beauvoir is an OpenGL-based game framework that aims to provide a simple, yet performant and flexible way to create 2D games - but it can also be used to create 3D games. I chose to create it in C and OpenGL ES 3.2 to keep the code simple and flexible.
 

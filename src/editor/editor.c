@@ -760,7 +760,18 @@ void bvr_editor_draw_inspector(){
 
                 nk_layout_row_dynamic(__editor->gui.context, 15, 1);
 
-                {
+                struct nk_image tile;
+                tile.handle.id = actor->atlas.id;
+                tile.w = actor->atlas.tile_width; 
+                tile.h = actor->atlas.tile_height;
+                tile.region[0] = 0;
+                tile.region[1] = 0;
+                tile.region[2] = 0;
+                tile.region[3] = 0;
+
+                nk_image(__editor->gui.context, tile);
+
+                if(0){
                     nk_label(__editor->gui.context, "TILE INFORMATIONS", NK_TEXT_ALIGN_LEFT);
                     
                     glBindBuffer(GL_ARRAY_BUFFER, actor->mesh.vertex_buffer);

@@ -96,6 +96,24 @@ void bvr_nameof(const int type, char* name){
     }
 }
 
+/*
+    https://gist.github.com/sgsfak/9ba382a0049f6ee885f68621ae86079b
+    
+    The Java hash, but really no-one seems to know where it came from, see
+    https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4045622
+*/
+unsigned int bvr_hash(const char* string)
+{
+    unsigned int h = 0;
+    unsigned int len = strlen(string);
+
+    while (len) {
+        h = 31 * h + *string++;
+        --len;
+    }
+    return h;
+}
+
 void bvr_create_uuid(bvr_uuid_t uuid){
     const char hex_digits[] = "0123456789abcdefABCDEF";
 
@@ -104,11 +122,11 @@ void bvr_create_uuid(bvr_uuid_t uuid){
         (uuid)[i] = hex_digits[rand() % 22];
     }
     
-    (uuid)[8] = '-';
-    (uuid)[13] = '-';
-    (uuid)[18] = '-';
-    (uuid)[23] = '-';
-    (uuid)[36] = '\0';
+    uuid[8] = '-';
+    uuid[13] = '-';
+    uuid[18] = '-';
+    uuid[23] = '-';
+    uuid[36] = '\0';
 }
 
 void bvr_copy_uuid(bvr_uuid_t src, bvr_uuid_t dest){

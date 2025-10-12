@@ -887,8 +887,9 @@ void bvr_editor_draw_inspector(){
                 bvr_global_illumination_t* illumination = (bvr_global_illumination_t*) __editor->inspector_cmd.pointer;
 
                 nk_layout_row_dynamic(__editor->gui.context, 15, 1);
-                nk_label(__editor->gui.context, "LIGHT INTENSITY", NK_TEXT_ALIGN_CENTERED);
-                nk_property_float(__editor->gui.context, "", 0.0, &illumination->light.intensity, INT_MAX, 1.0f, 1.0f);
+                nk_label(__editor->gui.context, "INTENSITY", NK_TEXT_ALIGN_CENTERED);
+                nk_property_float(__editor->gui.context, "light", 0.0, &illumination->light.intensity, 255, 1.0f, 1.0f);
+                nk_property_float(__editor->gui.context, "ambiant", 0.0, &illumination->light.position[3], 255, 1.0f, 1.0f);
                 
                 nk_label(__editor->gui.context, "LIGHT COLOR", NK_TEXT_ALIGN_CENTERED);
                 nk_layout_row_dynamic(__editor->gui.context, BVR_INSPECTOR_RECT(0, 0).w / 2, 1);
@@ -900,13 +901,30 @@ void bvr_editor_draw_inspector(){
                 nk_property_float(__editor->gui.context, "x", -100000.0f, &illumination->light.position[0], 100000.0f, 0.1f, 0.1f);
                 nk_property_float(__editor->gui.context, "y", -100000.0f, &illumination->light.position[1], 100000.0f, 0.1f, 0.1f);
                 nk_property_float(__editor->gui.context, "z", -100000.0f, &illumination->light.position[2], 100000.0f, 0.1f, 0.1f);
+                
+                {
+                    float distance = (illumination->light.intensity);
+                    vec3 normalized_dir;
+                    vec3_norm(normalized_dir, illumination->light.direction);
+                    vec3_scale(normalized_dir, normalized_dir, distance);
 
-                nk_layout_row_dynamic(__editor->gui.context, 15, 1);
-                nk_label(__editor->gui.context, "LIGHT DIRECTION", NK_TEXT_ALIGN_CENTERED);
-                nk_layout_row_dynamic(__editor->gui.context, 15, 3);
-                nk_property_float(__editor->gui.context, "x", -100000.0f, &illumination->light.direction[0], 100000.0f, 0.1f, 0.1f);
-                nk_property_float(__editor->gui.context, "y", -100000.0f, &illumination->light.direction[1], 100000.0f, 0.1f, 0.1f);
-                nk_property_float(__editor->gui.context, "z", -100000.0f, &illumination->light.direction[2], 100000.0f, 0.1f, 0.1f);
+                    float vertices[6] = {
+                        illumination->light.position[0], 
+                        illumination->light.position[1], 
+                        illumination->light.position[2],
+                        illumination->light.position[0], 
+                        illumination->light.position[1] - distance, 
+                        illumination->light.position[2]
+                    };
+
+                    bvri_bind_editor_buffers(__editor->device.array_buffer, __editor->device.vertex_buffer);
+                    bvri_set_editor_buffers(vertices, sizeof(vertices) / sizeof(vec3), 3);
+                    bvri_bind_editor_buffers(0, 0);
+                    
+                    __editor->draw_cmd.drawmode = BVR_DRAWMODE_LINE_STRIPE;
+                    __editor->draw_cmd.element_offset = 0;
+                    __editor->draw_cmd.element_count = sizeof(vertices) / sizeof(vec3);
+                }
             }
             break;
         default:

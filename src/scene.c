@@ -290,12 +290,15 @@ int bvr_create_page(bvr_page_t* page, const char* name){
     page->camera.mode = 0;
 
     page->global_illumination.buffer = 0;
-    page->global_illumination.light.intensity = 0.0f;
+    page->global_illumination.light.intensity = 255.0f;
     page->global_illumination.light.type = BVR_LIGHT_GLOBAL_ILLUMINATION;
+    page->global_illumination.light.position[3] = 51;
     BVR_SCALE_VEC3(page->global_illumination.light.color, 1.0f);
     BVR_SCALE_VEC3(page->global_illumination.light.direction, 0);
     BVR_SCALE_VEC3(page->global_illumination.light.position, 0);
 
+
+    
     bvr_create_string(&page->name, name);
 
     bvr_create_pool(&page->actors, sizeof(struct bvr_actor_s*), BVR_MAX_SCENE_ACTOR_COUNT);

@@ -11,6 +11,33 @@
 
 #define BVR_MAX_GLSL_HEADER_SIZE 100
 
+// vertex shader struct
+static const char* __ext_vdata = "struct V_DATA {\n"
+	"   vec3 position;\n"
+	"   vec2 uvs;\n"
+    "   vec3 normals;\n"
+    "};\n";
+
+// light shader struct
+static const char* __ext_vlight = "struct V_LIGHT {\n"
+"	vec4 position;\n"
+"	vec4 direction;\n"
+"	vec4 color;\n"
+"};\n";
+
+// light related function(s)
+static const char* __ext_f_light = "vec4 calc_light(vec4 color, V_LIGHT light, V_DATA vertex){\n"
+"	vec4 l_color;\n"
+"	float intensity = light.color.a / 255;\n"
+"	float ambiant_intensity = light.position.w / 255;\n"
+"	vec3 norm = normalize(vertex.normals);\n"
+"	vec3 light_direction = normalize(light.position.xyz - vertex.position);\n"
+"	vec4 diffuse = vec4(color.rgb, 1.0) * max(dot(norm, light_direction), 0.0);\n"
+"	vec4 ambiant = vec4(color.rgb * ambiant_intensity, 1.0);\n"
+"	l_color = diffuse + ambiant;\n"
+"	return l_color * vec4(light.color.rgb, 1.0);\n"
+"}\n";
+
 static int bvri_compile_shader(uint32* shader, bvr_string_t* const content, int type);
 static int bvri_link_shader(const uint32 program);
 static int bvri_register_shader_state(bvr_shader_t* program, bvr_shader_stage_t* shader, bvr_string_t* content, 
@@ -70,6 +97,22 @@ static int bvri_register_shader_state(bvr_shader_t* program, bvr_shader_stage_t*
     strncat(shader_header_str, "\n", 1);
 
     bvr_create_string(&shader_str, shader_header_str);
+
+    /*  extensions */
+
+    // default v_data
+    bvr_string_concat(&shader_str, __ext_vdata);
+
+    // light extension
+    if(BVR_HAS_FLAG(program->flags, BVR_SHADER_EXT_LIGHT)){
+        bvr_string_concat(&shader_str, __ext_vlight);
+
+        // only add light related functions for fragment shader
+        if(type == GL_FRAGMENT_SHADER){
+            bvr_string_concat(&shader_str, __ext_f_light);
+        }
+    }
+
     bvr_string_concat(&shader_str, content->string);
 
     if (type && shader_str.length) {

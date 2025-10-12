@@ -9,6 +9,7 @@
 #define BVR_EDITOR_CAMERA           0x0010
 #define BVR_EDITOR_ASSETS           0x0020
 #define BVR_EDITOR_PIPELINE         0x0040
+#define BVR_EDITOR_GLOBAL_ILL       0x0080
 #define BVR_EDITOR_ACTOR            0x0100
 #define BVR_EDITOR_COLLIDER         0x0200
 #define BVR_EDITOR_LANDSCAPE        0x0400

@@ -7,6 +7,8 @@
 #include <BVR/window.h>
 #include <BVR/audio.h>
 
+#include <BVR/lights.h>
+
 #include <stdint.h>
 
 #define BVR_CAMERA_ORTHOGRAPHIC 0x1
@@ -58,6 +60,7 @@ typedef struct bvr_page_s {
     bvr_string_t name;
     
     bvr_camera_t camera;
+    bvr_global_illumination_t global_illumination;
 
     // all world's actors (pointers)
     bvr_pool_t actors;

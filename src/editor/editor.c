@@ -330,6 +330,24 @@ void bvr_editor_draw_page_hierarchy(){
 
             bvri_draw_hierarchy_button("camera", BVR_EDITOR_CAMERA, &__editor->book->page.camera);
             bvri_draw_hierarchy_button("graphic pipeline", BVR_EDITOR_PIPELINE, &__editor->book->pipeline);
+            
+            struct bvr_light_s* light = NULL;
+            BVR_POOL_FOR_EACH(light, __editor->book->page.lights){
+                if(!light) {
+                    break;
+                }
+
+                switch (light->type)
+                {
+                case BVR_LIGHT_NONE: break;
+                case BVR_LIGHT_GLOBAL_ILLUMINATION:
+                    bvri_draw_hierarchy_button("global illumination", BVR_EDITOR_GLOBAL_ILL, light);
+                    break;
+
+                default:
+                    break;
+                }
+            }
 
             nk_group_end(__editor->gui.context);
         }
@@ -862,6 +880,33 @@ void bvr_editor_draw_inspector(){
                 bvri_draw_editor_shader(&actor->shader);
                 bvri_draw_editor_image(&actor->atlas.image);
                 bvri_draw_editor_mesh(&actor->mesh);
+            }
+            break;
+        case BVR_EDITOR_GLOBAL_ILL:
+            {
+                bvr_global_illumination_t* illumination = (bvr_global_illumination_t*) __editor->inspector_cmd.pointer;
+
+                nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+                nk_label(__editor->gui.context, "LIGHT INTENSITY", NK_TEXT_ALIGN_CENTERED);
+                nk_property_float(__editor->gui.context, "", 0.0, &illumination->light.intensity, INT_MAX, 1.0f, 1.0f);
+                
+                nk_label(__editor->gui.context, "LIGHT COLOR", NK_TEXT_ALIGN_CENTERED);
+                nk_layout_row_dynamic(__editor->gui.context, BVR_INSPECTOR_RECT(0, 0).w / 2, 1);
+                nk_color_pick(__editor->gui.context, (struct nk_colorf*)&illumination->light.color, NK_RGB);
+                
+                nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+                nk_label(__editor->gui.context, "LIGHT POSITION", NK_TEXT_ALIGN_CENTERED);
+                nk_layout_row_dynamic(__editor->gui.context, 15, 3);
+                nk_property_float(__editor->gui.context, "x", -100000.0f, &illumination->light.position[0], 100000.0f, 0.1f, 0.1f);
+                nk_property_float(__editor->gui.context, "y", -100000.0f, &illumination->light.position[1], 100000.0f, 0.1f, 0.1f);
+                nk_property_float(__editor->gui.context, "z", -100000.0f, &illumination->light.position[2], 100000.0f, 0.1f, 0.1f);
+
+                nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+                nk_label(__editor->gui.context, "LIGHT DIRECTION", NK_TEXT_ALIGN_CENTERED);
+                nk_layout_row_dynamic(__editor->gui.context, 15, 3);
+                nk_property_float(__editor->gui.context, "x", -100000.0f, &illumination->light.direction[0], 100000.0f, 0.1f, 0.1f);
+                nk_property_float(__editor->gui.context, "y", -100000.0f, &illumination->light.direction[1], 100000.0f, 0.1f, 0.1f);
+                nk_property_float(__editor->gui.context, "z", -100000.0f, &illumination->light.direction[2], 100000.0f, 0.1f, 0.1f);
             }
             break;
         default:

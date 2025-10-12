@@ -148,6 +148,11 @@ enum bvr_input_state_e {
     BVR_MOUSE_BUTTON_DOUBLE_PRESSED = 4
 };
 
+typedef struct bvr_keyaxis_s {
+    uint16 keys[2];
+    uint16 alt_keys[2];
+} bvr_keyaxis_t __attribute ((packed));
+
 typedef struct bvr_window_s {
     void* handle;
     void* context;
@@ -167,6 +172,12 @@ typedef struct bvr_window_s {
         float prev_motion[2]; // previous mouse motion
 
         bool grab;
+
+        // default key axis
+        struct {
+            bvr_keyaxis_t horizontal;
+            bvr_keyaxis_t vertical;
+        } axis;
     } inputs;
 
     int events;
@@ -182,6 +193,10 @@ void bvr_destroy_window(bvr_window_t* window);
 
 int bvr_key_down(uint16 key);
 int bvr_key_presssed(uint16 key);
+
+int bvr_axis_down(bvr_keyaxis_t* axis);
+int bvr_axis_presssed(bvr_keyaxis_t* axis);
+
 int bvr_button_down(uint16 button);
 
 void bvr_mouse_position(float* x, float* y);

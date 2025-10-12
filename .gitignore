@@ -33,3 +33,4 @@ x64/
 # Beauvoir in-dev folders and files
 res/
 dev/
+doxygen.py

@@ -3,7 +3,7 @@
 */
 
 /* include all Beauvoir's headers */
-#define BVR_GEOMETRY_IMPLEMENTATION
+#define BVR_INCLUDE_GEOMETRY
 #include <BVR/bvr.h>
 
 /* game's context */
@@ -17,8 +17,8 @@ int main(){
     /* create the window */
     bvr_create_window(&book.window, 800, 800, "Window", 0);
     
-    /* create an audio stream */
-    bvr_create_audio_stream(&book.audio, BVR_DEFAULT_SAMPLE_RATE, BVR_DEFAULT_AUDIO_BUFFER_SIZE);
+    /* create the camera */
+    bvr_create_orthographic_camera(&book.page, &book.window.framebuffer, 0.01f, 100.0f, 1.0f);
 
     /* main loop */
     while (1)

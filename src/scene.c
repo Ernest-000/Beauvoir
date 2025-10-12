@@ -137,10 +137,6 @@ void bvr_new_frame(bvr_book_t* book){
         view[3][3] = 1.0f;
     }
 
-    /*view[3][0] = camera->transform.position[0];
-    view[3][1] = camera->transform.position[1];
-    view[3][2] = camera->transform.position[2];*/
-
     if(book->page.camera.framebuffer){
         bvr_enable_uniform_buffer(book->page.camera.buffer);
         bvr_uniform_buffer_set(0, sizeof(mat4x4), &projection[0][0]);
@@ -149,6 +145,14 @@ void bvr_new_frame(bvr_book_t* book){
     }
     else {
         BVR_PRINT("missing camera");
+    }
+
+    if(book->page.global_illumination.buffer){        
+        bvr_enable_uniform_buffer(book->page.global_illumination.buffer);
+        bvr_uniform_buffer_set(0, sizeof(vec4), &book->page.global_illumination.light.position[0]);
+        bvr_uniform_buffer_set(sizeof(vec4), sizeof(vec4), &book->page.global_illumination.light.direction[0]);
+        bvr_uniform_buffer_set(sizeof(vec4) * 2, sizeof(vec3), &book->page.global_illumination.light.color[0]);
+        bvr_uniform_buffer_set(sizeof(vec4) * 3 - sizeof(float), sizeof(float), &book->page.global_illumination.light.intensity);
     }
 }
 
@@ -285,11 +289,22 @@ int bvr_create_page(bvr_page_t* page, const char* name){
     page->camera.framebuffer = NULL;
     page->camera.mode = 0;
 
+    page->global_illumination.buffer = 0;
+    page->global_illumination.light.intensity = 0.0f;
+    page->global_illumination.light.type = BVR_LIGHT_GLOBAL_ILLUMINATION;
+    BVR_SCALE_VEC3(page->global_illumination.light.color, 1.0f);
+    BVR_SCALE_VEC3(page->global_illumination.light.direction, 0);
+    BVR_SCALE_VEC3(page->global_illumination.light.position, 0);
+
     bvr_create_string(&page->name, name);
 
     bvr_create_pool(&page->actors, sizeof(struct bvr_actor_s*), BVR_MAX_SCENE_ACTOR_COUNT);
     bvr_create_pool(&page->colliders, sizeof(bvr_collider_t*), BVR_COLLIDER_COLLECTION_SIZE);
     bvr_create_pool(&page->lights, sizeof(struct bvr_light_s*), BVR_MAX_SCENE_LIGHT_COUNT);
+
+    // create global lighting
+    bvr_global_illumination_t** gl = (bvr_global_illumination_t**)bvr_pool_alloc(&page->lights);
+    *gl = &page->global_illumination;
 
     return BVR_OK;
 }
@@ -342,7 +357,10 @@ bvr_camera_t* bvr_create_orthographic_camera(bvr_page_t* page, bvr_framebuffer_t
     BVR_IDENTITY_VEC3(page->camera.transform.scale);
     BVR_IDENTITY_MAT4(page->camera.transform.matrix);
 
-    bvr_create_uniform_buffer(&page->camera.buffer, 2 * sizeof(mat4x4));
+    bvr_create_uniform_buffer(&page->camera.buffer, 2 * sizeof(mat4x4), BVR_UNIFORM_BLOCK_CAMERA);
+
+    // TODO: find another function to create global illumination 
+    bvr_create_uniform_buffer(&page->global_illumination.buffer, 3 * sizeof(vec4), BVR_UNIFORM_BLOCK_GLOBAL_ILLUMINATION);
 
     return &page->camera;
 }
@@ -566,6 +584,7 @@ void bvr_destroy_page(bvr_page_t* page){
     }
 
     bvr_destroy_uniform_buffer(&page->camera.buffer);
+    bvr_destroy_uniform_buffer(&page->global_illumination.buffer);
 
     bvr_destroy_string(&page->name);
 

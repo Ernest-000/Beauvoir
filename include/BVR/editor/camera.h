@@ -11,5 +11,5 @@ struct bvr_free_camera_s {
     float rotation, tilt, forward, updown, strafe;
 };
 
-void bvr_init_free_camera(bvr_book_t* book, struct bvr_free_camera_s* camera, float speed);
+void bvr_init_free_camera(bvr_book_t* book, struct bvr_free_camera_s* camera, float movement_speed, float rotation_speed);
 void bvr_update_free_camera(bvr_book_t* book, struct bvr_free_camera_s* camera, bvr_editor_t* editor);

@@ -120,8 +120,8 @@ int bvr_create_shaderf(bvr_shader_t* shader, FILE* file, const int flags){
 
     // by default there is:
     // - camera block
-    //
-    shader->block_count = 1;
+    // - global illumination
+    shader->block_count = 2;
 
     // by default there is
     // - transformation uniform
@@ -191,6 +191,16 @@ shader_cstor_bidings:
         glUniformBlockBinding(shader->program, shader->blocks[0].location, BVR_UNIFORM_BLOCK_CAMERA);
     }
 
+    shader->blocks[1].type = BVR_VEC4;
+    shader->blocks[1].count = 3;
+    shader->blocks[1].location = glGetUniformBlockIndex(shader->program, BVR_UNIFORM_GLOBAL_ILLUMINATION_NAME);
+    if (shader->blocks[1].location == -1) {
+        BVR_PRINT("cannot find camera block uniform!");
+    }
+    else {
+        glUniformBlockBinding(shader->program, shader->blocks[1].location, BVR_UNIFORM_BLOCK_GLOBAL_ILLUMINATION);
+    }
+
     // create transform uniform
     shader->uniforms[0].location = glGetUniformLocation(shader->program, BVR_UNIFORM_TRANSFORM_NAME);
     shader->uniforms[0].memory.data = NULL;
@@ -234,13 +244,13 @@ int bvri_create_shader_vert_frag(bvr_shader_t* shader, const char* vert, const c
     bvri_link_shader(shader->program);
 }
 
-void bvr_create_uniform_buffer(uint32* buffer, uint64 size){
+void bvr_create_uniform_buffer(uint32* buffer, uint64 size, uint32 binding_point){
     glGenBuffers(1, buffer);
     glBindBuffer(GL_UNIFORM_BUFFER, *buffer);
     glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, *buffer, 0, size);
+    glBindBufferRange(GL_UNIFORM_BUFFER, binding_point, *buffer, 0, size);
 }
 
 void bvr_enable_uniform_buffer(uint32 buffer){

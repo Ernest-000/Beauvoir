@@ -81,7 +81,7 @@ static inline int bvr_create_shader(bvr_shader_t* shader, const char* path, cons
     return a;
 } 
 
-void bvr_create_uniform_buffer(uint32* buffer, uint64 size);
+void bvr_create_uniform_buffer(uint32* buffer, uint64 size, uint32 binding_point);
 void bvr_enable_uniform_buffer(uint32 buffer);
 void bvr_uniform_buffer_set(uint32 offset, uint64 size, void* data);
 

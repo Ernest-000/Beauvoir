@@ -243,9 +243,10 @@ void bvr_render(bvr_book_t* book){
     bvr_window_push_buffers();
 
 #ifndef BVR_NO_FPS_CAP
-    // wait for next frame. 
-    if(book->timer.prev_time + BVR_FRAMERATE > book->timer.current_time){
-        bvr_delay(book->timer.current_time - book->timer.prev_time + BVR_FRAMERATE);
+    // wait for next frame.
+    double delay = BVR_TARGET_FRAMERATE * 0.25 - (bvr_frames() - book->timer.current_time);  
+    if(delay > 0){
+        bvr_delay(delay);
     }
 #endif
 
@@ -297,8 +298,6 @@ int bvr_create_page(bvr_page_t* page, const char* name){
     BVR_SCALE_VEC3(page->global_illumination.light.direction, 0);
     BVR_SCALE_VEC3(page->global_illumination.light.position, 0);
 
-
-    
     bvr_create_string(&page->name, name);
 
     bvr_create_pool(&page->actors, sizeof(struct bvr_actor_s*), BVR_MAX_SCENE_ACTOR_COUNT);
@@ -417,8 +416,8 @@ void bvr_screen_to_world_coords(bvr_book_t* book, vec2 screen_coords, vec3 world
         bvr_uniform_buffer_close();
         bvr_enable_uniform_buffer(0);
 
-        screen[0] = (screen_coords[0] / book->window.framebuffer.width - 0.5f) * 6.0f;
-        screen[1] = (screen_coords[1] / book->window.framebuffer.height - 0.5f) * -6.0f;
+        screen[0] = 2.0f * (screen_coords[0] / (book->window.framebuffer.width)) - 1.0f;
+        screen[1] = 1.0f - 2.0f * (screen_coords[1] / (book->window.framebuffer.height));
         screen[2] = 0.0f;
         screen[3] = 1.0f;
         
@@ -430,7 +429,6 @@ void bvr_screen_to_world_coords(bvr_book_t* book, vec2 screen_coords, vec3 world
         world_coords[0] = world[0] * world[3];
         world_coords[1] = world[1] * world[3];
         world_coords[2] = world[2] * world[3];
-
         return;
     }
 

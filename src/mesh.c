@@ -360,7 +360,8 @@ static char* bvri_objparsefloat(char* buffer, float* v){
 
     num += fra / div;
     
-    BVR_ASSERT(*buffer == 'E' || *buffer == 'e' || "powers aren't supported :(");
+    // powers are not supported :<
+    BVR_ASSERT(*buffer == 'E' || *buffer == 'e');
 
     *v = (float)sig * num;
 

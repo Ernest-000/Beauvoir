@@ -76,6 +76,9 @@ BVR_H_FUNC float deg_to_rad(float deg) {
     return deg * M_PI / 180; 
 }
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
 BVR_H_FUNC float clamp(float d, float min, float max) {
   const float t = d < min ? min : d;
   return t > max ? max : t;

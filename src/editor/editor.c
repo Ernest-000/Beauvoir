@@ -310,12 +310,8 @@ void bvr_editor_draw_page_hierarchy(){
         }
         
         {
-            vec2 screen, world;
-            bvr_mouse_position(&screen[0], &screen[1]);
-            bvr_screen_to_world_coords(__editor->book, screen, world);
-
             nk_layout_row_dynamic(__editor->gui.context, 15, 1);
-            nk_label_wrap(__editor->gui.context, BVR_FORMAT("mx%f my%f", world[0], world[1]));
+            nk_label_wrap(__editor->gui.context, BVR_FORMAT("fps %i", __editor->book->timer.average_render_time));
         }
 
         // scene components
@@ -765,6 +761,22 @@ void bvr_editor_draw_inspector(){
                 nk_property_int(__editor->gui.context, "tile x", 0, &__editor->inspector_cmd.user_data, actor->dimension[0] - 1, 1, .5f);
                 nk_property_int(__editor->gui.context, "tile y", 0, &__editor->inspector_cmd.user_data2, actor->dimension[1] - 1, 1, .5f);
 
+                // select tile by double clicking on a tile
+                if(bvr_button_double_pressed(BVR_MOUSE_BUTTON_LEFT) && !__editor->device.is_gui_hovered){
+                    float mouse_tile_x = 0, mouse_tile_y = 0;
+                    vec2 mouse_pos;
+                    vec3 world_pos;
+
+                    bvr_mouse_position(&mouse_pos[0], &mouse_pos[1]);
+                    bvr_screen_to_world_coords(__editor->book, mouse_pos, world_pos);
+                    
+                    mouse_tile_x = MAX(world_pos[0] - actor->object.transform.position[0], 0.0f) / actor->dimension[2];
+                    mouse_tile_y = MAX(-world_pos[1] - actor->object.transform.position[1], 0.0f) / actor->dimension[3];
+
+                    __editor->inspector_cmd.user_data = (uint32) (MIN((int)mouse_tile_x, (int)actor->dimension[0] - 1));
+                    __editor->inspector_cmd.user_data2 = (uint32)(MIN((int)mouse_tile_y, (int)actor->dimension[1] - 1));
+                }
+
                 // apply y axis
                 const int vertices_per_row = actor->dimension[0] * 2 + 3;
 
@@ -777,17 +789,6 @@ void bvr_editor_draw_inspector(){
                 BVR_ASSERT(target_tile < actor->mesh.vertex_count);
 
                 nk_layout_row_dynamic(__editor->gui.context, 15, 1);
-
-                struct nk_image tile;
-                tile.handle.id = actor->atlas.id;
-                tile.w = actor->atlas.tile_width; 
-                tile.h = actor->atlas.tile_height;
-                tile.region[0] = 0;
-                tile.region[1] = 0;
-                tile.region[2] = 0;
-                tile.region[3] = 0;
-
-                nk_image(__editor->gui.context, tile);
 
                 if(0){
                     nk_label(__editor->gui.context, "TILE INFORMATIONS", NK_TEXT_ALIGN_LEFT);
@@ -878,7 +879,6 @@ void bvr_editor_draw_inspector(){
                 
 
                 bvri_draw_editor_shader(&actor->shader);
-                bvri_draw_editor_image(&actor->atlas.image);
                 bvri_draw_editor_mesh(&actor->mesh);
             }
             break;

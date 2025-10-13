@@ -143,7 +143,7 @@ void bvr_window_poll_events(){
             {
                 int bevent = (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN);
 
-                if(event.button.clicks > 1){
+                if(event.button.clicks > 1 && bevent){
                     bevent = BVR_MOUSE_BUTTON_DOUBLE_PRESSED;
                 }
 
@@ -235,8 +235,14 @@ int bvr_button_down(uint16 button){
     return bvr_get_book_instance()->window.inputs.buttons[button] == BVR_INPUT_DOWN;
 }
 
+int bvr_button_double_pressed(uint16 button){
+    return bvr_get_book_instance()->window.inputs.buttons[button] == BVR_MOUSE_BUTTON_DOUBLE_PRESSED;
+}
+
 void bvr_mouse_position(float* x, float* y){
     SDL_GetMouseState(x, y);
+    *x = clamp(*x, 0.0f, bvr_get_book_instance()->window.framebuffer.width);
+    *y = clamp(*y, 0.0f, bvr_get_book_instance()->window.framebuffer.height);
 }
 
 void bvr_mouse_relative_position(float* x, float *y){

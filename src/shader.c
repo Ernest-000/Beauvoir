@@ -27,15 +27,15 @@ static const char* __ext_vlight = "struct V_LIGHT {\n"
 
 // light related function(s)
 static const char* __ext_f_light = "vec4 calc_light(vec4 color, V_LIGHT light, V_DATA vertex){\n"
-"	vec4 l_color;\n"
+"	vec3 l_color;\n"
 "	float intensity = light.color.a / 255;\n"
 "	float ambiant_intensity = light.position.w / 255;\n"
 "	vec3 norm = normalize(vertex.normals);\n"
 "	vec3 light_direction = normalize(light.position.xyz - vertex.position);\n"
-"	vec4 diffuse = vec4(color.rgb, 1.0) * max(dot(norm, light_direction), 0.0);\n"
-"	vec4 ambiant = vec4(color.rgb * ambiant_intensity, 1.0);\n"
+"	vec3 diffuse = vec3(intensity) * max(dot(norm, light_direction), 0.0);\n"
+"	vec3 ambiant = vec3(ambiant_intensity);\n"
 "	l_color = diffuse + ambiant;\n"
-"	return l_color * vec4(light.color.rgb, 1.0);\n"
+"	return vec4(l_color, 1.0) * vec4(light.color.rgb, 1.0);\n"
 "}\n";
 
 static int bvri_compile_shader(uint32* shader, bvr_string_t* const content, int type);
@@ -238,7 +238,8 @@ shader_cstor_bidings:
     shader->blocks[1].count = 3;
     shader->blocks[1].location = glGetUniformBlockIndex(shader->program, BVR_UNIFORM_GLOBAL_ILLUMINATION_NAME);
     if (shader->blocks[1].location == -1) {
-        BVR_PRINT("cannot find camera block uniform!");
+        BVR_PRINT("cannot find global illumination block uniform!");
+        shader->block_count--;
     }
     else {
         glUniformBlockBinding(shader->program, shader->blocks[1].location, BVR_UNIFORM_BLOCK_GLOBAL_ILLUMINATION);

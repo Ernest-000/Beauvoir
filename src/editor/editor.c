@@ -790,7 +790,19 @@ void bvr_editor_draw_inspector(){
 
                 nk_layout_row_dynamic(__editor->gui.context, 15, 1);
 
-                if(0){
+                {
+                    bvr_texture_t view;
+                    nk_property_int(__editor->gui.context, "texture id", 0, &__editor->inspector_cmd.user_data3, actor->atlas.tiles.count, 1, .5f);
+
+                    bvr_create_view_texture(&actor->atlas.texture, &view, actor->atlas.tiles.width, actor->atlas.tiles.height, __editor->inspector_cmd.user_data3);
+
+                    nk_layout_row_dynamic(__editor->gui.context, BVR_INSPECTOR_RECT(0, 0).w / 2, 1); 
+                    nk_image(__editor->gui.context, nk_image_id(view.id));
+
+                    bvr_destroy_texture(&view);
+                }
+
+                /*if(0){
                     nk_label(__editor->gui.context, "TILE INFORMATIONS", NK_TEXT_ALIGN_LEFT);
                     
                     glBindBuffer(GL_ARRAY_BUFFER, actor->mesh.vertex_buffer);
@@ -840,7 +852,7 @@ void bvr_editor_draw_inspector(){
                         glUnmapBuffer(GL_ARRAY_BUFFER);
                         glBindBuffer(GL_ARRAY_BUFFER, 0);
                     }
-                }
+                }*/
 
                 // drawing tile selector gizmo
                 {

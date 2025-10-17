@@ -11,6 +11,30 @@
 
 #include <glad/glad.h>
 
+static int bvri_get_sformat(bvr_image_t* image){
+    if(image->format == 16){
+        switch (image->format)
+        {
+        case BVR_R: return BVR_RED16;
+        case BVR_RG: return BVR_RG16;
+        case BVR_RGB: case BVR_BGR: return BVR_RGB16;
+        case BVR_RGBA: case BVR_BGRA: return BVR_RGBA16;
+        default:
+            return BVR_RED16;
+        }
+    }
+
+    switch (image->format)
+    {
+    case BVR_R: return BVR_RED8;
+    case BVR_RG: return BVR_RG8;
+    case BVR_RGB: case BVR_BGR: return BVR_RGB8;
+    case BVR_RGBA: case BVR_BGRA: return BVR_RGBA8;
+    default:
+        return BVR_RED8;
+    }
+}
+
 #ifndef BVR_NO_PNG
 
 #include <png.h>
@@ -89,6 +113,8 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
         png_destroy_read_struct(&pngldr, &pnginfo, NULL);
         break;
     }
+
+    image->sformat = bvri_get_sformat(image);
 
     uint64 rowbytes = png_get_rowbytes(pngldr, pnginfo);
     image->pixels = malloc(image->width * image->height * image->channels * sizeof(uint8));
@@ -238,6 +264,7 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
         }
     }
 
+    image->sformat = bvri_get_sformat(image);
     image->pixels = malloc(image->width * image->height * image->channels);
     BVR_ASSERT(image->pixels);
 
@@ -628,6 +655,8 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
             break;
         }
 
+        image->sformat = bvri_get_sformat(image);
+
         // free ressources
         free(idf.tags);
         free(frame.strip_offsets);
@@ -931,9 +960,10 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
         break;
     }
 
+    image->sformat = bvri_get_sformat(image);
+
     image->pixels = malloc(image->width * image->height * image->channels * layer_section.layer_count);
 
-    
     image->layers.size = layer_section.layer_count * image->layers.elemsize;
     image->layers.data = calloc(layer_section.layer_count, image->layers.elemsize);
     BVR_ASSERT(image->layers.data);
@@ -1214,6 +1244,7 @@ int bvr_create_imagef(bvr_image_t* image, FILE* file){
     image->height = 0;
     image->depth = 0;
     image->format = 0;
+    image->sformat = 0;
     image->channels = 0;
     image->pixels = NULL;
     image->layers.data = NULL;
@@ -1350,28 +1381,73 @@ void bvr_destroy_image(bvr_image_t* image){
     image->layers.data = NULL;
 }
 
-static int bvri_sizeof_format(int format, int depth){
-    if(depth == 16){
-        switch (format)
-        {
-        case BVR_R: return BVR_RED16;
-        case BVR_RG: return BVR_RG16;
-        case BVR_RGB: case BVR_BGR: return BVR_RGB16;
-        case BVR_RGBA: case BVR_BGRA: return BVR_RGBA16;
-        default:
-            return BVR_RED16;
-        }
+static int bvri_create_texture_base(bvr_texture_t* texture){
+    glGenTextures(1, &texture->id);
+    glBindTexture(texture->target, texture->id);
+    
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, texture->image.width);
+    glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, texture->image.height);
+
+    glTexParameteri(texture->target, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(texture->target, GL_TEXTURE_MAX_LEVEL, 1);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, (int)texture->wrap);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, (int)texture->wrap);
+    glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, (int)texture->filter);
+    glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, (int)texture->filter);
+
+    return texture->id > 0;
+}
+
+int bvr_create_view_texture(bvr_texture_t* origin, bvr_texture_t* dest, int width, int height, int layer){
+    BVR_ASSERT(origin);
+    BVR_ASSERT(width > 0 && height > 0);
+
+    dest->filter = origin->filter;
+    dest->wrap = origin->wrap;
+    dest->id = 0;
+    dest->unit = 0;
+    dest->target = GL_TEXTURE_2D;
+    dest->image.width = dest->image.width;
+    dest->image.height = dest->image.height;
+    dest->image.depth = origin->image.depth;
+    dest->image.format = origin->image.format;
+    dest->image.sformat = origin->image.sformat;
+    dest->image.channels = origin->image.channels;
+    dest->image.pixels = NULL;
+    dest->image.layers.data = NULL;
+    dest->image.layers.size = 0;
+    dest->image.layers.elemsize = sizeof(bvr_layer_t);
+
+    BVR_ASSERT(bvri_create_texture_base(dest));
+
+    // if texture view extension is enabled
+    if(GLAD_GL_EXT_texture_view){
+        glTextureViewEXT(
+            dest->id, 
+            dest->target,
+            origin->id,
+            origin->image.sformat,
+            0, 1,
+            layer, 1
+        );
+    }
+    else {
+        glTexStorage2D(GL_TEXTURE_2D, 1, origin->image.sformat, width, height);
+
+        glCopyImageSubData(
+            origin->id, origin->target,
+            0, 0, 0, layer,
+            dest->id, dest->target,
+            0, 0, 0, 0, width, height, 1
+        );
+
+        glGenerateMipmap(dest->target);
     }
 
-    switch (format)
-    {
-    case BVR_R: return BVR_RED8;
-    case BVR_RG: return BVR_RG8;
-    case BVR_RGB: case BVR_BGR: return BVR_RGB8;
-    case BVR_RGBA: case BVR_BGRA: return BVR_RGBA8;
-    default:
-        return BVR_RED8;
-    }
+    glBindTexture(dest->target, 0);
+    
+    return BVR_OK;
 }
 
 int bvr_create_texture_from_image(bvr_texture_t* texture, bvr_image_t* image, int filter, int wrap){
@@ -1382,33 +1458,31 @@ int bvr_create_texture_from_image(bvr_texture_t* texture, bvr_image_t* image, in
     texture->wrap = wrap;
     texture->id = 0;
     texture->unit = 0;
+    texture->target = GL_TEXTURE_2D;
 
     if(BVR_BUFFER_COUNT(image->layers) > 1){
         // TODO: compress images into one layer
     }
 
-    glGenTextures(1, &texture->id);
-    glBindTexture(GL_TEXTURE_2D, texture->id);
+    bvri_create_texture_base(texture);
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, image->width);
-    glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, image->height);
+    glTexStorage2D(
+        texture->target, 1, 
+        texture->image.sformat, 
+        image->width, image->height
+    );
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 1);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (int)texture->wrap);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)texture->wrap);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (int)texture->filter);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)texture->filter);
+    glTexSubImage2D(
+        texture->target, 0, 0, 0, 
+        image->width, image->height, 
+        image->format, 
+        GL_UNSIGNED_BYTE, 
+        image->pixels
+    );
 
-    int format = image->format;
-    int internal_format = bvri_sizeof_format(image->format, image->depth);
+    glGenerateMipmap(texture->target);
 
-    glTexStorage2D(GL_TEXTURE_2D, 1, internal_format, image->width, image->height);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->width, image->height, format, GL_UNSIGNED_BYTE, image->pixels);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(texture->target, 0);
 
     free(image->pixels);
     image->pixels = NULL;
@@ -1431,11 +1505,11 @@ int bvr_create_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap
 
 void bvr_texture_enable(bvr_texture_t* texture){
     glActiveTexture(BVR_TEXTURE_UNIT0 + texture->unit);
-    glBindTexture(GL_TEXTURE_2D, texture->id);
+    glBindTexture(texture->target, texture->id);
 }
 
-void bvr_texture_disable(void){
-    glBindTexture(GL_TEXTURE_2D, 0);
+void bvr_texture_disable(bvr_texture_t* texture){
+    glBindTexture(texture->target, 0);
 }
 
 void bvr_destroy_texture(bvr_texture_t* texture){
@@ -1452,108 +1526,86 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
     BVR_ASSERT(atlas);
     BVR_ASSERT(file);
 
-    atlas->filter = filter;
-    atlas->wrap = wrap;
-    atlas->tile_width = tile_width;
-    atlas->tile_height = tile_height;
-    atlas->tile_count_x = 0;
-    atlas->tile_count_y = 0;
+    atlas->texture.filter = filter;
+    atlas->texture.wrap = wrap;
+    atlas->texture.target = GL_TEXTURE_2D_ARRAY;
+    atlas->texture.id = 0;
+    atlas->texture.unit = 0;
 
-    atlas->id = 0;
-    atlas->unit = 0;
-    
-    bvr_create_imagef(&atlas->image, file);
-    if(!atlas->image.pixels){
+    atlas->tiles.width = tile_width;
+    atlas->tiles.height = tile_height;
+
+    bvr_create_imagef(&atlas->texture.image, file);
+    if(!atlas->texture.image.pixels){
         BVR_PRINT("invalid image!");
         return BVR_FAILED;
     }
 
-    if(BVR_BUFFER_COUNT(atlas->image.layers) > 1){
+    if(BVR_BUFFER_COUNT(atlas->texture.image.layers) > 1){
         // TODO: compress images into one layer
     }
 
-    atlas->tile_count_x = atlas->image.width / tile_width;
-    atlas->tile_count_y = atlas->image.height / tile_height;
-    const int tile_count = atlas->tile_count_x * atlas->tile_count_y;
+    const int tile_cx = atlas->texture.image.width / tile_width;
+    const int tile_cy = atlas->texture.image.height / tile_height;
 
-    glGenTextures(1, &atlas->id);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, atlas->id);
-    
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, atlas->image.width);
-    glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, atlas->image.height);
+    atlas->tiles.count = tile_cx * tile_cy;
 
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 1);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, (int)atlas->wrap);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, (int)atlas->wrap);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, (int)atlas->filter);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, (int)atlas->filter);
+    bvri_create_texture_base(&atlas->texture);
 
-    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, bvri_sizeof_format(atlas->image.format, atlas->image.depth), 
-        atlas->tile_width, atlas->tile_height, 
-        tile_count
+    glTexStorage3D(
+        atlas->texture.target, 1, 
+        atlas->texture.image.sformat,
+        atlas->tiles.width, atlas->tiles.height, 
+        atlas->tiles.count
     );
 
-    for (uint64 y = 0; y < atlas->image.height; y += atlas->tile_height)
+    for (uint64 y = 0; y < atlas->texture.image.height; y += atlas->tiles.height)
     {
-        for (uint64 x = 0; x < atlas->image.width; x += atlas->tile_width)
+        for (uint64 x = 0; x < atlas->texture.image.width; x += atlas->tiles.width)
         {
 #ifndef BVR_NO_FLIP
             glTexSubImage3D(
                 GL_TEXTURE_2D_ARRAY, 0, 
                 0, 
                 0,
-                tile_count - ((y / atlas->tile_height) * atlas->tile_count_x + (atlas->tile_count_x - x / atlas->tile_width - 1)) - 1,
-                atlas->tile_width, 
-                atlas->tile_height, 
-                1, atlas->image.format, GL_UNSIGNED_BYTE,
-                atlas->image.pixels + (y * atlas->image.width + x) * atlas->image.channels
+                atlas->tiles.count - ((y / atlas->tiles.height) * tile_cx + (tile_cx - x / atlas->tiles.width - 1)) - 1,
+                atlas->tiles.width, 
+                atlas->tiles.height, 
+                1, atlas->texture.image.format, GL_UNSIGNED_BYTE,
+                atlas->texture.image.pixels + (y * atlas->texture.image.width + x) * atlas->texture.image.channels
             );
 #else
             glTexSubImage3D(
                 GL_TEXTURE_2D_ARRAY, 0, 
                 0, 
                 0,
-                ((y / atlas->tile_height) * atlas->tile_count_x + (x / atlas->tile_width)),
-                atlas->tile_width, 
-                atlas->tile_height, 
-                1, atlas->image.format, GL_UNSIGNED_BYTE,
-                atlas->image.pixels + (y * atlas->image.width + x) * atlas->image.channels
+                ((y / atlas->tiles.height) * tile_cx + (x / atlas->tiles.width)),
+                atlas->tiles.width, 
+                atlas->tiles.height, 
+                1, atlas->texture.image.format, GL_UNSIGNED_BYTE,
+                atlas->texture.image.pixels + (y * atlas->texture.image.width + x) * atlas->texture.image.channels
             );
 #endif
         }
+        
     }
     
-    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    glGenerateMipmap(atlas->texture.target);
 
-    free(atlas->image.pixels);
-    atlas->image.pixels = NULL;
+    glBindTexture(atlas->texture.target, 0);
+    
+    free(atlas->texture.image.pixels);
+    atlas->texture.image.pixels = NULL;
 
     return BVR_OK;
 }
 
-void bvr_texture_atlas_enablei(bvr_texture_atlas_t* atlas){
-    glActiveTexture(BVR_TEXTURE_UNIT0 + atlas->unit);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, atlas->id);
-}
-
-void bvr_texture_atlas_disable(void){
-    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-}
-
-void bvr_destroy_texture_atlas(bvr_texture_atlas_t* atlas){
-    BVR_ASSERT(atlas);
-
-    glDeleteTextures(1, &atlas->id);
-    bvr_destroy_image(&atlas->image);
-}
-
-int bvr_create_layered_texturef(bvr_layered_texture_t* texture, FILE* file, int filter, int wrap){
+int bvr_create_layered_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap){
     BVR_ASSERT(texture);
     BVR_ASSERT(file);
     texture->filter = filter;
     texture->wrap = wrap;
+    texture->target = GL_TEXTURE_2D_ARRAY;
 
     texture->id = 0;
     texture->unit = 0;
@@ -1572,21 +1624,11 @@ int bvr_create_layered_texturef(bvr_layered_texture_t* texture, FILE* file, int 
         bvri_create_empty_layer(&texture->image);
     }
 
-    glGenTextures(1, &texture->id);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, texture->id);
+    bvri_create_texture_base(texture);
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, texture->image.width);
-    glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, texture->image.height);
-
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 1);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, (int)texture->wrap);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, (int)texture->wrap);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, (int)texture->filter);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, (int)texture->filter);
-
-    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, bvri_sizeof_format(texture->image.format, texture->image.depth),
+    glTexStorage3D(
+        texture->target, 1, 
+        texture->image.sformat,
         texture->image.width, texture->image.height, 
         texture->image.layers.size / sizeof(bvr_layer_t)
     );
@@ -1596,7 +1638,7 @@ int bvr_create_layered_texturef(bvr_layered_texture_t* texture, FILE* file, int 
 
 #ifndef BVR_NO_FLIP
         glTexSubImage3D(
-            GL_TEXTURE_2D_ARRAY, 0, 
+            texture->target, 0, 
             0, 
             0,
             layer,
@@ -1607,7 +1649,7 @@ int bvr_create_layered_texturef(bvr_layered_texture_t* texture, FILE* file, int 
         );
 #else
         glTexSubImage3D(
-            GL_TEXTURE_2D_ARRAY, 0, 
+            texture->target, 0, 
             ((bvr_layer_t*)texture->image.layers.data)[layer].anchor_x, 
             ((bvr_layer_t*)texture->image.layers.data)[layer].anchor_y,
             layer,
@@ -1618,27 +1660,13 @@ int bvr_create_layered_texturef(bvr_layered_texture_t* texture, FILE* file, int 
         );
 #endif
     }
+
+    glGenerateMipmap(texture->target);
     
-    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    glBindTexture(texture->target, 0);
 
     free(texture->image.pixels);
     texture->image.pixels = NULL;
 
     return BVR_OK;
-}
-
-/*void bvr_layered_texture_enable(bvr_layered_texture_t* texture){
-    glActiveTexture(BVR_TEXTURE_UNIT0 + texture->unit);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, texture->id);
-}
-
-void bvr_layered_texture_disable(void){
-    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-}*/
-
-void bvr_destroy_layered_texture(bvr_layered_texture_t* texture){
-    BVR_ASSERT(texture);
-
-    glDeleteTextures(1, &texture->id);
-    bvr_destroy_image(&texture->image);
 }

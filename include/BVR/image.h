@@ -127,7 +127,7 @@ typedef struct bvr_layer_s {
 */
 typedef struct bvr_image_s {
     int width, height, depth;
-    int format;
+    int format, sformat;
     uint8 channels;
     uint8* pixels;
 
@@ -141,8 +141,9 @@ typedef struct bvr_image_s {
 typedef struct bvr_texture_s {
     bvr_image_t image;
 
-    uint32 id;
+    uint32 id, target;
     uint8 unit;
+
     int filter, wrap;
 } bvr_texture_t;
 
@@ -151,26 +152,12 @@ typedef struct bvr_texture_s {
 */
 typedef struct bvr_texture_atlas_s
 {
-    bvr_image_t image;
-
-    uint32 id;
-    uint8 unit;
-    int filter, wrap;
-
-    uint32 tile_width, tile_height;
-    uint32 tile_count_x, tile_count_y;
+    struct bvr_texture_s texture;
+    struct {
+        uint16 width, height;
+        uint16 count;
+    } tiles;
 } bvr_texture_atlas_t;
-
-/*
-    Represent an array of 2D textures.
-*/
-typedef struct bvr_layered_texture_s {
-    bvr_image_t image;
-
-    uint32 id;
-    uint8 unit;
-    int filter, wrap;
-} bvr_layered_texture_t;
 
 int bvr_create_imagef(bvr_image_t* image, FILE* file);
 BVR_H_FUNC int bvr_create_image(bvr_image_t* image, const char* path){
@@ -201,6 +188,12 @@ void bvr_flip_image_vertically(bvr_image_t* image);
 */
 int bvr_image_copy_channel(bvr_image_t* image, int channel, uint8* buffer);
 
+/*
+    Create a raw OpenGL texture from another texture.
+    This function returns the new texture's id.
+*/
+int bvr_create_view_texture(bvr_texture_t* origin, bvr_texture_t* dest, int width, int height, int layer);
+
 void bvr_destroy_image(bvr_image_t* image);
 
 /* 2D TEXTURE */
@@ -229,7 +222,7 @@ void bvr_texture_enable(bvr_texture_t* texture);
 /*
     Unbind textures
 */
-void bvr_texture_disable(void);
+void bvr_texture_disable(bvr_texture_t* texture);
 void bvr_destroy_texture(bvr_texture_t* texture);
 
 /* ATLAS TEXTURE */
@@ -239,8 +232,8 @@ BVR_H_FUNC int bvr_create_texture_atlas(bvr_texture_atlas_t* atlas, const char* 
     
     bvr_uuid_t* id = bvr_register_asset(path, BVR_OPEN_READ);
     if(id){
-        atlas->image.asset.origin = BVR_ASSET_ORIGIN_PATH;
-        bvr_copy_uuid(*id, atlas->image.asset.pointer.asset_id);
+        atlas->texture.image.asset.origin = BVR_ASSET_ORIGIN_PATH;
+        bvr_copy_uuid(*id, atlas->texture.image.asset.pointer.asset_id);
     }
 
     FILE* file = fopen(path, "rb");
@@ -249,13 +242,9 @@ BVR_H_FUNC int bvr_create_texture_atlas(bvr_texture_atlas_t* atlas, const char* 
     return success;
 }
 
-void bvr_texture_atlas_enablei(bvr_texture_atlas_t* atlas);
-void bvr_texture_atlas_disable(void);
-void bvr_destroy_texture_atlas(bvr_texture_atlas_t* atlas);
-
 /* LAYERED TEXTURE */
-int bvr_create_layered_texturef(bvr_layered_texture_t* texture, FILE* file, int filter, int wrap);
-BVR_H_FUNC int bvr_create_layered_texture(bvr_layered_texture_t* texture, const char* path, int filter, int wrap){
+int bvr_create_layered_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap);
+BVR_H_FUNC int bvr_create_layered_texture(bvr_texture_t* texture, const char* path, int filter, int wrap){
     BVR_FILE_EXISTS(path);
     
     bvr_uuid_t* id = bvr_register_asset(path, BVR_OPEN_READ);
@@ -269,15 +258,3 @@ BVR_H_FUNC int bvr_create_layered_texture(bvr_layered_texture_t* texture, const 
     fclose(file);
     return success;
 }
-
-
-BVR_H_FUNC void bvr_layered_texture_enable(bvr_layered_texture_t* texture){
-    bvr_texture_atlas_enablei((bvr_texture_atlas_t*)texture);
-}
-
-BVR_H_FUNC void bvr_layered_texture_disable(void){
-    bvr_texture_atlas_disable();
-}
-
-
-void bvr_destroy_layered_texture(bvr_layered_texture_t* texture);

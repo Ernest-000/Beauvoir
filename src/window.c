@@ -6,10 +6,10 @@
 #include <string.h>
 #include <memory.h>
 
+#include <glad/glad.h>
+
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_dialog.h>
-
-#include <glad/glad.h>
 
 int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 height, const char* title, const int flags){
     BVR_ASSERT(window);
@@ -19,7 +19,7 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     BVR_ASSERT(SDL_Init(SDL_INIT_EVENTS) == 1);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
     
@@ -69,6 +69,11 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     BVR_ASSERT(gladLoadGLES2Loader((GLADloadproc)SDL_GL_GetProcAddress));
     BVR_PRINT(glGetString(GL_VERSION));
 
+    // check for extensions
+    if(!GLAD_GL_EXT_copy_image || !GLAD_GL_EXT_copy_image){
+        BVR_PRINT("failed to load extentensions! some implementations might not work properly :(");
+    }
+    
     // create framebuffer
     if(BVR_HAS_FLAG(flags, BVR_WINDOW_USER_FRAMEBUFFER)){
         bvr_create_framebuffer(&window->framebuffer, width, height, BVR_WINDOW_FRAMEBUFFER_PATH);

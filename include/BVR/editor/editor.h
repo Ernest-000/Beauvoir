@@ -40,6 +40,8 @@ typedef struct bvr_editor_s {
         bvr_string_t name;
         uint32 user_data;
         uint32 user_data2;
+        uint32 user_data3;
+        uint32 user_data4;
 
         uint32 type;
         void* pointer;

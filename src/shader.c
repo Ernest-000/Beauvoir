@@ -479,16 +479,16 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
             {
                 bvr_texture_atlas_t* texture = *(bvr_texture_atlas_t**)data;
 
-                bvr_texture_atlas_enablei(texture);
-                glUniform1i(uniform->location, (int)texture->unit);
+                bvr_texture_enable(&texture->texture);
+                glUniform1i(uniform->location, (int)texture->texture.unit);
             }
             break;
 
         case BVR_TEXTURE_2D_LAYER:
             {
-                bvr_layered_texture_t* texture = *(bvr_layered_texture_t**)data;
+                bvr_texture_t* texture = *(bvr_texture_t**)data;
 
-                bvr_layered_texture_enable(texture);
+                bvr_texture_enable(texture);
                 glUniform1i(uniform->location, (int)texture->unit);
             }
             break;

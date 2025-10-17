@@ -355,7 +355,7 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
         {
             bvr_destroy_mesh(&((bvr_layer_actor_t*)actor)->mesh);
             bvr_destroy_shader(&((bvr_layer_actor_t*)actor)->shader);
-            bvr_destroy_layered_texture(&((bvr_layer_actor_t*)actor)->texture);
+            bvr_destroy_texture(&((bvr_layer_actor_t*)actor)->texture);
         }
         break;
     case BVR_STATIC_ACTOR:
@@ -374,7 +374,7 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
         {
             bvr_destroy_mesh(&((bvr_landscape_actor_t*)actor)->mesh);
             bvr_destroy_shader(&((bvr_landscape_actor_t*)actor)->shader);
-            bvr_destroy_texture_atlas(&((bvr_landscape_actor_t*)actor)->atlas);
+            bvr_destroy_texture(&((bvr_landscape_actor_t*)actor)->atlas.texture);
         }
         break;
     default:
@@ -403,7 +403,7 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
             continue;
         }        
 
-        bvr_texture_atlas_enablei((bvr_texture_atlas_t*)&actor->texture);
+        bvr_texture_enable(&actor->texture);
 
         bvr_shader_enable(&actor->shader);
         bvri_update_transform(&actor->object.transform);

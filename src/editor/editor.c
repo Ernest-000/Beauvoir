@@ -80,8 +80,17 @@ static void bvri_draw_editor_mesh(bvr_mesh_t* mesh){
     nk_layout_row_dynamic(__editor->gui.context, 15, 1);
 
     nk_label(__editor->gui.context, "Mesh", NK_TEXT_ALIGN_CENTERED);
+    
+    nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+    
+    bvr_vertex_group_t group;
+    BVR_POOL_FOR_EACH(group, mesh->vertex_groups){
+        nk_label(__editor->gui.context, BVR_FORMAT("%s: %i-%i", group.name.string, group.element_offset, group.element_offset + group.element_count), NK_TEXT_ALIGN_LEFT);
+    }
+
     nk_layout_row_dynamic(__editor->gui.context, 40, 1);
-    if (nk_group_begin(__editor->gui.context, BVR_FORMAT("framebuffer%x", &mesh), NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR))
+
+    if (nk_group_begin(__editor->gui.context, BVR_FORMAT("mesh%x", &mesh), NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR))
     {
         nk_layout_row_dynamic(__editor->gui.context, 15, 2);
 
@@ -91,6 +100,8 @@ static void bvri_draw_editor_mesh(bvr_mesh_t* mesh){
         nk_label(__editor->gui.context, BVR_FORMAT("vertex buffer '0x%x'", mesh->vertex_buffer), NK_TEXT_ALIGN_LEFT);
         nk_label(__editor->gui.context, BVR_FORMAT("element buffer '0x%x'", mesh->element_buffer), NK_TEXT_ALIGN_LEFT);
 
+        nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+        
         nk_group_end(__editor->gui.context);
     }
 }
@@ -639,6 +650,8 @@ void bvr_editor_draw_inspector(){
                 case BVR_STATIC_ACTOR:
                     {
                         nk_label(__editor->gui.context, "STATIC ACTOR", NK_TEXT_ALIGN_CENTERED);
+                        bvri_draw_editor_mesh(&((bvr_static_actor_t*)actor)->mesh);
+                        bvri_draw_editor_shader(&((bvr_static_actor_t*)actor)->shader);
                     }
                     break;
                 case BVR_DYNAMIC_ACTOR:

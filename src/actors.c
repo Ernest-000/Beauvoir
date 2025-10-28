@@ -509,6 +509,8 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     bvr_vertex_group_t group;
     BVR_POOL_FOR_EACH(group, sactor->mesh.vertex_groups){
         cmd.vertex_group = group;
+        
+        //BVR_PRINTF("%s: %i %i", cmd.vertex_group.name.string, cmd.vertex_group.element_offset, cmd.vertex_group.element_count);
         bvr_pipeline_add_draw_cmd(&cmd);
     }
 

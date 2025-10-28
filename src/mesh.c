@@ -46,21 +46,20 @@ struct bvri_objobject_s {
     bvr_mesh_buffer_t vertices;
     bvr_mesh_buffer_t elements;
 
-    struct bvr_buffer_s vertex_group;
+    bvr_vertex_group_t groups[BVR_BUFFER_SIZE / 2];
     bvr_vertex_group_t* group;
 
-    uint32 vertex_count;
-    uint32 uv_count;
-    uint32 normal_count;
-    uint32 face_count;
+    uint16 vertex_count;
+    uint16 uv_count;
+    uint16 normal_count;
+    uint16 face_count;
+    uint16 group_count;
 };
 
 
 static int bvri_objreadline(char* buffer, FILE* file);
 static char* bvri_objparseint(char* buffer, int* v);
 static char* bvri_objparsefloat(char* buffer, float* v);
-
-static bvr_vertex_group_t* bvri_objpushgrp(struct bvr_buffer_s* group, bvr_string_t* name);
 
 static int bvri_is_obj(FILE* file){
     fseek(file, 0, SEEK_SET);
@@ -99,11 +98,8 @@ static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
     object.uv_count = 0;
     object.normal_count = 0;
     object.face_count = 0;
-    object.group = NULL;
-
-    object.vertex_group.data = NULL;
-    object.vertex_group.elemsize = sizeof(bvr_vertex_group_t);
-    object.vertex_group.size = 0;
+    object.group_count = 0;
+    object.group = &object.groups[0];
 
     object.elements.data = NULL;
     object.vertices.data = NULL;
@@ -112,12 +108,17 @@ static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
     object.elements.type = BVR_UNSIGNED_INT32;
     object.vertices.type = BVR_FLOAT;
 
-    mesh->stride = 3;
-    if(mesh->attrib >= BVR_MESH_ATTRIB_V2UV2) mesh->stride += 2;
-    if(mesh->attrib == BVR_MESH_ATTRIB_V3UV2N3) mesh->stride += 3;
-
+    // WARN: find a way to find stride
+    mesh->attrib = BVR_MESH_ATTRIB_V3UV2N3;
+    mesh->stride = mesh->attrib * sizeof(float);
     bvr_create_string(&object.name, NULL);
     bvr_create_string(&object.material, NULL);
+
+    object.group->flags = 0;
+    object.group->texture = 0;
+    object.group->element_count = 0;
+    object.group->element_offset = 0;
+    bvr_create_string(&object.group->name, NULL);
 
     char* cursor;
     char buffer[256];
@@ -125,24 +126,34 @@ static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
         switch (buffer[0])
         {
         case '#':
-            /* skip */
+            /* no-op */
+            break;
+
+        case 's':
+            /* no-op */
             break;
         
         case 'm':
-            bvr_create_string(&object.material, &buffer[7]);
+            bvr_overwrite_string(&object.material, &buffer[7], 0);
             break;    
 
         case 'o':
-            bvr_create_string(&object.name, &buffer[2]);
-            object.group = bvri_objpushgrp(&object.vertex_group, &object.name);
+            BVR_ASSERT(object.group_count < BVR_BUFFER_SIZE / 2);
+            object.group = &object.groups[++object.group_count - 1];
+
+            object.group->flags = 0;
+            object.group->texture = 0;
+            object.group->element_count = 0;
             object.group->element_offset = object.elements.count;
+
+            bvr_create_string(&object.group->name, &buffer[2]);
             break;
 
         case 'v':
             {
                 cursor = NULL;
 
-                if(buffer[1] == 'n' && mesh->stride >= 8){
+                if(buffer[1] == 'n' && mesh->attrib >= BVR_MESH_ATTRIB_V3UV2N3){
                     BVR_ASSERT(object.normal_count < BVR_BUFFER_SIZE);
 
                     cursor = bvri_objparsefloat(&buffer[3], &object.normals[object.normal_count][0]);
@@ -150,7 +161,7 @@ static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
                     cursor = bvri_objparsefloat(++cursor, &object.normals[object.normal_count][2]);
                     object.normal_count++;
                 }
-                else if(buffer[1] == 't' && mesh->stride >= 5){
+                else if(buffer[1] == 't' && mesh->attrib >= BVR_MESH_ATTRIB_V3UV2){
                     BVR_ASSERT(object.uv_count < BVR_BUFFER_SIZE);
                     
                     cursor = bvri_objparsefloat(&buffer[3], &object.uvs[object.uv_count][0]);
@@ -203,51 +214,46 @@ static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
         }
     }
 
+    // if the mesh is empty
     if(!object.elements.count || !object.vertices.count){
         BVR_PRINT("failed to load mesh :(");
         goto bvr_objfailed;
     }
 
+    // create opengl buffers
     if(bvri_create_mesh_buffers(mesh, 
         object.vertices.count * sizeof(float), 
         object.elements.count * sizeof(uint32),
         object.vertices.type, object.elements.type, mesh->attrib) == BVR_FAILED){
 
-        BVR_PRINT("failed to create object buffers");
+        BVR_PRINT("failed to allocate object buffers");
         goto bvr_objfailed;
     }
 
-    /*mesh->vertex_groups.size = object.vertex_group.size;
-    mesh->vertex_groups.data = object.vertex_group.data;*/
-
-    bvr_create_pool(&mesh->vertex_groups, sizeof(bvr_vertex_group_t), BVR_BUFFER_COUNT(object.vertex_group));
-    for (size_t i = 0; i < BVR_BUFFER_COUNT(object.vertex_group); i++)
+    // create vertex groups
+    // copy created groups
+    bvr_create_pool(&mesh->vertex_groups, sizeof(bvr_vertex_group_t), object.group_count);
+    for (size_t i = 0; i < object.group_count; i++)
     {
         bvr_vertex_group_t* group = bvr_pool_alloc(&mesh->vertex_groups);
-        group->name.length = ((bvr_vertex_group_t*)object.vertex_group.data)[i].name.length;
-        group->name.string = ((bvr_vertex_group_t*)object.vertex_group.data)[i].name.string;
-        group->element_count = ((bvr_vertex_group_t*)object.vertex_group.data)[i].element_count;
-        group->element_offset = ((bvr_vertex_group_t*)object.vertex_group.data)[i].element_offset;
+        group->name.length = object.groups[i].name.length;
+        group->name.string = object.groups[i].name.string;
+        group->element_count = object.groups[i].element_count;
+        group->element_offset = object.groups[i].element_offset;
         group->texture = 0;
     }
-    
-    /*bvr_vertex_group_t* group = bvr_pool_alloc(&mesh->vertex_groups);
-    group->name.length = 0;
-    group->name.string = NULL;
-    group->element_count = 0;
-    group->element_offset = 0;
-    group->texture = 0; */
 
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->element_buffer);
 
+    // copy data to opengl buffers
     uint64 vertex = 0, element = 0;
     for (uint64 face = 0; face < object.face_count; face++)
     {
         BVR_ASSERT(object.faces[face].edges == 3 || object.faces[face].edges == 4);
 
         if(object.faces[face].edges == 4){
-            BVR_ASSERT(0 || "not supported");
+            BVR_ASSERT(0 || "4 edges faces are not supported");
         }
         else {
             BVR_ASSERT(element + 3 <= object.elements.count);
@@ -259,16 +265,16 @@ static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
 
         for (uint64 i = 0; i < object.faces[face].edges; i++)
         {
-            BVR_ASSERT(vertex + 8 <= object.vertices.count);
+            BVR_ASSERT(vertex + BVR_MESH_ATTRIB_V3UV2N3 <= object.vertices.count);
 
             glBufferSubData(GL_ARRAY_BUFFER, (vertex + 0) * sizeof(float), sizeof(vec3), object.vertex[object.faces[face].vertex[i] - 1]);
             glBufferSubData(GL_ARRAY_BUFFER, (vertex + 3) * sizeof(float), sizeof(vec2), object.uvs[object.faces[face].uv[i] - 1]);
             glBufferSubData(GL_ARRAY_BUFFER, (vertex + 5) * sizeof(float), sizeof(vec3), object.normals[object.faces[face].normal[i] - 1]);
-            vertex += 8;
+            vertex += BVR_MESH_ATTRIB_V3UV2N3;
         }
         
     }
-    
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
@@ -277,20 +283,20 @@ static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
 
     free(object.vertices.data);
     free(object.elements.data);
-    free(object.vertex_group.data);
 
     return BVR_OK;
 
+// called when obj's loading failed
 bvr_objfailed:
     bvr_destroy_string(&object.name);
     bvr_destroy_string(&object.material);
 
-    for (uint64 i = 0; i < BVR_BUFFER_COUNT(object.vertex_group); i++)
+    // free all allocated strings
+    for (uint64 i = 0; i < object.group_count; i++)
     {
-        bvr_destroy_string(&((bvr_vertex_group_t*)object.vertex_group.data)[0].name);
+        bvr_destroy_string(&object.groups[i].name);
     }
     
-    free(object.vertex_group.data);
     free(object.vertices.data);
     free(object.elements.data);
 
@@ -361,37 +367,15 @@ static char* bvri_objparsefloat(char* buffer, float* v){
     num += fra / div;
     
     // powers are not supported :<
-    BVR_ASSERT(*buffer == 'E' || *buffer == 'e');
+    if(*buffer == 'E' || *buffer == 'e'){
+        BVR_PRINT("warning powers are not supported!");
+    }
 
     *v = (float)sig * num;
 
     return buffer;
 }
 
-/*
-    Push back a new vertex group as the targetted group
-*/
-static bvr_vertex_group_t* bvri_objpushgrp(struct bvr_buffer_s* group, bvr_string_t* name){
-    bvr_vertex_group_t* vertex_group;
-
-    if(group->data){
-        group->data = realloc(group->data, group->size + group->elemsize);
-        BVR_ASSERT(group->data);
-
-        vertex_group = (bvr_vertex_group_t*)group->data + group->size;
-        group->size += group->elemsize;
-    }
-    else {
-        group->data = malloc(group->elemsize);
-        group->size += group->elemsize;
-
-        vertex_group = (bvr_vertex_group_t*)group->data;
-    }
-
-    bvr_string_create_and_copy(&vertex_group->name, name);
-    vertex_group->element_count = 0;
-    return vertex_group;
-}
 
 #endif
 
@@ -1200,6 +1184,10 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
     BVR_ASSERT(mesh);
     BVR_ASSERT(vertices_size);
 
+    // gather type size
+    const int vertex_t = bvr_sizeof(vertex_type);
+    const int element_t = bvr_sizeof(element_type);
+
     // create vertex array 
     glGenVertexArrays(1, &mesh->array_buffer);
     glBindVertexArray(mesh->array_buffer);
@@ -1218,9 +1206,11 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
     }
     
     mesh->attrib = attrib;
-    mesh->vertex_count = vertices_size / bvr_sizeof(vertex_type);
-    mesh->element_count = element_size / bvr_sizeof(element_type);
+    mesh->stride = attrib * vertex_t;
+    mesh->vertex_count = vertices_size / vertex_t;
+    mesh->element_count = element_size / element_t;
     mesh->element_type = element_type;
+
 
     // define each attributes pointers depending on attribute's type
     switch (attrib)
@@ -1228,7 +1218,6 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
     case BVR_MESH_ATTRIB_V2:
         {
             mesh->attrib_count = 1;
-            mesh->stride = 2 * bvr_sizeof(vertex_type);
 
             glEnableVertexAttribArray(0);
             glVertexAttribPointer(0, 2, vertex_type, GL_FALSE, mesh->stride, (void*)0);
@@ -1238,7 +1227,6 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
     case BVR_MESH_ATTRIB_V3:
         {
             mesh->attrib_count = 1;
-            mesh->stride = 3 * bvr_sizeof(vertex_type);
 
             glEnableVertexAttribArray(0);
             glVertexAttribPointer(0, 3, vertex_type, GL_FALSE, mesh->stride, (void*)0);
@@ -1248,49 +1236,45 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
     case BVR_MESH_ATTRIB_V2UV2:
         {
             mesh->attrib_count = 2;
-            mesh->stride = (2 + 2) * bvr_sizeof(vertex_type);
 
             glEnableVertexAttribArray(0);
             glVertexAttribPointer(0, 2, vertex_type, GL_FALSE, mesh->stride, (void*)0);
             
             glEnableVertexAttribArray(1);
-            glVertexAttribPointer(1, 2, vertex_type, GL_FALSE, mesh->stride, (void*)(2 * bvr_sizeof(vertex_type)));
+            glVertexAttribPointer(1, 2, vertex_type, GL_FALSE, mesh->stride, (void*)(2 * vertex_t));
         }
         break;
     
     case BVR_MESH_ATTRIB_V3UV2:
         {
             mesh->attrib_count = 2;
-            mesh->stride = (3 + 2) * bvr_sizeof(vertex_type);
 
             glEnableVertexAttribArray(0);
             glVertexAttribPointer(0, 3, vertex_type, GL_FALSE, mesh->stride, (void*)0);
             
             glEnableVertexAttribArray(1);
-            glVertexAttribPointer(1, 2, vertex_type, GL_FALSE, mesh->stride, (void*)(3 * bvr_sizeof(vertex_type)));
+            glVertexAttribPointer(1, 2, vertex_type, GL_FALSE, mesh->stride, (void*)(3 * vertex_t));
         }
         break;
     
     case BVR_MESH_ATTRIB_V3UV2N3:
         {
             mesh->attrib_count = 3;
-            mesh->stride = (3 + 2 + 3) * bvr_sizeof(vertex_type);
 
             glEnableVertexAttribArray(0);
             glVertexAttribPointer(0, 3, vertex_type, GL_FALSE, mesh->stride, (void*)0);
             
             glEnableVertexAttribArray(1);
-            glVertexAttribPointer(1, 2, vertex_type, GL_FALSE, mesh->stride, (void*)(3 * bvr_sizeof(vertex_type)));
+            glVertexAttribPointer(1, 2, vertex_type, GL_FALSE, mesh->stride, (void*)(3 * vertex_t));
 
             glEnableVertexAttribArray(2);
-            glVertexAttribPointer(2, 3, vertex_type, GL_FALSE, mesh->stride, (void*)(5 * bvr_sizeof(vertex_type)));
+            glVertexAttribPointer(2, 3, vertex_type, GL_FALSE, mesh->stride, (void*)(5 * vertex_t));
         }
         break;
 
     case BVR_MESH_ATTRIB_SINGLE:
         {
             mesh->attrib_count = 1;
-            mesh->stride = bvr_sizeof(vertex_type);
 
             glEnableVertexAttribArray(0);
             glVertexAttribIPointer(0, 1, vertex_type, mesh->stride, (void*)0);

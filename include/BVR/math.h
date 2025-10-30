@@ -391,3 +391,21 @@ BVR_H_FUNC void quat_euler(quat quat, float roll, float pitch, float yaw){
     quat[1] = cr * sp * cy + sr * cp * sy;
     quat[2] = cr * cp * sy - sr * sp * cy;
 }
+
+BVR_H_FUNC void euler_quat(vec3 euler, quat quat){
+    // roll
+    float sinr = 2 * (quat[3] * quat[0] + quat[1] * quat[2]);
+    float cosr = 1 - 2 * (quat[0] * quat[0] + quat[1] * quat[1]);
+
+    // pitch
+    float sinp = sqrtf(1 + 2 * (quat[3] * quat[1] - quat[0] * quat[2]));
+    float cosp = sqrtf(1 - 2 * (quat[3] * quat[1] - quat[0] * quat[2]));
+
+    // yaw
+    float siny = 2 * (quat[3] * quat[2] + quat[0] * quat[1]);
+    float cosy = 1 - 2 * (quat[1] * quat[1] + quat[2] * quat[2]);
+
+    euler[0] = atan2f(sinr, cosr);
+    euler[1] = 2 * atan2f(sinp, cosp) - M_PI / 2.0f;
+    euler[2] = atan2f(siny, cosy);
+}

@@ -98,6 +98,9 @@ if(NOT EXISTS ${BVR_JSON_LIB})
 endif()
 include_directories(${BVR_INCLUDE_DIR})
 
+set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+
 ## Create library or executable depends on the compilation mode
 if(${BVR_TARGET_SHARED})
     add_compile_options(-g -w)

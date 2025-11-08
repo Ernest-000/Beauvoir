@@ -65,6 +65,11 @@ void bvr_nameof(const int type, char* name);
 unsigned int bvr_hash(const char* string);
 
 /*
+    decode a base64 string
+*/
+unsigned char* bvr_base64_decode(const char* string, size_t length, size_t* decoded_length);
+
+/*
     Create a new uuid
 */
 void bvr_create_uuid(bvr_uuid_t uuid);

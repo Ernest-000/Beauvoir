@@ -782,11 +782,11 @@ void bvr_editor_draw_inspector(){
                 nk_property_int(__editor->gui.context, "tile x", 0, &__editor->memory.landscape.cursor[0], landscape->dimension.count[0] - 1, 1, .5f);
                 nk_property_int(__editor->gui.context, "tile y", 0, &__editor->memory.landscape.cursor[1], landscape->dimension.count[1] - 1, 1, .5f);
 
-                target_tile = bvri_landscapeselect(__editor, landscape);
-                tile = bvri_landscapegettile(landscape, target_tile); 
+                target_tile = bvri_landscape_process_selection(__editor, landscape);
+                tile = bvri_landscape_get_tile(landscape, target_tile); 
 
                 nk_layout_row_dynamic(__editor->gui.context, 100, 1);
-                if(nk_group_begin(__editor->gui.context, BVR_FORMAT("tile %i", BVRI_LANDSCAPEID(target_tile)), NK_WINDOW_BORDER | NK_WINDOW_TITLE | NK_WINDOW_SCALABLE)){
+                if(nk_group_begin(__editor->gui.context, BVR_FORMAT("tile %i", bvri_landscape_id(landscape, target_tile)), NK_WINDOW_BORDER | NK_WINDOW_TITLE | NK_WINDOW_SCALABLE)){
                     nk_layout_row_dynamic(__editor->gui.context, 15, 1);
 
                     int altitude, texture;

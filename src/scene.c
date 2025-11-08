@@ -83,12 +83,12 @@ void bvr_new_frame(bvr_book_t* book){
     BVR_IDENTITY_MAT4(view);
 
     if(camera->mode == BVR_CAMERA_ORTHOGRAPHIC){
-        float width = 1.0f / camera->framebuffer->target_width * camera->field_of_view.scale;
-        float height = 1.0f / camera->framebuffer->target_height * camera->field_of_view.scale;
+        float width =   1.0f / camera->framebuffer->target_width * camera->field_of_view.scale;
+        float height =  1.0f / camera->framebuffer->target_height * camera->field_of_view.scale;
         float farnear = 1.0f / (camera->far - camera->near);
 
-        projection[0][0] = width;
-        projection[1][1] = height;
+        projection[0][0] = 2.0f * -width;
+        projection[1][1] = 2.0f * height;
         projection[2][2] = farnear;
         projection[3][0] = -width;
         projection[3][1] = -height;
@@ -425,7 +425,7 @@ void bvr_screen_to_world_coords(bvr_book_t* book, vec2 screen_coords, vec3 world
         mat4_inv(inv, projection);
         mat4_mul_vec4(world, inv, screen);
 
-        world[3] = 1.0f / world[3];
+        world[3] = 1.0f / world[3] * 2.0f;
         world_coords[0] = world[0] * world[3];
         world_coords[1] = world[1] * world[3];
         world_coords[2] = world[2] * world[3];

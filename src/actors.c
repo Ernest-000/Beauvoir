@@ -249,28 +249,26 @@ static void bvri_create_bitmap_layer(bvr_bitmap_layer_t* layer, int flags){
 
 static void bvri_create_landscape(bvr_landscape_actor_t* landscape, int flags){
     // generate grid
-    const float count_x = landscape->dimension[0];
-    const float count_y = landscape->dimension[1];
-    const float tile_w = landscape->dimension[2];
-    const float tile_h = landscape->dimension[3];
     
-    const int vertex_count = count_x * count_y * 2 + (count_y * 3); 
+    uint32 vertex_count = landscape->dimension.count[0] * landscape->dimension.count[1] * 2;
+    vertex_count += (landscape->dimension.count[1] * 3); 
+    vertex_count *= MAX(1, landscape->dimension.layers);
 
     const int max_altitude = 50;
-    int altitude, texid;
 
-    int* vertices = malloc(vertex_count * sizeof(int));
+    struct bvr_tile_s generic;
+    generic.texture = 1;
+    generic.altitude = 0;
+    generic.norm_x = 0;
+    generic.norm_y = 0;
+
+    struct bvr_tile_s* vertices = malloc(vertex_count * sizeof(struct bvr_tile_s));
     BVR_ASSERT(vertices);
 
-    memset(vertices, 0, vertex_count * sizeof(int));
-
+    // copy generic tiles
     for (size_t i = 0; i < vertex_count; i++)
     {
-        texid = 1;
-        altitude = 0;
-
-        vertices[i] = 0;
-        vertices[i] = ((texid << 8) | altitude);
+        vertices[i] = generic;
     }
     
     bvr_mesh_buffer_t vertices_buffer;
@@ -284,6 +282,21 @@ static void bvri_create_landscape(bvr_landscape_actor_t* landscape, int flags){
     element_buffer.count = vertex_count;
 
     bvr_create_meshv(&landscape->mesh, &vertices_buffer, &element_buffer, BVR_MESH_ATTRIB_SINGLE);
+    
+    // TODO: avoid recreating pool
+    bvr_destroy_pool(&landscape->mesh.vertex_groups);
+    bvr_create_pool(&landscape->mesh.vertex_groups, sizeof(bvr_vertex_group_t), landscape->dimension.layers);
+    for (size_t i = 0; i < landscape->dimension.layers; i++)
+    {
+        bvr_vertex_group_t* group = bvr_pool_alloc(&landscape->mesh.vertex_groups);
+        group->name.length = 0;
+        group->name.string = NULL;
+        group->element_offset = (vertex_count / landscape->dimension.layers) * i;
+        group->element_count = (vertex_count / landscape->dimension.layers);
+        group->texture = 0;
+
+        BVR_IDENTITY_MAT4(group->matrix);
+    }
 }
 
 void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_type_t type, int flags){
@@ -452,14 +465,13 @@ static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){
     cmd.shader = &actor->shader;
     cmd.draw_mode = BVR_DRAWMODE_TRIANGLES_STRIP;
 
-    cmd.vertex_group.name.string = NULL;
-    cmd.vertex_group.name.length = 0;
-    cmd.vertex_group.texture = 0;
-    cmd.vertex_group.element_offset = 0;
-    cmd.vertex_group.element_count = actor->mesh.vertex_count;
-
-    bvr_pipeline_add_draw_cmd(&cmd);
-
+    bvr_vertex_group_t group;
+    BVR_POOL_FOR_EACH(group, actor->mesh.vertex_groups){
+        cmd.vertex_group = group;
+        
+        bvr_pipeline_add_draw_cmd(&cmd);
+    }
+    
     bvr_shader_disable();
 }
 
@@ -488,29 +500,28 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     // update shaders transform
     bvri_update_transform(&actor->transform);
 
-    bvr_static_actor_t* sactor = (bvr_static_actor_t*)actor;
+    bvr_static_actor_t* _actor = (bvr_static_actor_t*)actor;
 
-    bvr_shader_enable(&sactor->shader);
-    bvr_shader_use_uniform(&sactor->shader.uniforms[0], actor->transform.matrix);
+    bvr_shader_enable(&_actor->shader);
+    bvr_shader_use_uniform(&_actor->shader.uniforms[0], actor->transform.matrix);
 
     struct bvr_draw_command_s cmd;
     
     cmd.order = actor->order_in_layer;
 
-    cmd.array_buffer = sactor->mesh.array_buffer;
-    cmd.vertex_buffer = sactor->mesh.vertex_buffer;
-    cmd.element_buffer = sactor->mesh.element_buffer;
-    cmd.attrib_count = sactor->mesh.attrib_count;
-    cmd.element_type = sactor->mesh.element_type;
+    cmd.array_buffer = _actor->mesh.array_buffer;
+    cmd.vertex_buffer = _actor->mesh.vertex_buffer;
+    cmd.element_buffer = _actor->mesh.element_buffer;
+    cmd.attrib_count = _actor->mesh.attrib_count;
+    cmd.element_type = _actor->mesh.element_type;
 
-    cmd.shader = &sactor->shader;
+    cmd.shader = &_actor->shader;
     cmd.draw_mode = drawmode;
 
     bvr_vertex_group_t group;
-    BVR_POOL_FOR_EACH(group, sactor->mesh.vertex_groups){
+    BVR_POOL_FOR_EACH(group, _actor->mesh.vertex_groups){
         cmd.vertex_group = group;
         
-        //BVR_PRINTF("%s: %i %i", cmd.vertex_group.name.string, cmd.vertex_group.element_offset, cmd.vertex_group.element_count);
         bvr_pipeline_add_draw_cmd(&cmd);
     }
 

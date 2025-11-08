@@ -38,15 +38,24 @@ typedef struct bvr_editor_s {
 
     struct {
         bvr_string_t name;
-        uint32 user_data;
-        uint32 user_data2;
-        uint32 user_data3;
-        uint32 user_data4;
 
         uint32 type;
         void* pointer;
     } inspector_cmd;
 
+    /*
+        contains specific user data for each 
+        necessary editor's components
+    */
+    union {
+
+        // landscape buffer
+        struct {
+            uint32 cursor[2];
+            uint32 taget;
+        } landscape;
+    } memory;
+    
     struct {
         int drawmode;
 

@@ -23,7 +23,8 @@ set(BVR_DEMO_DIR ${BVR_CURRENT_DIR}/dev)
 # Development only
 if(NOT ${BVR_TARGET_SHARED})
     if (NOT DEFINED BVR_MAIN_FILE)
-        set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/model_viewer.c")
+        set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/landscape.c")
+        #set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/model_viewer.c")
     endif()
 endif()
 

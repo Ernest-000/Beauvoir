@@ -785,10 +785,12 @@ static void bvri_gltfhandletransform(const json_object* node, bvr_vertex_group_t
 
     BVR_IDENTITY_MAT4(group->matrix);
 
+    // get each components
     json_object* translation = json_object_object_get(node, "translation");
     json_object* rotation = json_object_object_get(node, "rotation");
     json_object* scale = json_object_object_get(node, "scale");
 
+    // if the node contains rotation informations 
     if(json_object_is_type(rotation, json_type_array)){
         quat quat_rotation;
         vec3 euler;
@@ -802,12 +804,14 @@ static void bvri_gltfhandletransform(const json_object* node, bvr_vertex_group_t
         mat4_rotate(group->matrix, euler);
     }
 
+    // if the node contains translation informations
     if(json_object_is_type(translation, json_type_array)){
         group->matrix[3][0] = json_object_get_double(json_object_array_get_idx(translation, 0));
         group->matrix[3][1] = json_object_get_double(json_object_array_get_idx(translation, 1));
         group->matrix[3][2] = json_object_get_double(json_object_array_get_idx(translation, 2));
     }
 
+    // if the node contains scaling informations
     if(json_object_is_type(scale, json_type_array)){
         group->matrix[0][0] = json_object_get_double(json_object_array_get_idx(scale, 0));
         group->matrix[1][1] = json_object_get_double(json_object_array_get_idx(scale, 1));

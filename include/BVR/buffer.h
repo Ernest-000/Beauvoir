@@ -29,7 +29,7 @@
         while(                                                     \
             ((int)(((block ## ##a) = (struct bvr_pool_block_s*)(pool.data + ((block ## ##a)->next * (pool.elemsize + sizeof(struct bvr_pool_block_s))))) \
             && ((void*)memcpy(&a, ((block ## ##a) + sizeof(struct bvr_pool_block_s)), sizeof(__typeof(a))) == NULL))) \
-            || (pool.data && pool.count && ((block ## ##a)->next) || 0 == (first ## ##a).next++) \
+            || (pool.data && pool.count && (NULL != (block ## ##a)->next) || 0 == (first ## ##a).next++) \
         )     
 
 // Clang specific macro

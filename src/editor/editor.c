@@ -1,5 +1,6 @@
 #include <BVR/editor/editor.h>
 #include <BVR/editor/flags.h>
+#include <BVR/editor/landscape.h>
 
 #include <BVR/buffer.h>
 #include <BVR/utils.h>
@@ -85,7 +86,10 @@ static void bvri_draw_editor_mesh(bvr_mesh_t* mesh){
     
     bvr_vertex_group_t group;
     BVR_POOL_FOR_EACH(group, mesh->vertex_groups){
-        nk_label(__editor->gui.context, BVR_FORMAT("%s: %i-%i", group.name.string, group.element_offset, group.element_offset + group.element_count), NK_TEXT_ALIGN_LEFT);
+        group.flags = nk_checkbox_label(__editor->gui.context, 
+            BVR_FORMAT("%s: %i-%i", group.name.string, group.element_offset, group.element_offset + group.element_count), 
+            (nk_bool*)&group.flags
+        );
     }
 
     nk_layout_row_dynamic(__editor->gui.context, 40, 1);
@@ -186,6 +190,8 @@ void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book){
     editor->draw_cmd.drawmode = 0;
     editor->draw_cmd.element_offset = 0;
     editor->draw_cmd.element_count = 0;
+
+    memset(&editor->memory, 0, sizeof(editor->memory));
 
     {
         const char* vertex_shader = 
@@ -757,137 +763,64 @@ void bvr_editor_draw_inspector(){
 
         case BVR_EDITOR_LANDSCAPE:
             {
-                bvr_landscape_actor_t* actor = (bvr_landscape_actor_t*)__editor->inspector_cmd.pointer;
+                int target_tile = 0;
+                struct bvr_tile_s tile;
+                bvr_landscape_actor_t* landscape = (bvr_landscape_actor_t*)__editor->inspector_cmd.pointer;
                 
                 nk_layout_row_dynamic(__editor->gui.context, 15, 1);
-                nk_label(__editor->gui.context, BVR_FORMAT("id %s", actor->object.id), NK_TEXT_ALIGN_LEFT);
-                nk_label(__editor->gui.context, BVR_FORMAT("flags %x", actor->object.flags), NK_TEXT_ALIGN_LEFT);
+                nk_label(__editor->gui.context, BVR_FORMAT("id %s", landscape->object.id), NK_TEXT_ALIGN_LEFT);
+                nk_label(__editor->gui.context, BVR_FORMAT("flags %x", landscape->object.flags), NK_TEXT_ALIGN_LEFT);
 
-                nk_checkbox_label(__editor->gui.context, "is active", (nk_bool*)&actor->object.active);
+                nk_checkbox_label(__editor->gui.context, "is active", (nk_bool*)&landscape->object.active);
 
-                bvri_draw_editor_transform(&actor->object.transform);
+                bvri_draw_editor_transform(&landscape->object.transform);
 
-                nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+                    nk_layout_row_dynamic(__editor->gui.context, 15, 1);
                 nk_label(__editor->gui.context, "LANDSCAPE", NK_TEXT_ALIGN_CENTERED);
 
                 nk_layout_row_dynamic(__editor->gui.context, 15, 2);
-                nk_property_int(__editor->gui.context, "tile x", 0, &__editor->inspector_cmd.user_data, actor->dimension[0] - 1, 1, .5f);
-                nk_property_int(__editor->gui.context, "tile y", 0, &__editor->inspector_cmd.user_data2, actor->dimension[1] - 1, 1, .5f);
+                nk_property_int(__editor->gui.context, "tile x", 0, &__editor->memory.landscape.cursor[0], landscape->dimension.count[0] - 1, 1, .5f);
+                nk_property_int(__editor->gui.context, "tile y", 0, &__editor->memory.landscape.cursor[1], landscape->dimension.count[1] - 1, 1, .5f);
 
-                // select tile by double clicking on a tile
-                if(bvr_button_double_pressed(BVR_MOUSE_BUTTON_LEFT) && !__editor->device.is_gui_hovered){
-                    float mouse_tile_x = 0, mouse_tile_y = 0;
-                    vec2 mouse_pos;
-                    vec3 world_pos;
+                target_tile = bvri_landscapeselect(__editor, landscape);
+                tile = bvri_landscapegettile(landscape, target_tile); 
 
-                    bvr_mouse_position(&mouse_pos[0], &mouse_pos[1]);
-                    bvr_screen_to_world_coords(__editor->book, mouse_pos, world_pos);
-                    
-                    mouse_tile_x = MAX(world_pos[0] - actor->object.transform.position[0], 0.0f) / actor->dimension[2];
-                    mouse_tile_y = MAX(-world_pos[1] - actor->object.transform.position[1], 0.0f) / actor->dimension[3];
+                nk_layout_row_dynamic(__editor->gui.context, 100, 1);
+                if(nk_group_begin(__editor->gui.context, BVR_FORMAT("tile %i", BVRI_LANDSCAPEID(target_tile)), NK_WINDOW_BORDER | NK_WINDOW_TITLE | NK_WINDOW_SCALABLE)){
+                    nk_layout_row_dynamic(__editor->gui.context, 15, 1);
 
-                    __editor->inspector_cmd.user_data = (uint32) (MIN((int)mouse_tile_x, (int)actor->dimension[0] - 1));
-                    __editor->inspector_cmd.user_data2 = (uint32)(MIN((int)mouse_tile_y, (int)actor->dimension[1] - 1));
+                    int altitude, texture;
+                    altitude = tile.altitude;
+                    texture = tile.texture;
+                    nk_property_int(__editor->gui.context, "altitude", 0, &altitude, 256, 0, 0);
+                    nk_property_int(__editor->gui.context, "texture", 0, &texture, 256, 0, 0);
+
+                    nk_group_end(__editor->gui.context);
                 }
-
-                // apply y axis
-                const int vertices_per_row = actor->dimension[0] * 2 + 3;
-
-                int target_tile = __editor->inspector_cmd.user_data2 * vertices_per_row;
-                // apply x axis
-                target_tile += (int)clamp(__editor->inspector_cmd.user_data * 2.0f, 0.0f, vertices_per_row - 2.0f);
-                // start offset 
-                target_tile += 3;
-
-                BVR_ASSERT(target_tile < actor->mesh.vertex_count);
 
                 nk_layout_row_dynamic(__editor->gui.context, 15, 1);
-
-                {
-                    bvr_texture_t view;
-                    nk_property_int(__editor->gui.context, "texture id", 0, &__editor->inspector_cmd.user_data3, actor->atlas.tiles.count, 1, .5f);
-
-                    bvr_create_view_texture(&actor->atlas.texture, &view, actor->atlas.tiles.width, actor->atlas.tiles.height, __editor->inspector_cmd.user_data3);
-
-                    nk_layout_row_dynamic(__editor->gui.context, BVR_INSPECTOR_RECT(0, 0).w / 2, 1); 
-                    nk_image(__editor->gui.context, nk_image_id(view.id));
-
-                    bvr_destroy_texture(&view);
-                }
-
-                /*if(0){
-                    nk_label(__editor->gui.context, "TILE INFORMATIONS", NK_TEXT_ALIGN_LEFT);
-                    
-                    glBindBuffer(GL_ARRAY_BUFFER, actor->mesh.vertex_buffer);
-                    int* vertices_map = glMapBufferRange(GL_ARRAY_BUFFER, 0, actor->mesh.vertex_count * sizeof(int), GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
-
-                    if(vertices_map){
-                        // extract each values through bitwise operations
-                        int texture_id = (0xff00 & vertices_map[target_tile]) >> 8;
-                        int altitude[2] = {0, 0};
-
-                        altitude[0] = 0xff & vertices_map[target_tile + 0];
-                        altitude[1] = 0xff & vertices_map[target_tile + 1];
-
-                        //TODO: better texture id selection
-                        nk_property_int(__editor->gui.context, "texture id", 0, &texture_id, actor->atlas.tile_count_x * actor->atlas.tile_count_y, 1, .5f);
-                        
-                        nk_layout_row_dynamic(__editor->gui.context, 15, 2);
-                        nk_property_int(__editor->gui.context, "Altutide 0", 0, &altitude[0], 255, 1, 1.0f);
-                        nk_property_int(__editor->gui.context, "Altutide 1", 0, &altitude[1], 255, 1, 1.0f);
-
-                        nk_layout_row_dynamic(__editor->gui.context, 15, 1);
-                        
-                        // if values are differents
-                        if(texture_id != ((0xff00 & vertices_map[target_tile + 0]) >> 8)){
-                            // write texture id on the two opposites vertices
-                            // bitmask: remove all previous texture id and overwrite with the new texid value shifted 8 bits 
-                            vertices_map[target_tile + 0] = (vertices_map[target_tile + 0] & ~0xff00) | (texture_id) << 8;
-                            vertices_map[target_tile + 1] = (vertices_map[target_tile + 1] & ~0xff00) | (texture_id) << 8;
-                        }
-
-                        // check for altitude on the first vertex
-                        if(altitude[0] != (0xff & vertices_map[target_tile + 0])){
-                            // try to overwrite the vertex on the other side of the edge (on top of it)
-                            int prev_row_vertex = (int)clamp(target_tile - vertices_per_row + 1, 0, actor->mesh.vertex_count);
-                            vertices_map[target_tile + 0] = (vertices_map[target_tile + 0] & ~0xff) | altitude[0];
-                            vertices_map[prev_row_vertex] = (vertices_map[prev_row_vertex] & ~0xff) | altitude[0];
-                        }
-
-                        if(altitude[1] != (0xff & vertices_map[target_tile + 1])){
-                            // try to overwrite the vertex on the other side of the edge (bottom)
-                            int next_row_vertex = (int)clamp(target_tile + vertices_per_row, 0, actor->mesh.vertex_count);
-                            
-                            vertices_map[target_tile + 1] = (vertices_map[target_tile + 1] & ~0xff) | altitude[1];
-                            vertices_map[next_row_vertex] = (vertices_map[next_row_vertex] & ~0xff) | altitude[1];
-                        }
-
-                        glUnmapBuffer(GL_ARRAY_BUFFER);
-                        glBindBuffer(GL_ARRAY_BUFFER, 0);
-                    }
-                }*/
 
                 // drawing tile selector gizmo
                 {
                     vec2 tile_position, half_size;
-                    tile_position[0] = __editor->inspector_cmd.user_data;
-                    tile_position[1] = __editor->inspector_cmd.user_data2;
+                    tile_position[0] = __editor->memory.landscape.cursor[0];
+                    tile_position[1] = __editor->memory.landscape.cursor[1];
 
-                    half_size[0] = actor->dimension[2] * 0.5f;
-                    half_size[1] = actor->dimension[3] * 0.5f - actor->dimension[3];
+                    half_size[0] = landscape->dimension.resolution[0] * 0.5f;
+                    half_size[1] = landscape->dimension.resolution[1] * 0.5f - landscape->dimension.resolution[1];
 
-                    vec2_add(tile_position, actor->object.transform.position, tile_position);
-                    tile_position[0] *= actor->dimension[2];
-                    tile_position[1] *= -actor->dimension[3];
+                    vec2_add(tile_position, landscape->object.transform.position, tile_position);
+                    tile_position[0] *= landscape->dimension.resolution[0];
+                    tile_position[1] *= -landscape->dimension.resolution[1];
 
                     vec2_add(tile_position, half_size, tile_position);
 
                     float vertices[] = {
-                        tile_position[0] + actor->dimension[2] * -0.5f, tile_position[1] + actor->dimension[3] * +0.5f,0.1f,
-                        tile_position[0] + actor->dimension[2] * +0.5f, tile_position[1] + actor->dimension[3] * +0.5f,0.1f,
-                        tile_position[0] + actor->dimension[2] * +0.5f, tile_position[1] + actor->dimension[3] * -0.5f,0.1f,
-                        tile_position[0] + actor->dimension[2] * -0.5f, tile_position[1] + actor->dimension[3] * -0.5f,0.1f,
-                        tile_position[0] + actor->dimension[2] * -0.5f, tile_position[1] + actor->dimension[3] * +0.5f,0.1f,
+                        tile_position[0] + landscape->dimension.resolution[0] * -0.5f, tile_position[1] + landscape->dimension.resolution[1] * +0.5f,0.1f,
+                        tile_position[0] + landscape->dimension.resolution[0] * +0.5f, tile_position[1] + landscape->dimension.resolution[1] * +0.5f,0.1f,
+                        tile_position[0] + landscape->dimension.resolution[0] * +0.5f, tile_position[1] + landscape->dimension.resolution[1] * -0.5f,0.1f,
+                        tile_position[0] + landscape->dimension.resolution[0] * -0.5f, tile_position[1] + landscape->dimension.resolution[1] * -0.5f,0.1f,
+                        tile_position[0] + landscape->dimension.resolution[0] * -0.5f, tile_position[1] + landscape->dimension.resolution[1] * +0.5f,0.1f,
                     };
 
                     vec3 draw_color = {1.0, 0.0, 0.0};
@@ -903,8 +836,8 @@ void bvr_editor_draw_inspector(){
                 }
                 
 
-                bvri_draw_editor_shader(&actor->shader);
-                bvri_draw_editor_mesh(&actor->mesh);
+                bvri_draw_editor_shader(&landscape->shader);
+                bvri_draw_editor_mesh(&landscape->mesh);
             }
             break;
         case BVR_EDITOR_GLOBAL_ILL:
@@ -927,6 +860,7 @@ void bvr_editor_draw_inspector(){
                 nk_property_float(__editor->gui.context, "y", -100000.0f, &illumination->light.position[1], 100000.0f, 0.1f, 0.1f);
                 nk_property_float(__editor->gui.context, "z", -100000.0f, &illumination->light.position[2], 100000.0f, 0.1f, 0.1f);
                 
+                // draw light gizmo
                 {
                     float distance = (illumination->light.intensity);
                     vec3 normalized_dir;

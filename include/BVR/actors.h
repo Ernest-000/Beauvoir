@@ -116,14 +116,23 @@ typedef struct bvr_landscape_actor_s {
     
     bvr_texture_atlas_t atlas;
 
-    /*
-        0 -> width
-        1 -> height
-        2 -> res x
-        3 -> res y
-    */
-    vec4 dimension;
+    struct {
+        vec2 count;
+        vec2 resolution;
+        
+        uint8 layers;
+    } dimension;
 } bvr_landscape_actor_t;
+
+/*
+    landscape tile's informations
+*/
+struct bvr_tile_s {
+    uint8 altitude;
+    uint8 texture;
+    uint8 norm_x;
+    uint8 norm_y;
+};
 
 /*
     Initialize a generic actor.

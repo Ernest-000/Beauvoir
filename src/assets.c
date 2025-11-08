@@ -578,10 +578,11 @@ void bvr_open_book_dataf(FILE* file, bvr_book_t* book){
                     bvr_landscape_actor_t* landscape = (bvr_landscape_actor_t*)target;
 
                     // landscape's dimensions
-                    landscape->dimension[0] = bvr_fread32_le(file);
-                    landscape->dimension[1] = bvr_fread32_le(file);
-                    landscape->dimension[2] = bvr_fread32_le(file);
-                    landscape->dimension[3] = bvr_fread32_le(file);
+                    landscape->dimension.count[0] = bvr_fread32_le(file);
+                    landscape->dimension.count[1] = bvr_fread32_le(file);
+                    landscape->dimension.resolution[0] = bvr_fread32_le(file);
+                    landscape->dimension.resolution[1] = bvr_fread32_le(file);
+                    landscape->dimension.layers = bvr_fread32_le(file);
 
                     // size of the landscape buffer
                     uint32 landscape_bytes_length = bvr_fread32_le(file);

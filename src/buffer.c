@@ -162,6 +162,7 @@ void bvr_create_string(bvr_string_t* string, const char* value){
 
     string->length = 0;
     string->string = NULL;
+
     if(value){
         string->length = strlen(value) + 1;
         string->string = malloc(string->length);
@@ -172,15 +173,19 @@ void bvr_create_string(bvr_string_t* string, const char* value){
     }
 }
 
-void bvr_overwrite_string(bvr_string_t* string, const char* value, const uint32 length){
+int bvr_overwrite_string(bvr_string_t* string, const char* value, uint32 length){
     BVR_ASSERT(string);
 
     if(!string->string){
         bvr_create_string(string, value);
-        return;
+        return BVR_FAILED;
     }
 
-    if(value && length){
+    if(length == 0){
+        length = strlen(value);
+    }
+
+    if(value){
 
         if(string->length < length){
             string->string = realloc(string->string, length);
@@ -191,6 +196,8 @@ void bvr_overwrite_string(bvr_string_t* string, const char* value, const uint32 
         memcpy(string->string, value, string->length - 1);
         string->string[string->length - 1] = '\0';
     }
+
+    return BVR_OK;
 }
 
 void bvr_string_concat(bvr_string_t* string, const char* other){
@@ -278,20 +285,19 @@ void bvr_create_pool(bvr_pool_t* pool, uint64 size, uint64 count){
     pool->capacity = count;
 
     if(size && count){
-
         pool->data = calloc(pool->capacity, (pool->elemsize + sizeof(struct bvr_pool_block_s)));
         BVR_ASSERT(pool->data);
+
         pool->next = (struct bvr_pool_block_s*)pool->data;
 
         struct bvr_pool_block_s* block = (struct bvr_pool_block_s*)pool->data;
-        for (uint64 i = 0; i < pool->capacity - 1; i++)
+        for (uint64 i = 0; i < pool->capacity; i++)
         {
             block->next = i;
             block = (struct bvr_pool_block_s*)(pool->data + i * (pool->elemsize + sizeof(struct bvr_pool_block_s)));
         }
         
         block->next = 0;
-
     }
 }
 
@@ -310,6 +316,7 @@ void* bvr_pool_alloc(bvr_pool_t* pool){
         pool->next = (struct bvr_pool_block_s*)(
             pool->data + block->next * (pool->elemsize + sizeof(struct bvr_pool_block_s))
         );
+        
         return (void*)(block + sizeof(struct bvr_pool_block_s));
     }
 

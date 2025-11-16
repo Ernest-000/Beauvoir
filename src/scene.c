@@ -83,12 +83,12 @@ void bvr_new_frame(bvr_book_t* book){
     BVR_IDENTITY_MAT4(view);
 
     if(camera->mode == BVR_CAMERA_ORTHOGRAPHIC){
-        float width = 1.0f / camera->framebuffer->target_width * camera->field_of_view.scale;
-        float height = 1.0f / camera->framebuffer->target_height * camera->field_of_view.scale;
+        float width =   1.0f / camera->framebuffer->target_width * camera->field_of_view.scale;
+        float height =  1.0f / camera->framebuffer->target_height * camera->field_of_view.scale;
         float farnear = 1.0f / (camera->far - camera->near);
 
-        projection[0][0] = width;
-        projection[1][1] = height;
+        projection[0][0] = 2.0f * -width;
+        projection[1][1] = 2.0f * height;
         projection[2][2] = farnear;
         projection[3][0] = -width;
         projection[3][1] = -height;
@@ -243,9 +243,10 @@ void bvr_render(bvr_book_t* book){
     bvr_window_push_buffers();
 
 #ifndef BVR_NO_FPS_CAP
-    // wait for next frame. 
-    if(book->timer.prev_time + BVR_FRAMERATE > book->timer.current_time){
-        bvr_delay(book->timer.current_time - book->timer.prev_time + BVR_FRAMERATE);
+    // wait for next frame.
+    double delay = BVR_TARGET_FRAMERATE * 0.25 - (bvr_frames() - book->timer.current_time);  
+    if(delay > 0){
+        bvr_delay(delay);
     }
 #endif
 
@@ -290,8 +291,9 @@ int bvr_create_page(bvr_page_t* page, const char* name){
     page->camera.mode = 0;
 
     page->global_illumination.buffer = 0;
-    page->global_illumination.light.intensity = 0.0f;
+    page->global_illumination.light.intensity = 255.0f;
     page->global_illumination.light.type = BVR_LIGHT_GLOBAL_ILLUMINATION;
+    page->global_illumination.light.position[3] = 51;
     BVR_SCALE_VEC3(page->global_illumination.light.color, 1.0f);
     BVR_SCALE_VEC3(page->global_illumination.light.direction, 0);
     BVR_SCALE_VEC3(page->global_illumination.light.position, 0);
@@ -414,8 +416,8 @@ void bvr_screen_to_world_coords(bvr_book_t* book, vec2 screen_coords, vec3 world
         bvr_uniform_buffer_close();
         bvr_enable_uniform_buffer(0);
 
-        screen[0] = (screen_coords[0] / book->window.framebuffer.width - 0.5f) * 6.0f;
-        screen[1] = (screen_coords[1] / book->window.framebuffer.height - 0.5f) * -6.0f;
+        screen[0] = 2.0f * (screen_coords[0] / (book->window.framebuffer.width)) - 1.0f;
+        screen[1] = 1.0f - 2.0f * (screen_coords[1] / (book->window.framebuffer.height));
         screen[2] = 0.0f;
         screen[3] = 1.0f;
         
@@ -423,11 +425,10 @@ void bvr_screen_to_world_coords(bvr_book_t* book, vec2 screen_coords, vec3 world
         mat4_inv(inv, projection);
         mat4_mul_vec4(world, inv, screen);
 
-        world[3] = 1.0f / world[3];
+        world[3] = 1.0f / world[3] * 2.0f;
         world_coords[0] = world[0] * world[3];
         world_coords[1] = world[1] * world[3];
         world_coords[2] = world[2] * world[3];
-
         return;
     }
 

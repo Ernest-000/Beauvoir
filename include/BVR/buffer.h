@@ -29,7 +29,7 @@
         while(                                                     \
             ((int)(((block ## ##a) = (struct bvr_pool_block_s*)(pool.data + ((block ## ##a)->next * (pool.elemsize + sizeof(struct bvr_pool_block_s))))) \
             && ((void*)memcpy(&a, ((block ## ##a) + sizeof(struct bvr_pool_block_s)), sizeof(__typeof(a))) == NULL))) \
-            || (pool.data && ((block ## ##a)->next) || 0 == (first ## ##a).next++) \
+            || (pool.data && pool.count && (NULL != (block ## ##a)->next) || 0 == (first ## ##a).next++) \
         )     
 
 // Clang specific macro
@@ -40,7 +40,7 @@
         while(                                                     \
             ((int)(((block ## ##a) = (struct bvr_pool_block_s*)(pool.data + ((block ## ##a)->next * (pool.elemsize + sizeof(struct bvr_pool_block_s))))) \
             && (a = *((char*)block_##a + sizeof(struct bvr_pool_block_s))))) \
-            || (pool.data && ((block ## ##a)->next) || 0 == (first ## ##a).next++) \
+            || (pool.data && pool.count && ((block ## ##a)->next) || 0 == (first ## ##a).next++) \
         ) 
 #else
     #define BVR_POOL_FOR_EACH(a, pool) for(int i = 0; i < pool.count; i++, a = bvr_pool_try_get(&pool, i))                                 
@@ -110,8 +110,9 @@ void bvr_create_string(bvr_string_t* string, const char* value);
 
 /*
     Use an already created string to replace its value.
+    Returns BVR_FAILED if it had to create a new string, BVR_OK otherwise 
 */
-void bvr_overwrite_string(bvr_string_t* string, const char* value, const uint32 length);
+int bvr_overwrite_string(bvr_string_t* string, const char* value, uint32 length);
 
 /*
     Concatenate a string.

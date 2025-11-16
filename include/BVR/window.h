@@ -198,6 +198,7 @@ int bvr_axis_down(bvr_keyaxis_t* axis);
 int bvr_axis_presssed(bvr_keyaxis_t* axis);
 
 int bvr_button_down(uint16 button);
+int bvr_button_double_pressed(uint16 button);
 
 void bvr_mouse_position(float* x, float* y);
 void bvr_mouse_relative_position(float* x, float *y);

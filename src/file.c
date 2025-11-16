@@ -5,10 +5,12 @@
 #include <memory.h>
 
 uint64 bvr_get_file_size(FILE* file){
-    uint64 currp = ftell(file);
+    uint64 cursor = ftell(file);
+    
     fseek(file, 0, SEEK_END);
     uint64 size = ftell(file);
-    fseek(file, currp, SEEK_SET);
+    fseek(file, cursor, SEEK_SET);
+    
     return size;
 }
 
@@ -16,20 +18,20 @@ int bvr_read_file(bvr_string_t* string, FILE* file){
     BVR_ASSERT(string);
     BVR_ASSERT(file);
 
-    uint64 file_size = bvr_get_file_size(file) - ftell(file);
-    uint64 string_p = string->length;
-
     if(string->string){
         BVR_ASSERT(0 || "cannot copy on a previously allocated string :(");
     }
     else {
         // TODO: check if size is correct
-        string->length = file_size + 1;
-        string->string = malloc(string->length);
+        string->length = bvr_get_file_size(file) - ftell(file);
+        string->string = malloc(string->length + 1);
         BVR_ASSERT(string->string);
 
-        uint64 final_size = fread(string->string, sizeof(char), file_size, file);
-        string->string[string->length - 1] = '\0';
+        uint64 readed_bytes = fread(string->string, sizeof(char), string->length, file);
+        BVR_ASSERT(readed_bytes == string->length);
+
+        string->string[string->length] = '\0';
+
     }
 
     return BVR_OK;

@@ -11,14 +11,18 @@ typedef enum bvr_light_type_e {
 struct bvr_light_s {
     bvr_light_type_t type;
 
-    vec3 position;
-    vec3 direction;
+    vec4 position;
+    vec4 direction;
     
     float intensity;
     vec3 color;
 };
 
 typedef struct bvr_global_illumination_s {
+    /*
+        position.w -> ambiant intensity
+        direction.w -> 
+    */
     struct bvr_light_s light;
     uint32 buffer;
 } bvr_global_illumination_t;

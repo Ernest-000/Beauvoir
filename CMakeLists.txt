@@ -23,7 +23,8 @@ set(BVR_DEMO_DIR ${BVR_CURRENT_DIR}/dev)
 # Development only
 if(NOT ${BVR_TARGET_SHARED})
     if (NOT DEFINED BVR_MAIN_FILE)
-        set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/model_viewer.c")
+        set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/landscape.c")
+        #set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/model_viewer.c")
     endif()
 endif()
 
@@ -97,6 +98,9 @@ if(NOT EXISTS ${BVR_JSON_LIB})
     message(FATAL_ERROR "Cannot find json-c '${BVR_JSON_LIB}'")
 endif()
 include_directories(${BVR_INCLUDE_DIR})
+
+set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 
 ## Create library or executable depends on the compilation mode
 if(${BVR_TARGET_SHARED})

@@ -83,6 +83,12 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
 
 void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
     bvr_shader_enable(cmd->shader);
+    
+    // try to apply local uniform
+    bvr_shader_use_uniform(
+        bvr_find_uniform(cmd->shader, "bvr_local"), 
+        &cmd->vertex_group.matrix[0][0]
+    );
 
     glBindVertexArray(cmd->array_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, cmd->vertex_buffer);

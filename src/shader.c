@@ -11,6 +11,33 @@
 
 #define BVR_MAX_GLSL_HEADER_SIZE 100
 
+// vertex shader struct
+static const char* __ext_s_vdata = "struct V_DATA {\n"
+	"   vec3 position;\n"
+	"   vec2 uvs;\n"
+    "   vec3 normals;\n"
+    "};\n";
+
+// light shader struct
+static const char* __ext_s_vlight = "struct V_LIGHT {\n"
+"	vec4 position;\n"
+"	vec4 direction;\n"
+"	vec4 color;\n"
+"};\n";
+
+// light related function(s)
+static const char* __ext_f_light = "vec4 calc_light(vec4 color, V_LIGHT light, V_DATA vertex){\n"
+"	vec3 l_color;\n"
+"	float intensity = light.color.a / 255;\n"
+"	float ambiant_intensity = light.position.w / 255;\n"
+"	vec3 norm = normalize(vertex.normals);\n"
+"	vec3 light_direction = normalize(light.position.xyz - vertex.position);\n"
+"	vec3 diffuse = vec3(intensity) * max(dot(norm, light_direction), 0.0);\n"
+"	vec3 ambiant = vec3(ambiant_intensity);\n"
+"	l_color = diffuse + ambiant;\n"
+"	return vec4(l_color, 1.0) * vec4(light.color.rgb, 1.0);\n"
+"}\n";
+
 static int bvri_compile_shader(uint32* shader, bvr_string_t* const content, int type);
 static int bvri_link_shader(const uint32 program);
 static int bvri_register_shader_state(bvr_shader_t* program, bvr_shader_stage_t* shader, bvr_string_t* content, 
@@ -70,6 +97,22 @@ static int bvri_register_shader_state(bvr_shader_t* program, bvr_shader_stage_t*
     strncat(shader_header_str, "\n", 1);
 
     bvr_create_string(&shader_str, shader_header_str);
+
+    /*  extensions */
+
+    // default v_data
+    bvr_string_concat(&shader_str, __ext_s_vdata);
+
+    // light extension
+    if(BVR_HAS_FLAG(program->flags, BVR_SHADER_EXT_LIGHT)){
+        bvr_string_concat(&shader_str, __ext_s_vlight);
+
+        // only add light related functions for fragment shader
+        if(type == GL_FRAGMENT_SHADER){
+            bvr_string_concat(&shader_str, __ext_f_light);
+        }
+    }
+
     bvr_string_concat(&shader_str, content->string);
 
     if (type && shader_str.length) {
@@ -120,8 +163,8 @@ int bvr_create_shaderf(bvr_shader_t* shader, FILE* file, const int flags){
 
     // by default there is:
     // - camera block
-    // - global illumination
-    shader->block_count = 2;
+    // -
+    shader->block_count = 1;
 
     // by default there is
     // - transformation uniform
@@ -191,14 +234,19 @@ shader_cstor_bidings:
         glUniformBlockBinding(shader->program, shader->blocks[0].location, BVR_UNIFORM_BLOCK_CAMERA);
     }
 
-    shader->blocks[1].type = BVR_VEC4;
-    shader->blocks[1].count = 3;
-    shader->blocks[1].location = glGetUniformBlockIndex(shader->program, BVR_UNIFORM_GLOBAL_ILLUMINATION_NAME);
-    if (shader->blocks[1].location == -1) {
-        BVR_PRINT("cannot find camera block uniform!");
-    }
-    else {
-        glUniformBlockBinding(shader->program, shader->blocks[1].location, BVR_UNIFORM_BLOCK_GLOBAL_ILLUMINATION);
+    if(BVR_HAS_FLAG(flags, BVR_SHADER_EXT_GLOBAL_ILLUMINATION)){
+        shader->block_count++;
+        
+        shader->blocks[shader->block_count].type = BVR_VEC4;
+        shader->blocks[shader->block_count].count = 3;
+        shader->blocks[shader->block_count].location = glGetUniformBlockIndex(shader->program, BVR_UNIFORM_GLOBAL_ILLUMINATION_NAME);
+        if (shader->blocks[shader->block_count].location == -1) {
+            BVR_PRINT("cannot find global illumination block uniform!");
+            shader->block_count--;
+        }
+        else {
+            glUniformBlockBinding(shader->program, shader->blocks[shader->block_count].location, BVR_UNIFORM_BLOCK_GLOBAL_ILLUMINATION);
+        }
     }
 
     // create transform uniform
@@ -389,7 +437,11 @@ void bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data){
 }
 
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
-    if(!uniform || uniform->location == -1) {
+    if(!uniform) {
+        return;
+    }
+
+    if(uniform->location == -1){
         BVR_PRINTF("cannot find uniform %s", uniform->name.string);
         return;
     }
@@ -435,16 +487,16 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
             {
                 bvr_texture_atlas_t* texture = *(bvr_texture_atlas_t**)data;
 
-                bvr_texture_atlas_enablei(texture);
-                glUniform1i(uniform->location, (int)texture->unit);
+                bvr_texture_enable(&texture->texture);
+                glUniform1i(uniform->location, (int)texture->texture.unit);
             }
             break;
 
         case BVR_TEXTURE_2D_LAYER:
             {
-                bvr_layered_texture_t* texture = *(bvr_layered_texture_t**)data;
+                bvr_texture_t* texture = *(bvr_texture_t**)data;
 
-                bvr_layered_texture_enable(texture);
+                bvr_texture_enable(texture);
                 glUniform1i(uniform->location, (int)texture->unit);
             }
             break;

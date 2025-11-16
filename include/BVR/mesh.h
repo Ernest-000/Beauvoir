@@ -5,6 +5,8 @@
 #include <BVR/utils.h>
 #include <BVR/buffer.h>
 
+#include <BVR/math.h>
+
 typedef enum bvr_drawmode_e {
     BVR_DRAWMODE_LINES = 0x0001,
     BVR_DRAWMODE_LINE_STRIPE = 0x0003,
@@ -23,41 +25,41 @@ typedef enum bvr_mesh_array_attrib_e {
     /*
         vertices    -> vec2
     */
-    BVR_MESH_ATTRIB_V2,
+    BVR_MESH_ATTRIB_V2 = 2,
     
     /*
         vertices    -> vec3
     */
-    BVR_MESH_ATTRIB_V3,
+    BVR_MESH_ATTRIB_V3 = 3,
 
     /*
         vertices    -> vec2
         uvs         -> vec2
     */
-    BVR_MESH_ATTRIB_V2UV2,
+    BVR_MESH_ATTRIB_V2UV2 = 4,
     
     /*
         vertices    -> vec3
         uvs         -> vec2
     */
-    BVR_MESH_ATTRIB_V3UV2,
+    BVR_MESH_ATTRIB_V3UV2 = 5,
 
     /*
         vertices    -> vec3
         uvs         -> vec2
         normals     -> vec3 
     */
-    BVR_MESH_ATTRIB_V3UV2N3,
+    BVR_MESH_ATTRIB_V3UV2N3 = 8,
 
     /*
         special attribute use for landscapes
 
-        0x00000011 -> tex id
-        0x00001100 -> altitude
-        0x00110000 -> normal yaw
-        0x11000000 -> normal pitch
+        0x000000FF -> tex id
+        0x0000FF00 -> altitude
+        0x00FF0000 -> normal yaw
+        0xFF000000 -> normal pitch
     */
-    BVR_MESH_ATTRIB_SINGLE
+    BVR_MESH_ATTRIB_SINGLE = 1
 } bvr_mesh_array_attrib_t;
 
 typedef struct bvr_vertex_group_s {
@@ -66,7 +68,10 @@ typedef struct bvr_vertex_group_s {
     uint32 element_count;
     uint32 element_offset;
 
-    int texture;
+    uint16 texture;
+    uint16 flags;
+
+    mat4x4 matrix;
 } __attribute__ ((packed)) bvr_vertex_group_t; 
 
 typedef struct bvr_mesh_s {
@@ -82,9 +87,9 @@ typedef struct bvr_mesh_s {
     int element_type;
 
     bvr_mesh_array_attrib_t attrib;
+    uint16 stride;
 
     uint8 attrib_count;
-    uint16 stride;
 } bvr_mesh_t;
 
 /*

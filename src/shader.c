@@ -325,7 +325,7 @@ void bvr_destroy_uniform_buffer(uint32* buffer){
     glDeleteBuffers(1, buffer);
 }
 
-bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type, int count, const char* name){
+bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type, enum bvr_uniform_tag_e tag, int count, const char* name){
     BVR_ASSERT(shader);
     BVR_ASSERT(name);
 
@@ -338,6 +338,7 @@ bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type
     if(location != -1){
         shader->uniforms[shader->uniform_count].location = location;
         shader->uniforms[shader->uniform_count].type = type;
+        shader->uniforms[shader->uniform_count].tags = tag;
 
         shader->uniforms[shader->uniform_count].memory.elemsize = bvr_sizeof(type);
         shader->uniforms[shader->uniform_count].memory.size = count * shader->uniforms[shader->uniform_count].memory.elemsize;
@@ -364,7 +365,7 @@ bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type
         return NULL;
     }
 
-    bvr_shader_uniform_t* uniform = bvr_shader_register_uniform(shader, type, 1, name);
+    bvr_shader_uniform_t* uniform = bvr_shader_register_uniform(shader, type, BVR_UNIFORM_TEXTURE, 1, name);
     if(uniform){
         // just copy texture's pointer
         memcpy(uniform->memory.data, &texture, sizeof(struct bvr_texture_s*));
@@ -403,8 +404,7 @@ bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* 
 }
 
 void bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data){
-    if(!uniform){
-        BVR_PRINT("cannot access uniform's memory");
+    if(!uniform) {
         return;
     }
     

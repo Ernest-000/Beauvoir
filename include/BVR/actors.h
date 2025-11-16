@@ -75,7 +75,7 @@ struct bvr_actor_s {
 typedef struct bvr_actor_s bvr_empty_actor_t;
 
 typedef struct bvr_layer_actor_s {
-    struct bvr_actor_s object;
+    struct bvr_actor_s self;
 
     bvr_mesh_t mesh;
     bvr_shader_t shader;
@@ -83,14 +83,14 @@ typedef struct bvr_layer_actor_s {
 } bvr_layer_actor_t;
 
 typedef struct bvr_static_actor_s {
-    struct bvr_actor_s object;
+    struct bvr_actor_s self;
 
     bvr_mesh_t mesh;
     bvr_shader_t shader;
 } bvr_static_actor_t;
 
 typedef struct bvr_dynamic_actor_s {
-    struct bvr_actor_s object;
+    struct bvr_actor_s self;
 
     bvr_mesh_t mesh;
     bvr_shader_t shader;
@@ -99,7 +99,7 @@ typedef struct bvr_dynamic_actor_s {
 } bvr_dynamic_actor_t;
 
 typedef struct bvr_bitmap_layer_s {
-    struct bvr_actor_s object;
+    struct bvr_actor_s self;
 
     bvr_mesh_t mesh;
     bvr_shader_t shader;
@@ -109,7 +109,7 @@ typedef struct bvr_bitmap_layer_s {
 } bvr_bitmap_layer_t;
 
 typedef struct bvr_landscape_actor_s {
-    struct bvr_actor_s object;
+    struct bvr_actor_s self;
 
     bvr_mesh_t mesh;
     bvr_shader_t shader;

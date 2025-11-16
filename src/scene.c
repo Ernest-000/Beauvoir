@@ -45,7 +45,7 @@ int bvr_create_book(bvr_book_t* book){
 
     bvr_create_memstream(&book->asset_stream, 0);
 
-#ifdef BVR_SCENE_AUTO_HEAP
+/*#ifdef BVR_SCENE_AUTO_HEAP
     bvr_create_memstream(
         &book->garbage_stream, 
         BVR_MAX_SCENE_ACTOR_COUNT * sizeof(bvr_dynamic_actor_t) +
@@ -53,7 +53,7 @@ int bvr_create_book(bvr_book_t* book){
     );
 #else
     bvr_create_memstream(&book->garbage_stream, 0);
-#endif
+#endif*/
     return BVR_OK;
 }
 
@@ -367,35 +367,6 @@ bvr_camera_t* bvr_create_orthographic_camera(bvr_page_t* page, bvr_framebuffer_t
     return &page->camera;
 }
 
-void bvr_camera_lookat(bvr_page_t* page, vec3 target, vec3 y){
-    mat4x4 view;
-    BVR_IDENTITY_MAT4(view);
-    
-    vec3 fwd, side, up;
-    vec3_sub(fwd, target, page->camera.transform.position);
-    vec3_norm(fwd, fwd);
-    
-    vec3_mul_cross(side, fwd, y);
-    
-    vec3_mul_cross(up, side, fwd);
-    vec3_norm(up, up);
-
-    view[0][0] = side[0];
-    view[1][0] = side[1];
-    view[2][0] = side[2];
-    view[3][0] = -vec3_dot(side, page->camera.transform.position);
-    view[0][1] = up[0];
-    view[1][1] = up[1];
-    view[2][1] = up[2];
-    view[3][1] = -vec3_dot(up, page->camera.transform.position);
-    view[0][2] = -fwd[0];
-    view[1][2] = -fwd[1];
-    view[2][2] = -fwd[2];
-    view[3][2] = -vec3_dot(fwd, page->camera.transform.position);
-    
-    bvr_camera_set_view(page, view);
-}
-
 void bvr_screen_to_world_coords(bvr_book_t* book, vec2 screen_coords, vec3 world_coords){
     BVR_ASSERT(book);
 
@@ -483,19 +454,6 @@ struct bvr_actor_s* bvr_link_actor_to_page(bvr_page_t* page, struct bvr_actor_s*
             {
                 bvr_memstream_write(&bvr_get_book_instance()->garbage_stream, actor, sizeof(bvr_landscape_actor_t));
             }
-        default:
-            break;
-        }
-#else
-        *aptr = actor;
-        switch (actor->type)
-        {
-        case BVR_BITMAP_ACTOR:
-            bvr_link_collider_to_page(page, &((bvr_bitmap_layer_t*)actor)->collider);
-        case BVR_DYNAMIC_ACTOR:
-            bvr_link_collider_to_page(page, &((bvr_dynamic_actor_t*)actor)->collider);
-            break;
-        
         default:
             break;
         }

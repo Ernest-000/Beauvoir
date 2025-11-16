@@ -26,10 +26,14 @@
 
 #define BVR_SHADER_EXT_GLOBAL_ILLUMINATION BVR_SHADER_EXT_LIGHT
 
-#define BVR_UNIFORM_NONE        0x000
-#define BVR_UNIFORM_TRANSFORM   0x001
-#define BVR_UNIFORM_TEXTURE     0x002
-#define BVR_UNIFORM_LAYER_INDEX 0x004
+enum bvr_uniform_tag_e {
+    BVR_UNIFORM_NONE = 0x000,
+    BVR_UNIFORM_PROJECTION = 0x001,
+    BVR_UNIFORM_TRANSFORM = 0x002,
+    BVR_UNIFORM_LOCAL_TRANSFORM = 0x003,
+    BVR_UNIFORM_TEXTURE = 0x004,
+    BVR_UNIFORM_LAYER_INDEX = 0x005
+};
 
 typedef struct bvr_shader_uniform_s {
     struct bvr_buffer_s memory;
@@ -105,9 +109,20 @@ int bvri_create_shader_vert_frag(bvr_shader_t* shader, const char* vert, const c
 /*
     Bind a new shader uniform.
 */
-bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type, int count, const char* name);
+bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type, enum bvr_uniform_tag_e tag, int count, const char* name);
 bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type, void* texture, const char* name);
 bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* name, int type, int count, int index);
+
+BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform_tag(bvr_shader_t* shader, enum bvr_uniform_tag_e tag){
+    for (uint64 i = 0; i < shader->uniform_count; i++)
+    {
+        if(shader->uniforms[i].tags == tag){
+            return &shader->uniforms[i];
+        }
+    }
+
+    return NULL;
+}
 
 BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform(bvr_shader_t* shader, const char* name){
     for (uint64 i = 1; i < shader->uniform_count; i++)

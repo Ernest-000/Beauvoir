@@ -114,7 +114,7 @@ void bvri_break(const char* __file, unsigned long long __line);
 )
 #endif
 
-#define BVR_FILE_EXISTS(path) (void)(((access(path, F_OK) != 0) ? bvri_wassert(path, __FILE__, __LINE__) : 0))
+#define BVR_FILE_EXISTS(path) (void)(((access(path, F_OK) == 0) ? 0 : bvri_wassert(path, __FILE__, __LINE__)))
 
 #define BVR_BREAK() (void)(bvri_break(__FILE__, __LINE__))
 

@@ -623,17 +623,10 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
         json_pritimive = json_object_object_get(json_mesh, "primitives");
 
         group->texture = 0;
-        group->name.length = json_object_get_string_len(json_object_object_get(json_node, "name"));
-        group->name.string = malloc(group->name.length);
-        strncpy(group->name.string, 
-            json_object_get_string(json_object_object_get(json_node, "name")), 
-            group->name.length
-        );
-
-        group->name.string[group->name.length] = '\0';
-
         group->element_count = 0;
         group->element_offset = object.elements.count;
+
+        bvr_create_string(&group->name, json_object_get_string(json_object_object_get(json_node, "name")));
 
         bvri_gltfhandletransform(json_node, group);
 
@@ -664,7 +657,11 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
                 bvri_gltfpushbackattribute(&object, json_normal, 5, 8);
             }
         
-            json_object* json_elements = json_object_object_get(json_object_array_get_idx(json_pritimive, p), "indices");
+            json_object* json_elements = json_object_object_get(
+                json_object_array_get_idx(json_pritimive, p), 
+                "indices"
+            );
+            
             group->element_count += bvri_gltfpushbackattribute(&object, json_elements, 0, 1);
         }
         
@@ -809,6 +806,7 @@ static void bvri_gltfhandletransform(const json_object* node, bvr_vertex_group_t
         group->matrix[3][0] = json_object_get_double(json_object_array_get_idx(translation, 0));
         group->matrix[3][1] = json_object_get_double(json_object_array_get_idx(translation, 1));
         group->matrix[3][2] = json_object_get_double(json_object_array_get_idx(translation, 2));
+        BVR_PRINT_VEC3("", group->matrix[3]);
     }
 
     // if the node contains scaling informations

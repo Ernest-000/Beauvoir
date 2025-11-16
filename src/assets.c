@@ -341,10 +341,10 @@ void bvr_write_book_dataf(FILE* file, bvr_book_t* book){
                     fwrite(&landscape_byte_length, sizeof(uint32), 1, file);
                     
                     glBindBuffer(GL_ARRAY_BUFFER, landscape->mesh.vertex_buffer);
-                    float* map = glMapBufferRange(GL_ARRAY_BUFFER, 0, landscape_byte_length, GL_MAP_READ_BIT);
+                    int* map = glMapBufferRange(GL_ARRAY_BUFFER, 0, landscape_byte_length, GL_MAP_READ_BIT);
                     
                     if(map){
-                        fwrite(map, landscape_byte_length, 1, file);
+                        fwrite(map, sizeof(char), landscape_byte_length, file);
                         
                         glUnmapBuffer(GL_ARRAY_BUFFER);
                         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -586,16 +586,21 @@ void bvr_open_book_dataf(FILE* file, bvr_book_t* book){
 
                     // size of the landscape buffer
                     uint32 landscape_bytes_length = bvr_fread32_le(file);
+
+                    // clamp byte size
+                    landscape_bytes_length = MIN(landscape_bytes_length, landscape->mesh.vertex_count * sizeof(int));
                     
                     if(landscape->mesh.array_buffer && landscape->mesh.vertex_buffer){
                         glBindBuffer(GL_ARRAY_BUFFER, landscape->mesh.vertex_buffer);
-                        float* map = glMapBufferRange(GL_ARRAY_BUFFER, 0, landscape_bytes_length, GL_MAP_WRITE_BIT);
+                        int* map = glMapBufferRange(GL_ARRAY_BUFFER, 0, landscape_bytes_length, GL_MAP_WRITE_BIT);
                         
                         if(map){
                             fread(map, sizeof(char), landscape_bytes_length, file);
+
                             glUnmapBuffer(GL_ARRAY_BUFFER);
-                            glBindBuffer(GL_ARRAY_BUFFER, 0);
                         }
+
+                        glBindBuffer(GL_ARRAY_BUFFER, 0);
                     }
 
                 }

@@ -9,6 +9,28 @@
 #include <memory.h>
 #include <malloc.h>
 
+static const char* __frbuffer_vertex_shdr = "#version 400\n"
+"layout(location=0) in vec2 in_position;\n"
+"layout(location=1) in vec2 in_uvs;\n"
+"uniform mat4 bvr_projection;\n"
+"out V_DATA {\n"
+"	vec2 uvs;\n"
+"} vertex;\n"
+"void main() {\n"
+"	gl_Position = bvr_projection * vec4(in_position, 0.0, 1.0);\n"
+"	vertex.uvs = in_uvs;\n"
+"}";
+
+static const char* __frbuffer_frag_shdr = "#version 400\n"
+"in V_DATA {\n"
+"vec2 uvs;\n"
+"} vertex;\n"
+"uniform sampler2D bvr_texture;\n"
+"void main() {\n"
+	"vec4 tex = texture(bvr_texture, vertex.uvs);\n"
+	"gl_FragColor = vec4(tex.rgb, 1.0);\n"
+"}";
+
 void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
     BVR_ASSERT(state);
 
@@ -82,13 +104,13 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
 }
 
 void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
-    bvr_shader_enable(cmd->shader);
-    
     // try to apply local uniform
-    bvr_shader_use_uniform(
-        bvr_find_uniform(cmd->shader, "bvr_local"), 
-        &cmd->vertex_group.matrix[0][0]
+    bvr_shader_set_uniformi(
+        bvr_find_uniform_tag(cmd->shader, BVR_UNIFORM_LOCAL_TRANSFORM), 
+        cmd->vertex_group.matrix
     );
+
+    bvr_shader_enable(cmd->shader);
 
     glBindVertexArray(cmd->array_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, cmd->vertex_buffer);
@@ -101,11 +123,12 @@ void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
     
     // if use element 
     if(cmd->element_buffer){ 
-        glDrawElementsBaseVertex(cmd->draw_mode, 
-            cmd->vertex_group.element_count, 
-            cmd->element_type, 
-            NULL, 
-            cmd->vertex_group.element_offset
+        glDrawRangeElements(
+            cmd->draw_mode, 
+            cmd->vertex_group.element_offset,
+            cmd->vertex_group.element_offset + cmd->vertex_group.element_count,
+            cmd->vertex_group.element_count,
+            cmd->element_type, NULL
         );
     }
     else {
@@ -228,32 +251,8 @@ int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, const uint16 width, c
         bvr_create_shader(&framebuffer->shader, shader, BVR_FRAMEBUFFER_SHADER);
     }
     else {
-        const char* vertex_shader = 
-            "#version 400\n"
-            "layout(location=0) in vec2 in_position;\n"
-            "layout(location=1) in vec2 in_uvs;\n"
-            "uniform mat4 bvr_projection;\n"
-            "out V_DATA {\n"
-            "	vec2 uvs;\n"
-            "} vertex;\n"
-            "void main() {\n"
-            "	gl_Position = bvr_projection * vec4(in_position, 0.0, 1.0);\n"
-            "	vertex.uvs = in_uvs;\n"
-            "}";
-
-        const char* fragment_shader = 
-            "#version 400\n"
-            "in V_DATA {\n"
-	        "vec2 uvs;\n"
-            "} vertex;\n"
-            "uniform sampler2D bvr_texture;\n"
-            "void main() {\n"
-            	"vec4 tex = texture(bvr_texture, vertex.uvs);\n"
-            	"gl_FragColor = vec4(tex.rgb, 1.0);\n"
-            "}";
-        
-        bvri_create_shader_vert_frag(&framebuffer->shader, vertex_shader, fragment_shader);
-        bvr_shader_register_uniform(&framebuffer->shader, BVR_MAT4, 1, "bvr_projection");
+        bvri_create_shader_vert_frag(&framebuffer->shader, __frbuffer_vertex_shdr, __frbuffer_frag_shdr);
+        bvr_shader_register_uniform(&framebuffer->shader, BVR_MAT4, 1, BVR_UNIFORM_PROJECTION, "bvr_projection");
     }
 
     glGenFramebuffers(1, &framebuffer->buffer);
@@ -306,11 +305,12 @@ void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 const color){
 
 void bvr_framebuffer_blit(bvr_framebuffer_t* framebuffer){
     mat4x4 ortho;
-    mat4_ortho(ortho, 
-        -framebuffer->width  / 2.0f,
-         framebuffer->width  / 2.0f,
-        -framebuffer->height / 2.0f,
-         framebuffer->height / 2.0f,
+    float half_width = framebuffer->width * 0.5f;
+    float half_height = framebuffer->height * 0.5f;
+
+    mat4_ortho(ortho,  
+        -half_width, half_width,
+        -half_height, half_height,
         0.0f, 0.1f
     );
 

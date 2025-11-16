@@ -18,9 +18,10 @@ int bvri_landscape_process_selection(struct bvr_editor_s *editor, bvr_landscape_
 
         bvr_mouse_position(&mouse_pos[0], &mouse_pos[1]);
         bvr_screen_to_world_coords(editor->book, mouse_pos, world_pos);
+        BVR_PRINTF("mouse pos %f %f", mouse_pos[0], mouse_pos[1]);
 
-        mouse_tile_x = MAX(world_pos[0] - actor->object.transform.position[0], 0.0f) / actor->dimension.resolution[0];
-        mouse_tile_y = MAX(-world_pos[1] - actor->object.transform.position[1], 0.0f) / actor->dimension.resolution[1];
+        mouse_tile_x = MAX(world_pos[0] - actor->self.transform.position[0], 0.0f) / actor->dimension.resolution[0];
+        mouse_tile_y = MAX(-world_pos[1] - actor->self.transform.position[1], 0.0f) / actor->dimension.resolution[1];
 
         editor->memory.landscape.cursor[0] = (uint32)(MIN((int)mouse_tile_x, (int)actor->dimension.count[0] - 1));
         editor->memory.landscape.cursor[1] = (uint32)(MIN((int)mouse_tile_y, (int)actor->dimension.count[1] - 1));
@@ -40,10 +41,10 @@ int bvri_landscape_process_selection(struct bvr_editor_s *editor, bvr_landscape_
 
 struct bvr_tile_s bvri_landscape_get_tile(bvr_landscape_actor_t *actor, int id)
 {
-    int *vertices = NULL;
+    int* vertices = NULL;
     struct bvr_tile_s tile;
 
-    if (!id && id > actor->mesh.vertex_count)
+    if (!id && id >= actor->mesh.vertex_count)
     {
         return tile;
     }
@@ -100,6 +101,7 @@ static int bvri_landscapejson(FILE* file, bvr_landscape_actor_t* actor){
 
     BVR_ASSERT(json_width && json_height && json_layers);
 
+    // check for sizes
     if (json_object_get_int(json_width) != actor->dimension.count[0] &&
         json_object_get_int(json_height) != actor->dimension.count[1]){
         
@@ -108,15 +110,19 @@ static int bvri_landscapejson(FILE* file, bvr_landscape_actor_t* actor){
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, actor->mesh.vertex_buffer);
+
+    // check if memory is correctly unmapped
     tiles = (struct bvr_tile_s*)glMapBufferRange(GL_ARRAY_BUFFER, 0, 
-        actor->mesh.vertex_count * sizeof(int), GL_MAP_READ_BIT | GL_MAP_WRITE_BIT
+        actor->mesh.vertex_count * sizeof(int), GL_MAP_READ_BIT | GL_MAP_WRITE_BIT  
     );
 
+    // if we cannot get tiles informations
     if(!tiles){
-        BVR_PRINT("failed to read tiles informations!");
+        BVR_PRINTF("failed to read tiles informations! (0x%x)", glGetError());
         return BVR_FAILED;
     }
 
+    // iterate through layers
     for (size_t i = 0; i < json_object_array_length(json_layers); i++)
     {
         json_layer = json_object_array_get_idx(json_layers, i);
@@ -127,6 +133,7 @@ static int bvri_landscapejson(FILE* file, bvr_landscape_actor_t* actor){
         memory.string = NULL;
         memory.length = 0;
 
+        // check for sizes
         if (json_object_get_int(json_width) != actor->dimension.count[0] &&
             json_object_get_int(json_height) != actor->dimension.count[1]){
             
@@ -137,6 +144,7 @@ static int bvri_landscapejson(FILE* file, bvr_landscape_actor_t* actor){
         uint32 compression = bvr_hash(json_object_get_string(json_object_object_get(json_layer, "compression")));
         uint32 encoding = bvr_hash(json_object_get_string(json_object_object_get(json_layer, "encoding")));
 
+        // when there is no compression
         if(compression == 0){
             // no compression
 
@@ -148,6 +156,9 @@ static int bvri_landscapejson(FILE* file, bvr_landscape_actor_t* actor){
                     json_object_get_string_len(json_tiles),
                     (size_t*) &memory.length
                 );
+            }
+            else {
+                BVR_ASSERT(0 || "unsupported landscape encoding");
             }
 
         }
@@ -183,7 +194,7 @@ static int bvri_landscapejson(FILE* file, bvr_landscape_actor_t* actor){
     return BVR_OK;
 }
 
-int bvri_landscape_loadf(FILE* file, bvr_landscape_actor_t* actor){
+int bvr_landscape_loadf(FILE* file, bvr_landscape_actor_t* actor){
     BVR_ASSERT(actor);
     BVR_ASSERT(file);
 

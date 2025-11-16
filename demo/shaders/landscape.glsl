@@ -12,40 +12,57 @@ layout(std140) uniform bvr_camera {
 	mat4 bvr_view;
 };
 
-out V_DATA {
+out L_DATA {
 	vec2 uvs;
+	flat int vertex;
 } vertex;
 
 void main() {	
-	vec2 position = vec2(0.0);
+	vec3 position = vec3(0.0);
 
-	position.x = mod(gl_VertexID / 2, bvr_grid_size.x);
-	position.y = mod(gl_VertexID, 2);
+	float vertices_per_row = bvr_grid_size.x * 2.0 + 3.0;
+
+	float clamped_layer = mod(gl_VertexID, vertices_per_row * bvr_grid_size.y);
+	float row_index = mod(clamped_layer, vertices_per_row);
+	float clamped_index = clamp(row_index - 1.0, 0.0, vertices_per_row - 2);
+
+	position.x = floor(clamped_index / 2);
+	position.z = mod(clamped_index, 2);
 
 	// add rows
-	position.y += floor(gl_VertexID / (bvr_grid_size.x * 2));
+	position.z += floor(clamped_layer / (vertices_per_row));
 
-	vertex.uvs = position;
+	vertex.uvs = position.xz * vec2(1.0, -1.0);
+	vertex.vertex = i_vertex;
 
 	// size the grid to tile's dimensions
-	position *= bvr_grid_size.zw;
+	position.x *= bvr_grid_size.z;
+	position.z *= bvr_grid_size.w;
 
-	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(position.x, 0, position.y, 1.0);
+	position.y = i_vertex & 0xFF;
+
+	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(position, 1.0);
 }
 
 #endif
 
 #ifdef _FRAGMENT_
 
-in V_DATA {
+in L_DATA {
 	vec2 uvs;
+	flat int vertex;
 } vertex;
 
 uniform sampler2DArray bvr_texture;
 
 void main() {
-	vec4 tex = texture(bvr_texture, vec3(vertex.uvs, 12));
-	gl_FragColor = tex;
+	int texid = (0xFF00 & vertex.vertex) >> 8;
+	if(texid == 0) {
+		discard;
+	}
+
+	vec4 tex = texture(bvr_texture, vec3(vertex.uvs, texid));
+	gl_FragColor = vec4(tex.rgb, 1.0);
 }
 
 #endif

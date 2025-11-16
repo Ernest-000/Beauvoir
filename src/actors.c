@@ -40,7 +40,7 @@ static void bvri_update_transform(bvr_transform_t* transform){
 */
 static void bvri_create_generic_dynactor(bvr_dynamic_actor_t* actor, int flags){
     bvr_create_collider(&actor->collider, NULL, 0);
-    actor->collider.transform = &actor->object.transform;
+    actor->collider.transform = &actor->self.transform;
 
     actor->collider.body.mode = BVR_COLLISION_DISABLE;
     actor->collider.shape = BVR_COLLIDER_EMPTY;
@@ -83,7 +83,7 @@ static void bvri_create_dynamic_actor(bvr_dynamic_actor_t* actor, int flags){
             vertices = glMapBufferRange(GL_ARRAY_BUFFER, 0, actor->mesh.vertex_count, GL_MAP_READ_BIT);
             BVR_ASSERT(vertices);
 
-            vec2_copy(bounds.coords, actor->object.transform.position);
+            vec2_copy(bounds.coords, actor->self.transform.position);
             bounds.width = 0;
             bounds.height = 0;
 
@@ -406,7 +406,8 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
 static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     struct bvr_draw_command_s cmd;
 
-    const bvr_shader_uniform_t* layer_uniform = bvr_find_uniform(&actor->shader, "bvr_texture_z");
+    bvri_update_transform(&actor->self.transform);
+    bvr_shader_set_uniformi(&actor->shader.uniforms[0], &actor->self.transform.matrix[0][0]);
 
     bvr_layer_t* layer;
     for (int id = BVR_BUFFER_COUNT(actor->texture.image.layers); id >= 0; id--)
@@ -414,17 +415,16 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
         layer = &((bvr_layer_t*)actor->texture.image.layers.data)[id];
         if(!layer->opacity){
             continue;
-        }        
+        }
 
         bvr_texture_enable(&actor->texture);
+        
+        bvr_shader_set_uniformi(
+            bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_LAYER_INDEX), 
+            &id
+        );
 
-        bvr_shader_enable(&actor->shader);
-        bvri_update_transform(&actor->object.transform);
-
-        bvr_shader_use_uniform(&actor->shader.uniforms[0], &actor->object.transform.matrix[0][0]);
-        bvr_shader_set_uniformi(layer_uniform, &id);
-
-        cmd.order = actor->object.order_in_layer + id;
+        cmd.order = actor->self.order_in_layer + id;
         if(BVR_HAS_FLAG(layer->flags, BVR_LAYER_Y_SORTED)){
             cmd.order += layer->anchor_y;
         }
@@ -443,18 +443,14 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
 
         bvr_pipeline_draw_cmd(&cmd);
     }
-
-    bvr_shader_disable();
 }
 
 static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){
-    bvr_shader_enable(&actor->shader);
-
-    bvri_update_transform(&actor->object.transform);
-    bvr_shader_set_uniformi(&actor->shader.uniforms[0], actor->object.transform.matrix);
+    bvri_update_transform(&actor->self.transform);
+    bvr_shader_set_uniformi(&actor->shader.uniforms[0], actor->self.transform.matrix);
     
     struct bvr_draw_command_s cmd;
-    cmd.order = actor->object.order_in_layer;
+    cmd.order = actor->self.order_in_layer;
 
     cmd.array_buffer = actor->mesh.array_buffer;
     cmd.vertex_buffer = actor->mesh.vertex_buffer;
@@ -471,8 +467,6 @@ static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){
         
         bvr_pipeline_add_draw_cmd(&cmd);
     }
-    
-    bvr_shader_disable();
 }
 
 void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
@@ -502,8 +496,7 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
 
     bvr_static_actor_t* _actor = (bvr_static_actor_t*)actor;
 
-    bvr_shader_enable(&_actor->shader);
-    bvr_shader_use_uniform(&_actor->shader.uniforms[0], actor->transform.matrix);
+    bvr_shader_set_uniformi(&_actor->shader.uniforms[0], actor->transform.matrix);
 
     struct bvr_draw_command_s cmd;
     
@@ -522,8 +515,8 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     BVR_POOL_FOR_EACH(group, _actor->mesh.vertex_groups){
         cmd.vertex_group = group;
         
-        bvr_pipeline_add_draw_cmd(&cmd);
+        if(!BVR_HAS_FLAG(group.flags, BVR_VERTEX_GROUP_FLAG_INVISIBLE)){
+            bvr_pipeline_add_draw_cmd(&cmd);
+        }
     }
-
-    bvr_shader_disable();
 }

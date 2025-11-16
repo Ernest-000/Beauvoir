@@ -3,6 +3,7 @@
 #include <BVR/buffer.h>
 #include <BVR/math.h>
 #include <BVR/actors.h>
+#include <BVR/camera.h>
 
 #include <BVR/window.h>
 #include <BVR/audio.h>
@@ -10,9 +11,6 @@
 #include <BVR/lights.h>
 
 #include <stdint.h>
-
-#define BVR_CAMERA_ORTHOGRAPHIC 0x1
-#define BVR_CAMERA_PERSPECTIVE  0x2
 
 #ifndef BVR_MAX_SCENE_ACTOR_COUNT
     #define BVR_MAX_SCENE_ACTOR_COUNT 64
@@ -34,24 +32,6 @@
     #define BVR_FRAMERATE (1 / BVR_TARGET_FRAMERATE)
 #endif
 
-typedef struct bvr_camera_s {
-    uint32 mode;
-
-    struct bvr_transform_s transform;
-    bvr_framebuffer_t* framebuffer;
-    uint32 buffer; /* uniform buffer object reference */
-    
-    float near;
-    float far;
-    union bvr_camera_field_of_view_u
-    {
-        // ortho scale
-        float scale;
-
-        // perspective scale
-        float fov;
-    } field_of_view;
-} bvr_camera_t;
 
 /*
     Contains all world's informations and data
@@ -171,7 +151,6 @@ void bvr_disable_page(bvr_page_t* page);
 
 bvr_camera_t* bvr_create_orthographic_camera(bvr_page_t* page, bvr_framebuffer_t* framebuffer, float near, float far, float scale);
 
-void bvr_camera_lookat(bvr_page_t* page, vec3 target, vec3 up);
 
 /*
     Set the view matrix of the camera.

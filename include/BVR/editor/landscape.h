@@ -24,13 +24,13 @@ int bvri_landscape_process_selection(struct bvr_editor_s* editor, bvr_landscape_
 */
 struct bvr_tile_s bvri_landscape_get_tile(bvr_landscape_actor_t* actor, int id);
 
-int bvri_landscape_loadf(FILE* file, bvr_landscape_actor_t* actor);
+int bvr_landscape_loadf(FILE* file, bvr_landscape_actor_t* actor);
 
-BVR_H_FUNC int bvri_landscapeload(const char* path, bvr_landscape_actor_t* actor){
+BVR_H_FUNC int bvr_landscape_load(const char* path, bvr_landscape_actor_t* actor){
     BVR_FILE_EXISTS(path);
 
     FILE* file = fopen(path, "rb");
-    int result = bvri_landscape_loadf(file, actor);
+    int result = bvr_landscape_loadf(file, actor);
     fclose(file);
 
     return result;

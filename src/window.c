@@ -92,6 +92,8 @@ void bvr_window_poll_events(){
     SDL_StartTextInput(window->handle);
 
     window->inputs.scroll = 0.0f;
+    window->inputs.relative_motion[0] = 0.0f;
+    window->inputs.relative_motion[1] = 0.0f;
 
     window->events = 0;
     while(SDL_PollEvent(&event)){
@@ -268,10 +270,19 @@ void bvri_file_dialog_callback(void (*userdata) (bvr_string_t* path), const char
     bvr_destroy_string(&string);
 }
 
-void bvr_open_file_dialog(void (*callback) (bvr_string_t* path)){
+void bvr_open_file_dialog(void (*callback) (bvr_string_t* path), const char* filters, bool allow_many){
+    /*SDL_DialogFileFilter filter;
+    filter.name = "All files";
+    filter.pattern = "*";
+
+    if(filters){
+        filter.name = "All images";
+        filter.pattern = filters;
+    }*/
+
     SDL_ShowOpenFileDialog(
         (SDL_DialogFileCallback)bvri_file_dialog_callback, callback, NULL,
-        NULL, 0, NULL, 0
+        NULL, 0, NULL, allow_many
     );
 }
 

@@ -24,6 +24,8 @@ bin/*.exe
 .vs/
 .idea/
 build/
+bin/
+lib/
 share/
 CMakeFiles/
 licenses/
@@ -37,4 +39,5 @@ Testing/
 # Beauvoir in-dev folders and files
 res/
 dev/
+*.bin
 doxygen.py

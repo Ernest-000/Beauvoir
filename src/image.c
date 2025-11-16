@@ -49,8 +49,7 @@ static int bvri_is_png(FILE* __file) {
 }
 
 static void bvri_png_error(png_structp sptr, png_const_charp cc){
-    BVR_PRINT(cc);
-    BVR_ASSERT(0);
+    BVR_ASSERT(cc || 0);
 }
 
 static int bvri_load_png(bvr_image_t* image, FILE* file){

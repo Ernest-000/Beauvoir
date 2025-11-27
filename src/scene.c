@@ -9,9 +9,14 @@
 
 #include <malloc.h>
 
-static bvr_book_t* __book_instance = NULL;
+#define BVR_SCENE_PADDING (sizeof(bvr_layer_actor_t) + sizeof(int))
 
-int bvr_create_book(bvr_book_t* book){
+static bvr_book_t *__book_instance = NULL;
+
+static size_t bvri_actor_size(bvr_actor_type_t type);
+
+int bvr_create_book(bvr_book_t *book)
+{
     BVR_ASSERT(book);
     BVR_ASSERT(!__book_instance);
 
@@ -44,24 +49,21 @@ int bvr_create_book(bvr_book_t* book){
     memset(&book->pipeline.commands, 0, sizeof(book->pipeline.commands));
 
     bvr_create_memstream(&book->asset_stream, 0);
-
-/*#ifdef BVR_SCENE_AUTO_HEAP
     bvr_create_memstream(
-        &book->garbage_stream, 
-        BVR_MAX_SCENE_ACTOR_COUNT * sizeof(bvr_dynamic_actor_t) +
-        BVR_MAX_SCENE_LIGHT_COUNT * sizeof(struct bvr_light_s)
+        &book->garbage_stream,
+        (BVR_MAX_SCENE_ACTOR_COUNT + BVR_MAX_SCENE_LIGHT_COUNT) * BVR_SCENE_PADDING
     );
-#else
-    bvr_create_memstream(&book->garbage_stream, 0);
-#endif*/
+
     return BVR_OK;
 }
 
-bvr_book_t* bvr_get_book_instance(){
+bvr_book_t *bvr_get_book_instance()
+{
     return __book_instance;
 }
 
-void bvr_new_frame(bvr_book_t* book){
+void bvr_new_frame(bvr_book_t *book)
+{
     bvr_window_poll_events();
 
     book->timer.current_time = bvr_frames();
@@ -77,77 +79,10 @@ void bvr_new_frame(bvr_book_t* book){
     book->pipeline.command_count = 0;
 
     /* calculate camera matrices */
-    mat4x4 projection, view;
-    bvr_camera_t* camera = &book->page.camera;
-    BVR_IDENTITY_MAT4(projection);
-    BVR_IDENTITY_MAT4(view);
+    bvr_update_camera(&book->page.camera);
 
-    if(camera->mode == BVR_CAMERA_ORTHOGRAPHIC){
-        float width =   1.0f / camera->framebuffer->target_width * camera->field_of_view.scale;
-        float height =  1.0f / camera->framebuffer->target_height * camera->field_of_view.scale;
-        float farnear = 1.0f / (camera->far - camera->near);
-
-        projection[0][0] = 2.0f * -width;
-        projection[1][1] = 2.0f * height;
-        projection[2][2] = farnear;
-        projection[3][0] = -width;
-        projection[3][1] = -height;
-        projection[3][2] = -camera->near * farnear;
-        projection[3][3] =  1.0f;
-    }
-
+    if (book->page.global_illumination.buffer)
     {
-        vec3 front, right, up, side;
-
-        const vec3 up_axis = {0.0f, 1.0f, 0.0f};
-        front[0] = cos(deg_to_rad(camera->transform.rotation[2]) + M_PI_2) * cos(deg_to_rad(camera->transform.rotation[1]));
-        front[1] = sin(deg_to_rad(camera->transform.rotation[1]));
-        front[2] = sin(deg_to_rad(camera->transform.rotation[2]) + M_PI_2) * cos(deg_to_rad(camera->transform.rotation[1]));
-    
-        vec3_norm(front, front);
-
-        vec3_mul_cross(right, front, up_axis);
-        vec3_norm(right, right);
-
-        vec3_mul_cross(up, right, front);
-        vec3_norm(up, up);
-        vec3_norm(front, front);
-
-        vec3_mul_cross(side, front, up);
-        vec3_norm(side, side);
-
-        vec3_mul_cross(up, side, front);
-        vec3_norm(up, up);
-
-        view[0][0] = side[0];
-        view[1][0] = side[1];
-        view[2][0] = side[2];
-        view[3][0] = -vec3_dot(side, camera->transform.position);
-        view[0][1] = up[0];
-        view[1][1] = up[1];
-        view[2][1] = up[2];
-        view[3][1] = -vec3_dot(up, camera->transform.position);
-        view[0][2] = -front[0];
-        view[1][2] = -front[1];
-        view[2][2] = -front[2];
-        view[3][2] = vec3_dot(front, camera->transform.position);
-        view[0][3] = 0.0f;
-        view[1][3] = 0.0f;
-        view[1][3] = 0.0f;
-        view[3][3] = 1.0f;
-    }
-
-    if(book->page.camera.framebuffer){
-        bvr_enable_uniform_buffer(book->page.camera.buffer);
-        bvr_uniform_buffer_set(0, sizeof(mat4x4), &projection[0][0]);
-        bvr_uniform_buffer_set(sizeof(mat4x4), sizeof(mat4x4), &view[0][0]);
-        bvr_enable_uniform_buffer(0);
-    }
-    else {
-        BVR_PRINT("missing camera");
-    }
-
-    if(book->page.global_illumination.buffer){        
         bvr_enable_uniform_buffer(book->page.global_illumination.buffer);
         bvr_uniform_buffer_set(0, sizeof(vec4), &book->page.global_illumination.light.position[0]);
         bvr_uniform_buffer_set(sizeof(vec4), sizeof(vec4), &book->page.global_illumination.light.direction[0]);
@@ -156,66 +91,75 @@ void bvr_new_frame(bvr_book_t* book){
     }
 }
 
-void bvr_update(bvr_book_t* book){
-    bvr_collider_t* collider = NULL;
-    bvr_collider_t* other = NULL;
+void bvr_update(bvr_book_t *book)
+{
+    bvr_collider_t *collider = NULL;
+    bvr_collider_t *other = NULL;
 
-    if(!bvr_is_active(book)){
+    if (!bvr_is_active(book))
+    {
         return;
     }
 
-    BVR_POOL_FOR_EACH(collider, book->page.colliders){        
+    BVR_POOL_FOR_EACH(collider, book->page.colliders)
+    {
 
-        if(!collider){
+        if (!collider)
+        {
             break;
         }
 
         // update collider infos
-        if(collider->shape == BVR_COLLIDER_BOX){
-            vec2_copy(((struct bvr_bounds_s*)collider->geometry.data)->coords, collider->transform->position);
+        if (collider->shape == BVR_COLLIDER_BOX)
+        {
+            vec2_copy(((struct bvr_bounds_s *)collider->geometry.data)->coords, collider->transform->position);
         }
 
         // collision are disabled
-        if(!BVR_HAS_FLAG(collider->body.mode, BVR_COLLISION_ENABLE)){
-            
+        if (!BVR_HAS_FLAG(collider->body.mode, BVR_COLLISION_ENABLE))
+        {
+
             continue;
         }
 
         // if this actor is aggressive
-        if(BVR_HAS_FLAG(collider->body.mode, BVR_COLLISION_AGRESSIVE)){
+        if (BVR_HAS_FLAG(collider->body.mode, BVR_COLLISION_AGRESSIVE))
+        {
 
             struct bvr_collision_result_s result;
 
-            BVR_POOL_FOR_EACH(other, book->page.colliders){
-                if(!other){
+            BVR_POOL_FOR_EACH(other, book->page.colliders)
+            {
+                if (!other)
+                {
                     break;
                 }
 
                 bvr_compare_colliders(collider, other, &result);
 
-                if(result.collide == 1){
+                if (result.collide == 1)
+                {
                     bvr_invert_direction(&collider->body);
                     BVR_IDENTITY_VEC3(collider->body.direction);
 
                     break;
                 }
             }
-
         }
 
         bvr_body_apply_motion(&collider->body, collider->transform);
     }
 }
 
-void bvr_flush(bvr_book_t* book){
+void bvr_flush(bvr_book_t *book)
+{
     // draw each element of the draw command array
     qsort(
-        book->pipeline.commands, 
-        book->pipeline.command_count, 
-        sizeof(struct bvr_draw_command_s), 
-        bvr_pipeline_compare_commands
-    );
-    
+        book->pipeline.commands,
+        book->pipeline.command_count,
+        sizeof(struct bvr_draw_command_s),
+        bvr_pipeline_compare_commands);
+
     for (uint64 i = 0; i < book->pipeline.command_count; i++)
     {
         bvr_pipeline_draw_cmd(&book->pipeline.commands[i]);
@@ -224,10 +168,12 @@ void bvr_flush(bvr_book_t* book){
     book->pipeline.command_count = 0;
 }
 
-void bvr_render(bvr_book_t* book){
-    
+void bvr_render(bvr_book_t *book)
+{
+
     // if there is still draw commands, flush
-    if(book->pipeline.command_count){
+    if (book->pipeline.command_count)
+    {
         bvr_flush(book);
     }
 
@@ -244,8 +190,9 @@ void bvr_render(bvr_book_t* book){
 
 #ifndef BVR_NO_FPS_CAP
     // wait for next frame.
-    double delay = BVR_TARGET_FRAMERATE * 0.25 - (bvr_frames() - book->timer.current_time);  
-    if(delay > 0){
+    double delay = BVR_TARGET_FRAMERATE * 0.25 - (bvr_frames() - book->timer.current_time);
+    if (delay > 0)
+    {
         bvr_delay(delay);
     }
 #endif
@@ -253,10 +200,11 @@ void bvr_render(bvr_book_t* book){
     book->timer.frames++;
     book->timer.frame_timer += book->timer.delta_time;
 
-    //book->average_render_time = (int)(flerp((float)book->average_render_time, (float)(book->frames / book->frame_timer), 0.5f));
+    // book->average_render_time = (int)(flerp((float)book->average_render_time, (float)(book->frames / book->frame_timer), 0.5f));
     book->timer.prev_time = book->timer.current_time;
 
-    if(book->timer.frames > BVR_TARGET_FRAMERATE){
+    if (book->timer.frames > BVR_TARGET_FRAMERATE)
+    {
         book->timer.average_render_time = book->timer.frames / book->timer.frame_timer;
         book->timer.frames = 0;
         book->timer.frame_timer = book->timer.delta_time;
@@ -265,30 +213,34 @@ void bvr_render(bvr_book_t* book){
     bvr_poll_errors();
 }
 
-void bvr_destroy_book(bvr_book_t* book){
-    if(book->window.context){
+void bvr_destroy_book(bvr_book_t *book)
+{
+    if (book->window.context)
+    {
         bvr_destroy_window(&book->window);
     }
 
-    if(book->audio.stream){
+    if (book->audio.stream)
+    {
         bvr_destroy_audio_stream(&book->audio);
     }
 
     bvr_destroy_page(&book->page);
 
     bvr_destroy_memstream(&book->asset_stream);
-    bvr_destroy_memstream(&book->garbage_stream);    
+    bvr_destroy_memstream(&book->garbage_stream);
 }
 
-int bvr_create_page(bvr_page_t* page, const char* name){
+int bvr_create_page(bvr_page_t *page, const char *name)
+{
     BVR_ASSERT(page);
 
-    page->camera.buffer = 0;
-    page->camera.far = 0;
-    page->camera.near = 0;
-    page->camera.field_of_view.fov = 0;
-    page->camera.framebuffer = NULL;
     page->camera.mode = 0;
+    page->camera.buffer = 0;
+    page->camera.far = 0.0f;
+    page->camera.near = 0.0f;
+    page->camera.framebuffer = NULL;
+    page->camera.field_of_view.scale = 0;
 
     page->global_illumination.buffer = 0;
     page->global_illumination.light.intensity = 255.0f;
@@ -300,23 +252,26 @@ int bvr_create_page(bvr_page_t* page, const char* name){
 
     bvr_create_string(&page->name, name);
 
-    bvr_create_pool(&page->actors, sizeof(struct bvr_actor_s*), BVR_MAX_SCENE_ACTOR_COUNT);
-    bvr_create_pool(&page->colliders, sizeof(bvr_collider_t*), BVR_COLLIDER_COLLECTION_SIZE);
-    bvr_create_pool(&page->lights, sizeof(struct bvr_light_s*), BVR_MAX_SCENE_LIGHT_COUNT);
+    bvr_create_pool(&page->actors, sizeof(struct bvr_actor_s *), BVR_MAX_SCENE_ACTOR_COUNT);
+    bvr_create_pool(&page->colliders, sizeof(bvr_collider_t *), BVR_COLLIDER_COLLECTION_SIZE);
+    bvr_create_pool(&page->lights, sizeof(struct bvr_light_s *), BVR_MAX_SCENE_LIGHT_COUNT);
 
     // create global lighting
-    bvr_global_illumination_t** gl = (bvr_global_illumination_t**)bvr_pool_alloc(&page->lights);
+    bvr_global_illumination_t **gl = (bvr_global_illumination_t **)bvr_pool_alloc(&page->lights);
     *gl = &page->global_illumination;
 
     return BVR_OK;
 }
 
-void bvr_enable_page(bvr_page_t* page){
-    if(page == &__book_instance->page){
+void bvr_enable_page(bvr_page_t *page)
+{
+    if (page == &__book_instance->page)
+    {
         return;
     }
 
-    if(bvr_is_active(__book_instance)){
+    if (bvr_is_active(__book_instance))
+    {
         bvr_disable_page(&__book_instance->page);
     }
 
@@ -325,16 +280,19 @@ void bvr_enable_page(bvr_page_t* page){
 #ifdef BVR_AUTO_SAVE
     // load page's datas
     bvr_asset_t asset;
-    if(bvr_find_asset(BVR_FORMAT("%s.bin", __book_instance->page.name.string), &asset)){
+    if (bvr_find_asset(BVR_FORMAT("%s.bin", __book_instance->page.name.string), &asset))
+    {
         bvr_open_book(BVR_FORMAT("%s.bin", __book_instance->page.name.string), bvr_get_book_instance());
     }
 #endif
 }
 
-void bvr_disable_page(bvr_page_t* page){
+void bvr_disable_page(bvr_page_t *page)
+{
 #ifdef BVR_AUTO_SAVE
     // sage page's data
-    if(access(BVR_FORMAT("%s.bin", __book_instance->page.name.string), F_OK)){
+    if (access(BVR_FORMAT("%s.bin", __book_instance->page.name.string), F_OK))
+    {
         bvr_write_book(BVR_FORMAT("%s.bin", __book_instance->page.name.string), bvr_get_book_instance());
     }
 #endif
@@ -345,132 +303,66 @@ void bvr_disable_page(bvr_page_t* page){
     bvr_destroy_page(&__book_instance->page);
 }
 
-bvr_camera_t* bvr_create_orthographic_camera(bvr_page_t* page, bvr_framebuffer_t* framebuffer, float near, float far, float scale){
+struct bvr_actor_s *bvr_alloc_actor(bvr_page_t *page, bvr_actor_type_t type)
+{
     BVR_ASSERT(page);
 
-    page->camera.mode = BVR_CAMERA_ORTHOGRAPHIC;
-    page->camera.framebuffer = framebuffer;
-    page->camera.near = near;
-    page->camera.far = far;
-    page->camera.field_of_view.scale = scale;
-    
-    BVR_IDENTITY_VEC3(page->camera.transform.position);
-    BVR_IDENTITY_VEC4(page->camera.transform.rotation);
-    BVR_IDENTITY_VEC3(page->camera.transform.scale);
-    BVR_IDENTITY_MAT4(page->camera.transform.matrix);
+    struct bvr_actor_s** pp_actor;
+    const size_t actor_byte_size = bvri_actor_size(type);
 
-    bvr_create_uniform_buffer(&page->camera.buffer, 2 * sizeof(mat4x4), BVR_UNIFORM_BLOCK_CAMERA);
-
-    // TODO: find another function to create global illumination 
-    bvr_create_uniform_buffer(&page->global_illumination.buffer, 3 * sizeof(vec4), BVR_UNIFORM_BLOCK_GLOBAL_ILLUMINATION);
-
-    return &page->camera;
-}
-
-void bvr_screen_to_world_coords(bvr_book_t* book, vec2 screen_coords, vec3 world_coords){
-    BVR_ASSERT(book);
-
-    if(!vec2_dot(screen_coords, screen_coords)){
-        return;
+    // check if this actor can be added
+    if(actor_byte_size <= 0 || actor_byte_size >= BVR_SCENE_PADDING){
+        BVR_PRINT("failed to allocate a new actor :<");
+        return NULL;
     }
 
-    vec4 world, screen;
-    mat4x4 projection, view, inv;
-    
-    bvr_enable_uniform_buffer(book->page.camera.buffer);
+    // get actor's pool pointer
+    pp_actor = (struct bvr_actor_s **)bvr_pool_alloc(&page->actors);
 
-    mat4x4* buffer_ptr = bvr_uniform_buffer_map(0, 2 * sizeof(mat4x4));
-    if(buffer_ptr){
-        memcpy(projection, &buffer_ptr[0], sizeof(mat4x4));
-        memcpy(view, &buffer_ptr[1], sizeof(mat4x4));
+    // define actor's pointer as current memory stream cursor
+    *pp_actor = (struct bvr_actor_s *)__book_instance->garbage_stream.cursor;
 
-        bvr_uniform_buffer_close();
-        bvr_enable_uniform_buffer(0);
+    // everything heaped is padded to a certain constant value
+    memset(*pp_actor, 0, BVR_SCENE_PADDING);
 
-        screen[0] = 2.0f * (screen_coords[0] / (book->window.framebuffer.width)) - 1.0f;
-        screen[1] = 1.0f - 2.0f * (screen_coords[1] / (book->window.framebuffer.height));
-        screen[2] = 0.0f;
-        screen[3] = 1.0f;
-        
-        mat4_mul(projection, projection, view);
-        mat4_inv(inv, projection);
-        mat4_mul_vec4(world, inv, screen);
+    bvr_memstream_write(
+        &__book_instance->garbage_stream,
+        NULL,
+        BVR_SCENE_PADDING
+    );
 
-        world[3] = 1.0f / world[3] * 2.0f;
-        world_coords[0] = world[0] * world[3];
-        world_coords[1] = world[1] * world[3];
-        world_coords[2] = world[2] * world[3];
-        return;
-    }
+    BVR_PRINTF("alloacted a new actor (%x) remains %i bytes", 
+        *pp_actor, __book_instance->garbage_stream.size - (size_t)(__book_instance->garbage_stream.cursor - (char*)__book_instance->garbage_stream.data)
+    );
 
-    world_coords[0] = 0.0f;
-    world_coords[1] = 0.0f;
-    world_coords[2] = 0.0f;
+    // types that have colliders
+    if(type == BVR_DYNAMIC_ACTOR || type == BVR_TEXTURE_ACTOR){
+        bvr_register_collider(page, &((bvr_dynamic_actor_t*)*pp_actor)->collider);
+    }   
+
+    return *pp_actor;
 }
 
-struct bvr_actor_s* bvr_link_actor_to_page(bvr_page_t* page, struct bvr_actor_s* actor){
+void bvr_free_actor(bvr_page_t* page, struct bvr_actor_s* actor){
     BVR_ASSERT(page);
     
     if(actor){
-        struct bvr_actor_s** aptr = (struct bvr_actor_s**) bvr_pool_alloc(&page->actors);
+        bvr_destroy_actor(actor);
+        bvr_pool_free(&page->actors, actor);
 
-#ifdef BVR_SCENE_AUTO_HEAP
-        *aptr = (struct bvr_actor_s*) bvr_get_book_instance()->garbage_stream.cursor;
-
-        switch (actor->type)
-        {
-        case BVR_NULL_ACTOR:        
-            break;
-        case BVR_EMPTY_ACTOR:
-            bvr_memstream_write(&bvr_get_book_instance()->garbage_stream, actor, sizeof(bvr_empty_actor_t));
-            break;
-
-        case BVR_LAYER_ACTOR:
-            {
-                bvr_memstream_write(&bvr_get_book_instance()->garbage_stream, actor, sizeof(bvr_layer_actor_t));
-            }
-            break;
-
-        case BVR_BITMAP_ACTOR:
-            {
-                bvr_collider_t* collider = bvr_link_collider_to_page(page, &((bvr_bitmap_layer_t*)*aptr)->collider);
-                bvr_memstream_write(&bvr_get_book_instance()->garbage_stream, actor, sizeof(bvr_bitmap_layer_t));
-                collider->transform = &(*aptr)->transform;
-            }
-            break;
-
-        case BVR_STATIC_ACTOR:
-            bvr_memstream_write(&bvr_get_book_instance()->garbage_stream, actor, sizeof(bvr_static_actor_t));
-            break;
-
-        case BVR_DYNAMIC_ACTOR:
-            {
-                bvr_collider_t* collider = bvr_link_collider_to_page(page, &((bvr_dynamic_actor_t*)*aptr)->collider);
-                bvr_memstream_write(&bvr_get_book_instance()->garbage_stream, actor, sizeof(bvr_dynamic_actor_t));
-                collider->transform = &(*aptr)->transform;
-            }
-            break;
-        case BVR_LANDSCAPE_ACTOR:
-            {
-                bvr_memstream_write(&bvr_get_book_instance()->garbage_stream, actor, sizeof(bvr_landscape_actor_t));
-            }
-        default:
-            break;
-        }
-#endif
-        BVR_PRINTF("linked %s to the page!", (*aptr)->name.string);
-        return *aptr;
+        __book_instance->garbage_stream.cursor = (char*)actor;
     }
-
-    return NULL;
 }
 
-bvr_collider_t* bvr_link_collider_to_page(bvr_page_t* page, bvr_collider_t* collider){
+bvr_collider_t *bvr_register_collider(bvr_page_t *page, bvr_collider_t *collider)
+{
     BVR_ASSERT(page);
 
-    if(collider){
-        bvr_collider_t** cptr = (bvr_collider_t**) bvr_pool_alloc(&page->colliders);
+    if (collider)
+    {
+        bvr_collider_t **cptr = (bvr_collider_t **)bvr_pool_alloc(&page->colliders);
         *cptr = collider;
+
         BVR_PRINTF("linked collider %x to the page!", *cptr);
         return *cptr;
     }
@@ -478,18 +370,21 @@ bvr_collider_t* bvr_link_collider_to_page(bvr_page_t* page, bvr_collider_t* coll
     return NULL;
 }
 
-
-struct bvr_actor_s* bvr_find_actor(bvr_book_t* book, const char* name){
+struct bvr_actor_s *bvr_find_actor(bvr_book_t *book, const char *name)
+{
     BVR_ASSERT(book);
     BVR_ASSERT(name);
 
-    struct bvr_actor_s* actor;
-    BVR_POOL_FOR_EACH(actor, book->page.actors){
-        if(actor == NULL){
+    struct bvr_actor_s *actor;
+    BVR_POOL_FOR_EACH(actor, book->page.actors)
+    {
+        if (actor == NULL)
+        {
             break;
         }
 
-        if(strncmp(actor->name.string, name, actor->name.length) == 0){
+        if (strncmp(actor->name.string, name, actor->name.length) == 0)
+        {
             return actor;
         }
     }
@@ -497,17 +392,21 @@ struct bvr_actor_s* bvr_find_actor(bvr_book_t* book, const char* name){
     return NULL;
 }
 
-struct bvr_actor_s* bvr_find_actor_uuid(bvr_book_t* book, bvr_uuid_t uuid){
+struct bvr_actor_s *bvr_find_actor_uuid(bvr_book_t *book, bvr_uuid_t uuid)
+{
     BVR_ASSERT(book);
     BVR_ASSERT(uuid);
 
-    struct bvr_actor_s* actor;
-    BVR_POOL_FOR_EACH(actor, book->page.actors){
-        if(actor == NULL){
+    struct bvr_actor_s *actor;
+    BVR_POOL_FOR_EACH(actor, book->page.actors)
+    {
+        if (actor == NULL)
+        {
             break;
         }
 
-        if(bvr_uuid_equals(actor->id, uuid)){
+        if (bvr_uuid_equals(actor->id, uuid))
+        {
             return actor;
         }
     }
@@ -515,29 +414,36 @@ struct bvr_actor_s* bvr_find_actor_uuid(bvr_book_t* book, bvr_uuid_t uuid){
     return NULL;
 }
 
-void bvr_destroy_page(bvr_page_t* page){
+void bvr_destroy_page(bvr_page_t *page)
+{
     BVR_ASSERT(page);
 
     int i = 0;
-    struct bvr_actor_s* actor = NULL;
-    BVR_POOL_FOR_EACH(actor, page->actors){
-        if(!actor) break;
-        
+    struct bvr_actor_s *actor = NULL;
+    BVR_POOL_FOR_EACH(actor, page->actors)
+    {
+        if (!actor)
+            break;
+
         // destroy actor
         bvr_destroy_actor(actor);
     }
 
-    bvr_collider_t* collider = NULL;
-    BVR_POOL_FOR_EACH(collider, page->colliders){
-        if(!collider) break;
+    bvr_collider_t *collider = NULL;
+    BVR_POOL_FOR_EACH(collider, page->colliders)
+    {
+        if (!collider)
+            break;
 
         // remove collider
         collider = NULL;
     }
 
-    struct bvr_light_s* light = NULL;
-    BVR_POOL_FOR_EACH(light, page->lights){
-        if(!light) break;
+    struct bvr_light_s *light = NULL;
+    BVR_POOL_FOR_EACH(light, page->lights)
+    {
+        if (!light)
+            break;
 
         // destroy light
     }
@@ -550,4 +456,29 @@ void bvr_destroy_page(bvr_page_t* page){
     bvr_destroy_pool(&page->actors);
     bvr_destroy_pool(&page->colliders);
     bvr_destroy_pool(&page->lights);
+}
+
+static size_t bvri_actor_size(bvr_actor_type_t type)
+{
+    switch (type)
+    {
+    case BVR_NULL_ACTOR:
+        return 0;
+    case BVR_EMPTY_ACTOR:
+        return sizeof(bvr_empty_actor_t);
+    case BVR_LAYER_ACTOR:
+        return sizeof(bvr_layer_actor_t);
+    case BVR_TEXTURE_ACTOR:
+        return sizeof(bvr_texture_actor_t);
+    case BVR_STATIC_ACTOR:
+        return sizeof(bvr_static_actor_t);
+    case BVR_DYNAMIC_ACTOR:
+        return sizeof(bvr_dynamic_actor_t);
+    case BVR_LANDSCAPE_ACTOR:
+        return sizeof(bvr_landscape_actor_t);
+    default:
+        return 0;
+    }
+
+    return 0;
 }

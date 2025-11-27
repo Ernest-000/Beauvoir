@@ -111,7 +111,7 @@ bvr_uuid_t* bvr_find_asset(const char* path, bvr_asset_t* asset){
     return uuid;
 }
 
-int bvr_find_asset_uuid(bvr_uuid_t uuid, bvr_asset_t* asset){
+int bvr_find_asset_uuid(const bvr_uuid_t uuid, bvr_asset_t* asset){
     BVR_ASSERT(asset);
 
     bvr_book_t* book = bvr_get_book_instance();
@@ -476,9 +476,7 @@ void bvr_open_book_dataf(FILE* file, bvr_book_t* book){
             float far = bvr_freadf(file);
             float scale = bvr_freadf(file);
 
-            bvr_create_orthographic_camera(page, 
-                &book->window.framebuffer, near, far, scale
-            );
+            bvr_create_camera(&book->page.camera, &book->window.framebuffer, BVR_CAMERA_ORTHOGRAPHIC, near, far, scale);
 
             // copy transform
             fread(&page->camera.transform, sizeof(bvr_transform_t), 1, file);            
@@ -542,7 +540,6 @@ void bvr_open_book_dataf(FILE* file, bvr_book_t* book){
                 target->flags = target_data.flags;
                 target->active = target_data.active;
                 target->order_in_layer = target_data.order_in_layer;
-                target->padding = 0;
 
                 memcpy(&target->transform, &target_data.transform, sizeof(bvr_transform_t));
             }

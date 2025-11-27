@@ -69,7 +69,7 @@ int main(){
         );
 
         /* link this object to a scene */
-        bvr_link_actor_to_page(&book.page, &player.self);
+        bvr_alloc_actor(&book.page, &player.self);
     }
 
     /* main loop */

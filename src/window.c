@@ -83,6 +83,7 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     }
 
     window->awake = 1;
+    window->focus = 1;
 }
 
 void bvr_window_poll_events(){
@@ -103,6 +104,12 @@ void bvr_window_poll_events(){
         {
         case SDL_EVENT_QUIT:
             window->awake = 0;
+            break;
+        case SDL_EVENT_WINDOW_FOCUS_GAINED:
+            window->focus = 1;
+            break;
+        case SDL_EVENT_WINDOW_FOCUS_LOST:
+            window->focus = 0;
             break;
         
         case SDL_EVENT_KEY_UP:

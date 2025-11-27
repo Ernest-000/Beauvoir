@@ -93,11 +93,15 @@ typedef struct bvr_pool_s {
     unsigned int elemsize;
 } bvr_pool_t;
 
+/*
+    Create a new memory stream which is a long pre-allocated memory space where things can be written.
+    Work like a FILE* but in-memory :D
+*/
 void bvr_create_memstream(bvr_memstream_t* stream, const uint64 size);
 
-void bvr_memstream_write(bvr_memstream_t* stream, const void* data, const uint64 size);
-void bvr_memstream_read(bvr_memstream_t* stream, void* dest, const uint64 size);
-void bvr_memstream_seek(bvr_memstream_t* stream, uint64 position, int mode);
+char* bvr_memstream_write(bvr_memstream_t* stream, const void* data, const uint64 size);
+char* bvr_memstream_read(bvr_memstream_t* stream, void* dest, const uint64 size);
+char* bvr_memstream_seek(bvr_memstream_t* stream, uint64 position, int mode);
 void bvr_memstream_clear(bvr_memstream_t* stream);
 
 BVR_H_FUNC int bvr_memstream_eof(bvr_memstream_t* stream){

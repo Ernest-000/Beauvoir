@@ -694,7 +694,7 @@ void bvr_editor_draw_inspector(){
                         
                     }
                     break;
-                case BVR_BITMAP_ACTOR:
+                case BVR_TEXTURE_ACTOR:
                     {
                         nk_label(__editor->gui.context, "BITMAP ACTOR", NK_TEXT_ALIGN_CENTERED);
                     }

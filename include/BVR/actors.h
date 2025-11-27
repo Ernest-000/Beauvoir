@@ -40,13 +40,16 @@
 */
 #define BVR_DYNACTOR_Y_SORTED   0x00100
 
+/*
+    When the bitmap actor is created, it will create a new collider
+*/
 #define BVR_BITMAP_CREATE_COLLIDER 0x01000
 
 typedef enum bvr_actor_type_e {
     BVR_NULL_ACTOR,
     BVR_EMPTY_ACTOR,
     BVR_LAYER_ACTOR,
-    BVR_BITMAP_ACTOR,
+    BVR_TEXTURE_ACTOR,
     BVR_STATIC_ACTOR,
     BVR_DYNAMIC_ACTOR,
     BVR_LANDSCAPE_ACTOR
@@ -61,13 +64,11 @@ struct bvr_actor_s {
     bvr_string_t name;
     bvr_actor_type_t type;
     bvr_uuid_t id;
+
     int flags;
 
-    uint8 active;
+    bool active;
     uint16 order_in_layer;
-
-    // TODO find why tranform overwrite order in layer
-    uint32 padding;
 
     struct bvr_transform_s transform;
 };
@@ -95,10 +96,9 @@ typedef struct bvr_dynamic_actor_s {
     bvr_mesh_t mesh;
     bvr_shader_t shader;
     bvr_collider_t collider;
-
 } bvr_dynamic_actor_t;
 
-typedef struct bvr_bitmap_layer_s {
+typedef struct bvr_texture_actor_s {
     struct bvr_actor_s self;
 
     bvr_mesh_t mesh;
@@ -106,7 +106,7 @@ typedef struct bvr_bitmap_layer_s {
     bvr_collider_t collider;
 
     bvr_texture_t bitmap;
-} bvr_bitmap_layer_t;
+} bvr_texture_actor_t;
 
 typedef struct bvr_landscape_actor_s {
     struct bvr_actor_s self;

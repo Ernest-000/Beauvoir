@@ -16,7 +16,7 @@ static void _dialogue_box_callback(bvr_string_t* string);
 static bvr_layer_actor_t* _load_image(const char* path);
 static void _load_mesh(bvr_static_actor_t* actor, const char* path);
 
-static bool target_image; 
+static bool target_image, wait_for_input; 
 static bvr_layer_actor_t* p_image;
 
 int main(){
@@ -24,19 +24,20 @@ int main(){
     bvr_create_book(&book);
     bvr_create_page(&book.page, "empty");
     
-    bvr_create_book_memories(&book, BVR_BUFFER_SIZE, BVR_BUFFER_SIZE);
+    bvr_create_book_memories(&book, BVR_BUFFER_SIZE, 0);
 
     /* create the window */
     bvr_create_window(&book.window, 800, 800, "Window", 0);
     
     /* create the camera */
-    bvr_create_orthographic_camera(&book.page, &book.window.framebuffer, 0.01f, 100.0f, 1.0f);
+    bvr_create_main_camera(&book, BVR_CAMERA_ORTHOGRAPHIC, 0.0f, 1000.0f, 1.0f);
 
     bvr_create_editor(&editor, &book);
     bvr_editor_attach_callback(_draw_editor);
 
     target_image = true;
-    p_image = _load_image("samples/template.bmp");
+    wait_for_input = false;
+    p_image = _load_image("samples/template.psd");
 
     /* main loop */
     while (1)
@@ -59,6 +60,7 @@ int main(){
 
         }
 
+        // draw editor
         bvr_editor_handle();
         bvr_editor_draw_page_hierarchy();
         bvr_editor_draw_inspector();
@@ -75,17 +77,22 @@ int main(){
 }
 
 static void _dialogue_box_callback(bvr_string_t* string){
-    if(string->length){
-        BVR_PRINT(string->string);
+    if(!string->string){
+        return;
     }
 
     if(target_image){
+        // destroy previous actor
         bvr_destroy_actor(&p_image->self);
+        
+        // create another one :3
         p_image = _load_image(string->string);
     }
     else {
 
     }
+
+    wait_for_input = false;
 }
 
 static void _draw_editor(struct bvr_nuklear_s* gui, bvr_book_t* _){
@@ -93,11 +100,13 @@ static void _draw_editor(struct bvr_nuklear_s* gui, bvr_book_t* _){
     
     if(nk_button_label(gui->context, "load image")){
         target_image = true;
+        wait_for_input = true;
         bvr_open_file_dialog(_dialogue_box_callback, NULL, 0);
     }
 
     if(nk_button_label(gui->context, "load mesh")){
         target_image = false;
+        wait_for_input = true;
         bvr_open_file_dialog(_dialogue_box_callback, NULL, 0);
     }
 
@@ -108,14 +117,13 @@ static void _draw_editor(struct bvr_nuklear_s* gui, bvr_book_t* _){
 static bvr_layer_actor_t* _load_image(const char* path){
     BVR_ASSERT(path);
 
-    bvr_layer_actor_t actor;
     bvr_layer_actor_t* p_actor = NULL;
-        
+    
     // link actor to the scene
     // WARN: actor dynamic components (eg: textures, layers, transform...) that might
     // change overtime MUST link to the new allocated pointer, not the older object!
-    bvr_create_actor(&actor.self, "image", BVR_LAYER_ACTOR, BVR_COLLISION_DISABLE);
-    p_actor = (bvr_layer_actor_t*) bvr_link_actor_to_page(&book.page, &actor.self);
+    p_actor = (bvr_layer_actor_t*) bvr_alloc_actor(&book.page, BVR_LAYER_ACTOR);
+    bvr_create_actor(&p_actor->self, "image", BVR_LAYER_ACTOR, BVR_COLLISION_DISABLE);
 
     // create shader
     bvr_create_shader(&p_actor->shader, "texture_unlit.glsl", BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER);
@@ -127,10 +135,10 @@ static bvr_layer_actor_t* _load_image(const char* path){
     bvr_create_2d_square_mesh(&p_actor->mesh, p_actor->texture.image.width, p_actor->texture.image.height);
 
     // link texture & shader
-    bvr_shader_register_texture(&actor.shader, BVR_TEXTURE_2D_LAYER, &p_actor->texture, "bvr_texture");
+    bvr_shader_register_texture(&p_actor->shader, BVR_TEXTURE_2D_LAYER, &p_actor->texture, "bvr_texture");
     
     // define which uniform defines texture layer index
-    bvr_shader_register_uniform(&actor.shader, BVR_INT32, BVR_UNIFORM_LAYER_INDEX, 1, "bvr_texture_z");
+    bvr_shader_register_uniform(&p_actor->shader, BVR_INT32, BVR_UNIFORM_LAYER_INDEX, 1, "bvr_texture_z");
 
     return p_actor;
 }

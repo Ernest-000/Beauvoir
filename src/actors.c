@@ -116,7 +116,6 @@ static void bvri_create_dynamic_actor(bvr_dynamic_actor_t* actor, int flags){
         }
     }
 
-   
     if(BVR_HAS_FLAG(flags, BVR_DYNACTOR_TRIANGULATE_COLLIDER_FROM_VERTICES)){
         if(actor->mesh.attrib == BVR_MESH_ATTRIB_V3 || 
             actor->mesh.attrib == BVR_MESH_ATTRIB_V3UV2){
@@ -156,7 +155,7 @@ static void bvri_create_dynamic_actor(bvr_dynamic_actor_t* actor, int flags){
     }
 }
 
-static void bvri_create_bitmap_layer(bvr_bitmap_layer_t* layer, int flags){
+static void bvri_create_bitmap_layer(bvr_texture_actor_t* layer, int flags){
     BVR_ASSERT(layer);
 
     bvri_create_generic_dynactor((bvr_dynamic_actor_t*)layer, flags);
@@ -305,16 +304,16 @@ void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_typ
     actor->type = type;
     actor->flags = flags;
     actor->order_in_layer = 0;
-    actor->active = 1;
+    actor->active = true;
+
     BVR_IDENTITY_VEC3(actor->transform.position);
     BVR_IDENTITY_VEC3(actor->transform.rotation);
     BVR_SCALE_VEC3(actor->transform.scale, 1.0f);
-
     BVR_IDENTITY_MAT4(actor->transform.matrix);
+    
     bvr_create_string(&actor->name, name);
     bvr_create_uuid(actor->id);
 
-    BVR_PRINTF("created a new actor %x", actor);
     switch (type)
     {
     case BVR_EMPTY_ACTOR:
@@ -324,8 +323,8 @@ void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_typ
     case BVR_LAYER_ACTOR:
         break;
     
-    case BVR_BITMAP_ACTOR:
-        bvri_create_bitmap_layer((bvr_bitmap_layer_t*)actor, flags);
+    case BVR_TEXTURE_ACTOR:
+        bvri_create_bitmap_layer((bvr_texture_actor_t*)actor, flags);
         break;
 
     case BVR_STATIC_ACTOR:
@@ -356,12 +355,12 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
     case BVR_EMPTY_ACTOR:
         /* code */
         break;
-    case BVR_BITMAP_ACTOR:
+    case BVR_TEXTURE_ACTOR:
         {
-            bvr_destroy_mesh(&((bvr_bitmap_layer_t*)actor)->mesh);
-            bvr_destroy_shader(&((bvr_bitmap_layer_t*)actor)->shader);
-            bvr_destroy_collider(&((bvr_bitmap_layer_t*)actor)->collider);
-            bvr_destroy_texture(&((bvr_bitmap_layer_t*)actor)->bitmap);
+            bvr_destroy_mesh(&((bvr_texture_actor_t*)actor)->mesh);
+            bvr_destroy_shader(&((bvr_texture_actor_t*)actor)->shader);
+            bvr_destroy_collider(&((bvr_texture_actor_t*)actor)->collider);
+            bvr_destroy_texture(&((bvr_texture_actor_t*)actor)->bitmap);
         }
         break;
     case BVR_LAYER_ACTOR:
@@ -401,6 +400,8 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
     BVR_SCALE_VEC3(actor->transform.scale, 1.0f);
 
     BVR_IDENTITY_MAT4(actor->transform.matrix);
+
+    
 }
 
 static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
@@ -410,9 +411,10 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     bvr_shader_set_uniformi(&actor->shader.uniforms[0], &actor->self.transform.matrix[0][0]);
 
     bvr_layer_t* layer;
-    for (int id = BVR_BUFFER_COUNT(actor->texture.image.layers); id >= 0; id--)
+    for (int i = BVR_BUFFER_COUNT(actor->texture.image.layers) - 1; i >= 0; i--)
     {
-        layer = &((bvr_layer_t*)actor->texture.image.layers.data)[id];
+        layer = &((bvr_layer_t*)actor->texture.image.layers.data)[i];
+
         if(!layer->opacity){
             continue;
         }
@@ -421,10 +423,10 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
         
         bvr_shader_set_uniformi(
             bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_LAYER_INDEX), 
-            &id
+            &i
         );
 
-        cmd.order = actor->self.order_in_layer + id;
+        cmd.order = actor->self.order_in_layer + i;
         if(BVR_HAS_FLAG(layer->flags, BVR_LAYER_Y_SORTED)){
             cmd.order += layer->anchor_y;
         }

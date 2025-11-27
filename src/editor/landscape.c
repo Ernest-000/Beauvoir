@@ -17,8 +17,7 @@ int bvri_landscape_process_selection(struct bvr_editor_s *editor, bvr_landscape_
         vec3 world_pos;
 
         bvr_mouse_position(&mouse_pos[0], &mouse_pos[1]);
-        bvr_screen_to_world_coords(editor->book, mouse_pos, world_pos);
-        BVR_PRINTF("mouse pos %f %f", mouse_pos[0], mouse_pos[1]);
+        bvr_screen_to_world(&editor->book->page.camera, mouse_pos, world_pos);
 
         mouse_tile_x = MAX(world_pos[0] - actor->self.transform.position[0], 0.0f) / actor->dimension.resolution[0];
         mouse_tile_y = MAX(-world_pos[1] - actor->self.transform.position[1], 0.0f) / actor->dimension.resolution[1];

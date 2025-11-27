@@ -181,7 +181,7 @@ typedef struct bvr_window_s {
     } inputs;
 
     int events;
-    bool awake;
+    bool awake, focus;
 } bvr_window_t;
 
 int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 height, const char* title, const int flags);

@@ -368,6 +368,7 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
             bvr_destroy_mesh(&((bvr_layer_actor_t*)actor)->mesh);
             bvr_destroy_shader(&((bvr_layer_actor_t*)actor)->shader);
             bvr_destroy_texture(&((bvr_layer_actor_t*)actor)->texture);
+            bvr_destroy_composite(&((bvr_layer_actor_t*)actor)->composite);
         }
         break;
     case BVR_STATIC_ACTOR:
@@ -400,30 +401,47 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
     BVR_SCALE_VEC3(actor->transform.scale, 1.0f);
 
     BVR_IDENTITY_MAT4(actor->transform.matrix);
-
-    
 }
 
 static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     struct bvr_draw_command_s cmd;
+    mat4x4 identity;
+    
+    BVR_IDENTITY_MAT4(identity);
 
-    bvri_update_transform(&actor->self.transform);
-    bvr_shader_set_uniformi(&actor->shader.uniforms[0], &actor->self.transform.matrix[0][0]);
+    // calculate transform
+    bvr_shader_set_uniformi(&actor->shader.uniforms[0], &identity);
+
+    // bind composite
+    //bvr_composite_enable(&actor->composite);
 
     bvr_layer_t* layer;
+    struct bvr_layer_info_s layer_info;
     for (int i = BVR_BUFFER_COUNT(actor->texture.image.layers) - 1; i >= 0; i--)
     {
         layer = &((bvr_layer_t*)actor->texture.image.layers.data)[i];
-
-        if(!layer->opacity){
+        
+        layer_info.layer = i;
+        layer_info.blend_mode = 0;
+        layer_info.opacity = 255;
+        
+        if(layer->opacity == 0){
             continue;
         }
 
-        bvr_texture_enable(&actor->texture);
+        bvr_shader_set_uniformi(
+            bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_COMPOSITE),
+            &actor->composite.tex
+        );
         
         bvr_shader_set_uniformi(
             bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_LAYER_INDEX), 
             &i
+        );
+
+        bvr_shader_set_uniformi(
+            bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_LAYER_INDEX),
+            &layer_info
         );
 
         cmd.order = actor->self.order_in_layer + i;
@@ -445,22 +463,57 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
 
         bvr_pipeline_draw_cmd(&cmd);
     }
-}
 
-static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){
-    bvri_update_transform(&actor->self.transform);
+    /*layer_info.layer = -1;
+
+    //bvr_composite_disable(&actor->composite);
+
+    bvr_texture_disable(&actor->texture);
+    bvr_composite_prepare(&actor->composite);
+
+    bvr_texture_disable(&actor->texture);
+
     bvr_shader_set_uniformi(&actor->shader.uniforms[0], actor->self.transform.matrix);
-    
-    struct bvr_draw_command_s cmd;
-    cmd.order = actor->self.order_in_layer;
 
+    bvr_shader_set_uniformi(
+        bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_LAYER_INDEX),
+        &layer_info
+    );
+
+    cmd.order = actor->self.order_in_layer;
     cmd.array_buffer = actor->mesh.array_buffer;
     cmd.vertex_buffer = actor->mesh.vertex_buffer;
-    cmd.element_buffer = 0;
+    cmd.element_buffer = actor->mesh.element_buffer;
     cmd.attrib_count = actor->mesh.attrib_count;
     cmd.element_type = actor->mesh.element_type;
 
     cmd.shader = &actor->shader;
+
+    cmd.draw_mode = drawmode;
+
+    cmd.vertex_group = *(bvr_vertex_group_t*)bvr_pool_try_get(&actor->mesh.vertex_groups, 0);
+    cmd.vertex_group.texture = actor->composite.tex;
+
+    bvr_pipeline_add_draw_cmd(&cmd);*/
+}
+
+static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){
+    struct bvr_draw_command_s cmd;
+
+    // update transform
+    bvr_shader_set_uniformi(&actor->shader.uniforms[0], actor->self.transform.matrix);
+    
+    cmd.order = actor->self.order_in_layer;
+
+    cmd.array_buffer = actor->mesh.array_buffer;
+    cmd.vertex_buffer = actor->mesh.vertex_buffer;
+    cmd.element_buffer = 0; // does not have element buffer
+    cmd.attrib_count = actor->mesh.attrib_count;
+    cmd.element_type = actor->mesh.element_type;
+
+    cmd.shader = &actor->shader;
+
+    // draw mode is forced to be 'triangle strip'
     cmd.draw_mode = BVR_DRAWMODE_TRIANGLES_STRIP;
 
     bvr_vertex_group_t group;
@@ -482,24 +535,29 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
         return;
     }
 
+    // calculate transforms    
+    bvri_update_transform(&actor->transform);
+
     // layered actors are drawn differentlty
     if(actor->type == BVR_LAYER_ACTOR){
         bvri_draw_layer_actor((bvr_layer_actor_t*)actor, drawmode);
         return;
     }
 
+    // landscape actors are drawn differentlty
     if(actor->type == BVR_LANDSCAPE_ACTOR){
         bvri_draw_landscape_actor((bvr_landscape_actor_t*)actor);
         return;
     }
 
     // update shaders transform
-    bvri_update_transform(&actor->transform);
 
     bvr_static_actor_t* _actor = (bvr_static_actor_t*)actor;
 
+    // update actor's transform
     bvr_shader_set_uniformi(&_actor->shader.uniforms[0], actor->transform.matrix);
 
+    // create the draw command
     struct bvr_draw_command_s cmd;
     
     cmd.order = actor->order_in_layer;
@@ -513,10 +571,12 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     cmd.shader = &_actor->shader;
     cmd.draw_mode = drawmode;
 
+    // iterate through each vertex group to create individual draw commands
     bvr_vertex_group_t group;
     BVR_POOL_FOR_EACH(group, _actor->mesh.vertex_groups){
         cmd.vertex_group = group;
         
+        // if it's not invisible the command is added to the queue
         if(!BVR_HAS_FLAG(group.flags, BVR_VERTEX_GROUP_FLAG_INVISIBLE)){
             bvr_pipeline_add_draw_cmd(&cmd);
         }

@@ -80,7 +80,9 @@ typedef struct bvr_layer_actor_s {
 
     bvr_mesh_t mesh;
     bvr_shader_t shader;
+    
     bvr_texture_t texture;
+    bvr_composite_t composite;
 } bvr_layer_actor_t;
 
 typedef struct bvr_static_actor_s {

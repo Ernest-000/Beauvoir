@@ -45,6 +45,8 @@ int bvr_create_book(bvr_book_t *book)
     book->pipeline.clear_color[1] = 0.0f;
     book->pipeline.clear_color[2] = 0.0f;
 
+    book->pipeline.render_target = 0;
+
     book->pipeline.command_count = 0;
     memset(&book->pipeline.commands, 0, sizeof(book->pipeline.commands));
 

@@ -74,6 +74,8 @@ typedef struct bvr_pipeline_s {
     struct bvr_draw_command_s commands[BVR_MAX_DRAW_COMMAND];
 
     vec3 clear_color;
+
+    uint32 render_target;
 } bvr_pipeline_t;
 
 typedef struct bvr_framebuffer_s {

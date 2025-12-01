@@ -9,20 +9,24 @@
 
 #define BVR_UNIFORM_CAMERA_NAME "bvr_camera"
 #define BVR_UNIFORM_TRANSFORM_NAME "bvr_transform"
+
 #define BVR_UNIFORM_GLOBAL_ILLUMINATION_NAME "bvr_global_illumination"
+#define BVR_UNIFORM_SHARE_LAYER_NAME "bvr_layers"
 
 #define BVR_UNIFORM_BLOCK_CAMERA                0x0
 #define BVR_UNIFORM_BLOCK_GLOBAL_ILLUMINATION   0x1
+#define BVR_UNIFORM_BLOCK_LAYERS                0x2
 
-#define BVR_MAX_SHADER_COUNT 7
+#define BVR_MAX_SHADER_COUNT 3
 #define BVR_MAX_UNIFORM_COUNT 20
 #define BVR_MAX_SHADER_BLOCK_COUNT 5
 
-#define BVR_VERTEX_SHADER       0x001
-#define BVR_FRAGMENT_SHADER     0x002
-#define BVR_FRAMEBUFFER_SHADER  0x004
+#define BVR_VERTEX_SHADER               0x001
+#define BVR_FRAGMENT_SHADER             0x002
+#define BVR_FRAMEBUFFER_SHADER          0x004
 
-#define BVR_SHADER_EXT_LIGHT    0x010
+#define BVR_SHADER_EXT_LIGHT            0x010
+#define BVR_SHADER_EXT_SHARE_LAYERS     0x020
 
 #define BVR_SHADER_EXT_GLOBAL_ILLUMINATION BVR_SHADER_EXT_LIGHT
 
@@ -32,7 +36,9 @@ enum bvr_uniform_tag_e {
     BVR_UNIFORM_TRANSFORM = 0x002,
     BVR_UNIFORM_LOCAL_TRANSFORM = 0x003,
     BVR_UNIFORM_TEXTURE = 0x004,
-    BVR_UNIFORM_LAYER_INDEX = 0x005
+    BVR_UNIFORM_LAYER_INDEX = 0x005,
+    BVR_UNIFORM_LAYER_INFO = 0x006,
+    BVR_UNIFORM_COMPOSITE = 0x007
 };
 
 typedef struct bvr_shader_uniform_s {
@@ -141,12 +147,12 @@ BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform(bvr_shader_t* shader, const ch
 
 void bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data);
 BVR_H_FUNC void bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, void* texture){
-    bvr_shader_set_uniformi(uniform, &texture);
+    bvr_shader_set_uniformi(uniform, texture);
 }
 
 void bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data);
 BVR_H_FUNC void bvr_shader_set_texture(bvr_shader_t* shader, const char* name, void* texture){
-    bvr_shader_set_uniformi(bvr_find_uniform(shader, name), &texture);
+    bvr_shader_set_uniformi(bvr_find_uniform(shader, name), texture);
 }
 
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data);

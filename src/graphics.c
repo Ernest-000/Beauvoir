@@ -31,76 +31,12 @@ static const char* __frbuffer_frag_shdr = "#version 400\n"
 	"gl_FragColor = vec4(tex.rgb, 1.0);\n"
 "}";
 
+static void bvri_pipeline_restore_blending(struct bvr_pipeline_state_s* const state);
+static void bvri_pipeline_restore_depth(struct bvr_pipeline_state_s* const state);
+
 void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
-    BVR_ASSERT(state);
-
-    if(state->blending){
-        glEnable(GL_BLEND);
-        switch(state->blending)
-        {
-        case BVR_BLEND_FUNC_ALPHA_ONE_MINUS:
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            break;
-        case BVR_BLEND_FUNC_ALPHA_ADD:
-            glBlendFunc(GL_ONE, GL_ONE);
-            break;
-        case BVR_BLEND_FUNC_ALPHA_MULT:
-            glBlendFunc(GL_ONE, GL_SRC_COLOR);
-            break;
-        default:
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            break;
-        }
-    }
-    else {
-        glDisable(GL_BLEND);
-    }
-
-    if(state->depth){
-        glEnable(GL_DEPTH_TEST);
-
-        switch (state->depth)
-        {
-        case BVR_DEPTH_FUNC_NEVER:
-            glDepthFunc(GL_NEVER);
-            break;
-        
-        case BVR_DEPTH_FUNC_ALWAYS:
-            glDepthFunc(GL_ALWAYS);
-            break;
-        
-        case BVR_DEPTH_FUNC_LESS:
-            glDepthFunc(GL_LESS);
-            break;
-    
-        case BVR_DEPTH_FUNC_GREATER:
-            glDepthFunc(GL_GREATER);
-            break;
-
-        case BVR_DEPTH_FUNC_LEQUAL:
-            glDepthFunc(GL_LEQUAL);
-            break;
-        
-        case BVR_DEPTH_FUNC_GEQUAL:
-            glDepthFunc(GL_GEQUAL);
-            break;
-
-        case BVR_DEPTH_FUNC_NOTEQUAL:
-            glDepthFunc(GL_NOTEQUAL);
-            break;
-        
-        case BVR_DEPTH_FUNC_EQUAL:
-            glDepthFunc(GL_EQUAL);
-            break;
-
-        default:
-            glDepthFunc(GL_ALWAYS);
-            break;
-        }
-    }
-    else {
-        glDisable(GL_DEPTH_TEST);
-    }
+    bvri_pipeline_restore_blending(state);
+    bvri_pipeline_restore_depth(state);
 }
 
 void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
@@ -291,11 +227,15 @@ void bvr_framebuffer_enable(bvr_framebuffer_t* framebuffer){
     framebuffer->target_height = viewport[3];
 
     glViewport(0, 0, framebuffer->width, framebuffer->height);
+
+    bvr_get_book_instance()->pipeline.render_target = framebuffer->buffer;
 }
 
 void bvr_framebuffer_disable(bvr_framebuffer_t* framebuffer){
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, framebuffer->target_width, framebuffer->target_height);
+
+    bvr_get_book_instance()->pipeline.render_target = 0;
 }
 
 void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 const color){
@@ -345,4 +285,78 @@ void bvr_destroy_framebuffer(bvr_framebuffer_t* framebuffer){
     glDeleteTextures(1, &framebuffer->color_buffer);
     glDeleteRenderbuffers(1, &framebuffer->depth_buffer);
     glDeleteFramebuffers(1, &framebuffer->buffer);
+}
+
+static void bvri_pipeline_restore_blending(struct bvr_pipeline_state_s* const state){
+    BVR_ASSERT(state);
+
+    if(state->blending){
+        glEnable(GL_BLEND);
+        switch(state->blending)
+        {
+        case BVR_BLEND_FUNC_ALPHA_ONE_MINUS:
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            break;
+        case BVR_BLEND_FUNC_ALPHA_ADD:
+            glBlendFunc(GL_ONE, GL_ONE);
+            break;
+        case BVR_BLEND_FUNC_ALPHA_MULT:
+            glBlendFunc(GL_ONE, GL_SRC_COLOR);
+            break;
+        default:
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            break;
+        }
+    }
+    else {
+        glDisable(GL_BLEND);
+    }
+}
+
+static void bvri_pipeline_restore_depth(struct bvr_pipeline_state_s* const state){
+    if(state->depth){
+        glEnable(GL_DEPTH_TEST);
+
+        switch (state->depth)
+        {
+        case BVR_DEPTH_FUNC_NEVER:
+            glDepthFunc(GL_NEVER);
+            break;
+        
+        case BVR_DEPTH_FUNC_ALWAYS:
+            glDepthFunc(GL_ALWAYS);
+            break;
+        
+        case BVR_DEPTH_FUNC_LESS:
+            glDepthFunc(GL_LESS);
+            break;
+    
+        case BVR_DEPTH_FUNC_GREATER:
+            glDepthFunc(GL_GREATER);
+            break;
+
+        case BVR_DEPTH_FUNC_LEQUAL:
+            glDepthFunc(GL_LEQUAL);
+            break;
+        
+        case BVR_DEPTH_FUNC_GEQUAL:
+            glDepthFunc(GL_GEQUAL);
+            break;
+
+        case BVR_DEPTH_FUNC_NOTEQUAL:
+            glDepthFunc(GL_NOTEQUAL);
+            break;
+        
+        case BVR_DEPTH_FUNC_EQUAL:
+            glDepthFunc(GL_EQUAL);
+            break;
+
+        default:
+            glDepthFunc(GL_ALWAYS);
+            break;
+        }
+    }
+    else {
+        glDisable(GL_DEPTH_TEST);
+    }
 }

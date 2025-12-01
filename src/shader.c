@@ -25,6 +25,13 @@ static const char* __ext_s_vlight = "struct V_LIGHT {\n"
 "	vec4 color;\n"
 "};\n";
 
+static const char* __ext_s_layer = "struct L_DATA {\n"
+"	int index;\n"
+"	int blend;\n"
+"	int opacity;\n"
+"	int flags;\n"
+"};\n";
+
 // light related function(s)
 static const char* __ext_f_light = "vec4 calc_light(vec4 color, V_LIGHT light, V_DATA vertex){\n"
 "	vec3 l_color;\n"
@@ -36,6 +43,11 @@ static const char* __ext_f_light = "vec4 calc_light(vec4 color, V_LIGHT light, V
 "	vec3 ambiant = vec3(ambiant_intensity);\n"
 "	l_color = diffuse + ambiant;\n"
 "	return vec4(l_color, 1.0) * vec4(light.color.rgb, 1.0);\n"
+"}\n";
+
+static const char* __ext_f_layer = "L_DATA create_layer(int layer){\n"
+"	L_DATA info;\n"
+"	return info;\n"
 "}\n";
 
 static int bvri_compile_shader(uint32* shader, bvr_string_t* const content, int type);
@@ -112,6 +124,12 @@ static int bvri_register_shader_state(bvr_shader_t* program, bvr_shader_stage_t*
             if(type == GL_FRAGMENT_SHADER){
                 bvr_string_concat(&shader_str, __ext_f_light);
             }
+        }
+
+        if(BVR_HAS_FLAG(program->flags, BVR_SHADER_EXT_SHARE_LAYERS)){
+            bvr_string_concat(&shader_str, __ext_s_layer);
+
+            bvr_string_concat(&shader_str, __ext_f_layer);
         }
     }
 #endif    
@@ -266,7 +284,11 @@ shader_cstor_bidings:
     if (shader->blocks[0].location == -1) {
         BVR_PRINT("cannot find transform uniform!");
     }
-        
+
+#ifndef BVR_SHADER_NO_EXT
+
+#endif
+
     bvr_destroy_string(&file_content);
 
     return BVR_OK;
@@ -340,15 +362,22 @@ bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type
         return NULL;
     }
 
+    const size_t elemsize = bvr_sizeof(type);
     int location = glGetUniformLocation(shader->program, name);
+    
+    if(elemsize == 0){
+        BVR_PRINTF("invalid type when creating uniform '%s' :<", name);
+        return NULL;
+    }
+
     if(location != -1){
         shader->uniforms[shader->uniform_count].location = location;
         shader->uniforms[shader->uniform_count].type = type;
         shader->uniforms[shader->uniform_count].tags = tag;
 
         // memory buffer store only store a pointer
-        shader->uniforms[shader->uniform_count].memory.elemsize = sizeof(void*);
-        shader->uniforms[shader->uniform_count].memory.size = count * sizeof(void*);
+        shader->uniforms[shader->uniform_count].memory.elemsize = elemsize;
+        shader->uniforms[shader->uniform_count].memory.size = count * elemsize;
 
         // no need to allocate something, just avoid bad freeing
         shader->uniforms[shader->uniform_count].memory.data = NULL;
@@ -451,13 +480,13 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
     }
 
     if(data){
-
         switch (uniform->type)
         {
         case BVR_FLOAT: 
             glUniform1fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (float*)data); 
             break;
 
+        case BVR_TEXTURE_2D_COMPOSITE:
         case BVR_INT32: 
             glUniform1iv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (int*)data); 
             break;
@@ -468,6 +497,12 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
 
         case BVR_VEC3:
             glUniform3fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (float*)data);
+            break;
+
+        case BVR_TEXTURE_2D_LAYER_STRUCT:
+            {
+                glUniform3iv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (int*)data);
+            }
             break;
 
         case BVR_VEC4:
@@ -496,6 +531,7 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
                 glUniform1i(uniform->location, (int)texture->texture.unit);
             }
             break;
+
         default:
             break;
         }

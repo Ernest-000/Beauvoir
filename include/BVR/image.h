@@ -78,34 +78,34 @@
 #define BVR_LAYER_Y_SORTED  0x02
 
 typedef enum bvr_layer_blend_mode_e {
-    BVR_LAYER_BLEND_PASSTHROUGH     = 0x70617373,
-    BVR_LAYER_BLEND_NORMAL          = 0x6E6F726D,
-    BVR_LAYER_BLEND_DISSOLVE        = 0x64697373,
-    BVR_LAYER_BLEND_DARKEN          = 0x6461726B,
-    BVR_LAYER_BLEND_MULTIPLY        = 0x6D756C00,
-    BVR_LAYER_BLEND_COLORBURN       = 0x69646976,
-    BVR_LAYER_BLEND_LINEARBURN      = 0x6C62726E,
-    BVR_LAYER_BLEND_DARKERCOLOR     = 0x646B436C,
-    BVR_LAYER_BLEND_LIGHTEN         = 0x6C697465,
-    BVR_LAYER_BLEND_SCREEN          = 0x7363726E,
-    BVR_LAYER_BLEND_COLORDODGE      = 0x64697600,
-    BVR_LAYER_BLEND_LINEARDODGE     = 0x6C646467,
-    BVR_LAYER_BLEND_LIGHTERCOLOR    = 0x6C67436C,
-    BVR_LAYER_BLEND_OVERLAY         = 0x6F766572,
-    BVR_LAYER_BLEND_SOFTLIGHT       = 0x734C6974,
-    BVR_LAYER_BLEND_HARDLIGHT       = 0x684C6974,
-    BVR_LAYER_BLEND_VIVIDLIGHT      = 0x764C6974,
-    BVR_LAYER_BLEND_LINEARLIGHT     = 0x6C4C6974,
-    BVR_LAYER_BLEND_PINLIGHT        = 0x704C6974,
-    BVR_LAYER_BLEND_HARDMIX         = 0x684D6978,
-    BVR_LAYER_BLEND_DIFFERENCE      = 0x64696666,
-    BVR_LAYER_BLEND_EXCLUSION       = 0x736D7564,
-    BVR_LAYER_BLEND_SUBSTRACT       = 0x66737566,
-    BVR_LAYER_BLEND_DIVIDE          = 0x66646976,
-    BVR_LAYER_BLEND_HUE             = 0x68756500,
-    BVR_LAYER_BLEND_SATURATION      = 0x73617400,
-    BVR_LAYER_BLEND_COLOR           = 0x636F6C72,
-    BVR_LAYER_BLEND_LUMINOSITY      = 0x65756D00
+    BVR_LAYER_BLEND_PASSTHROUGH,
+    BVR_LAYER_BLEND_NORMAL,
+    BVR_LAYER_BLEND_DISSOLVE,
+    BVR_LAYER_BLEND_DARKEN,
+    BVR_LAYER_BLEND_MULTIPLY,
+    BVR_LAYER_BLEND_COLORBURN,
+    BVR_LAYER_BLEND_LINEARBURN,
+    BVR_LAYER_BLEND_DARKERCOLOR,
+    BVR_LAYER_BLEND_LIGHTEN,
+    BVR_LAYER_BLEND_SCREEN,
+    BVR_LAYER_BLEND_COLORDODGE,
+    BVR_LAYER_BLEND_LINEARDODGE,
+    BVR_LAYER_BLEND_LIGHTERCOLOR,
+    BVR_LAYER_BLEND_OVERLAY,
+    BVR_LAYER_BLEND_SOFTLIGHT,
+    BVR_LAYER_BLEND_HARDLIGHT,
+    BVR_LAYER_BLEND_VIVIDLIGHT,
+    BVR_LAYER_BLEND_LINEARLIGHT,
+    BVR_LAYER_BLEND_PINLIGHT,
+    BVR_LAYER_BLEND_HARDMIX,
+    BVR_LAYER_BLEND_DIFFERENCE,
+    BVR_LAYER_BLEND_EXCLUSION,
+    BVR_LAYER_BLEND_SUBSTRACT,
+    BVR_LAYER_BLEND_DIVIDE,
+    BVR_LAYER_BLEND_HUE,
+    BVR_LAYER_BLEND_SATURATION,
+    BVR_LAYER_BLEND_COLOR,
+    BVR_LAYER_BLEND_LUMINOSITY
 } bvr_layer_blend_mode_t;
 
 /*
@@ -115,12 +115,21 @@ typedef struct bvr_layer_s {
     bvr_string_t name;
     uint16 flags;
 
-    int width, height;
-    int anchor_x, anchor_y;
+    uint16 width, height;
+    uint16 anchor_x, anchor_y;
 
-    short opacity;
+    uint8 opacity;
     bvr_layer_blend_mode_t blend_mode;
 } bvr_layer_t;
+
+/*
+    Layer informations that is sent to the shader
+*/
+struct bvr_layer_info_s {
+    int32 layer;
+    int32 blend_mode;
+    int32 opacity;
+} __attribute__((packed));
 
 /*
     Contains an image informations and data
@@ -146,6 +155,11 @@ typedef struct bvr_texture_s {
 
     int filter, wrap;
 } bvr_texture_t;
+
+typedef struct bvr_composite_s {
+    bvr_image_t* image;
+    uint32 framebuffer, tex;
+} bvr_composite_t;
 
 /*
     Represent an array of 2D textures
@@ -176,6 +190,7 @@ BVR_H_FUNC int bvr_create_image(bvr_image_t* image, const char* path){
 }
 
 int bvr_create_bitmap(bvr_image_t* image, const char* path, int channel);
+
 
 /*
     Flip a pixel buffer vertically
@@ -258,3 +273,22 @@ BVR_H_FUNC int bvr_create_layered_texture(bvr_texture_t* texture, const char* pa
     fclose(file);
     return success;
 }
+
+/*
+    Create a new composite. A composite is a buffer that will store an image's result before rendering it to the screen.
+*/
+int bvr_create_composite(bvr_composite_t* composite, bvr_image_t* target);
+
+/*
+    Set this composite as the target framebuffer 
+*/
+void bvr_composite_enable(bvr_composite_t* composite);
+
+/*
+    Bind this composite as a texture
+*/
+void bvr_composite_prepare(bvr_composite_t* composite);
+
+void bvr_composite_disable(bvr_composite_t* composite);
+
+void bvr_destroy_composite(bvr_composite_t* composite);

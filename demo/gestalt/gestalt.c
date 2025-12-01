@@ -60,6 +60,8 @@ int main(){
 
         }
 
+        bvr_flush(&book);
+
         // draw editor
         bvr_editor_handle();
         bvr_editor_draw_page_hierarchy();
@@ -126,7 +128,7 @@ static bvr_layer_actor_t* _load_image(const char* path){
     bvr_create_actor(&p_actor->self, "image", BVR_LAYER_ACTOR, BVR_COLLISION_DISABLE);
 
     // create shader
-    bvr_create_shader(&p_actor->shader, "texture_unlit.glsl", BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER);
+    bvr_create_shader(&p_actor->shader, "texture_unlit.glsl", BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER | BVR_SHADER_EXT_SHARE_LAYERS);
     
     // create texture
     bvr_create_layered_texture(&p_actor->texture, path, BVR_TEXTURE_FILTER_LINEAR, BVR_TEXTURE_WRAP_CLAMP_TO_EDGE);
@@ -136,9 +138,16 @@ static bvr_layer_actor_t* _load_image(const char* path){
 
     // link texture & shader
     bvr_shader_register_texture(&p_actor->shader, BVR_TEXTURE_2D_LAYER, &p_actor->texture, "bvr_texture");
+
+    // link composite
+    bvr_shader_register_uniform(&p_actor->shader, BVR_TEXTURE_2D_COMPOSITE, BVR_UNIFORM_COMPOSITE, 1, "bvr_composite");
     
     // define which uniform defines texture layer index
-    bvr_shader_register_uniform(&p_actor->shader, BVR_INT32, BVR_UNIFORM_LAYER_INDEX, 1, "bvr_texture_z");
+    bvr_shader_register_uniform(&p_actor->shader, BVR_TEXTURE_2D_LAYER_STRUCT, BVR_UNIFORM_LAYER_INDEX, 1, "bvr_layer");
+
+    // create layer composite
+    // this is used to stack layers and apply blending
+    bvr_create_composite(&p_actor->composite, &p_actor->texture.image);
 
     return p_actor;
 }

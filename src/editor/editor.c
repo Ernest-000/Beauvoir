@@ -129,15 +129,18 @@ static void bvri_draw_editor_layer(bvr_layer_t* layer){
     if(nk_group_begin_titled(__editor->gui.context, layer->name.string, layer->name.string, NK_WINDOW_BORDER | NK_WINDOW_TITLE)){
         int flag = 0;
         nk_layout_row_dynamic(__editor->gui.context, 15, 2);
-        nk_checkbox_label(__editor->gui.context, "is visible", (nk_bool*)&layer->opacity);
+
+        if(nk_checkbox_label(__editor->gui.context, "is visible", (nk_bool*)&layer->opacity)){        
+            layer->opacity *= 255;
+        }
 
         flag = BVR_HAS_FLAG(layer->flags, BVR_LAYER_Y_SORTED);
         if(nk_checkbox_label(__editor->gui.context, "y sorted", &flag)){
             layer->flags ^= BVR_LAYER_Y_SORTED;
         }
 
-        nk_property_int(__editor->gui.context, "#x", -100000, &layer->anchor_x, 100000, 1, 1);
-        nk_property_int(__editor->gui.context, "#y", -100000, &layer->anchor_y, 100000, 1, 1);
+        nk_property_int(__editor->gui.context, "#x", -100000, (int*)&layer->anchor_x, 100000, 1, 1);
+        nk_property_int(__editor->gui.context, "#y", -100000, (int*)&layer->anchor_y, 100000, 1, 1);
 
         nk_group_end(__editor->gui.context);
     }

@@ -20,14 +20,17 @@ int bvr_sizeof(const int type){
         case BVR_INT8: case BVR_UNSIGNED_INT8: return 1;
         case BVR_INT16: case BVR_UNSIGNED_INT16: return 2;
         case BVR_FLOAT: 
+        case BVR_TEXTURE_2D_COMPOSITE:
         case BVR_INT32: case BVR_UNSIGNED_INT32: return 4;
         case BVR_DOUBLE: case BVR_INT64: case BVR_UNSIGNED_INT64: return 8;
         case BVR_VEC2: return 8;
+        case BVR_TEXTURE_2D_LAYER_STRUCT:
         case BVR_VEC3: return 12;
         case BVR_VEC4: return 16;
         case BVR_MAT3: return 36;
         case BVR_MAT4: return 64;
         case BVR_TEXTURE_2D:
+        case BVR_TEXTURE_2D_LAYER:
         case BVR_TEXTURE_2D_ARRAY: return 8;
         default: return 0;
     }
@@ -90,7 +93,12 @@ void bvr_nameof(const int type, char* name){
         case BVR_TEXTURE_2D_ARRAY:
             strcpy(name, "TEXTURE_2D_ARRAY");
             return;
-
+        case BVR_TEXTURE_2D_LAYER:
+            strcpy(name, "TEXTURE_2D_LAYER");
+            return;
+        case BVR_TEXTURE_2D_LAYER_STRUCT:
+            strcpy(name, "LAYER_STRUCT");
+            return;
         default:
             return;
     }

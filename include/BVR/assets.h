@@ -1,7 +1,7 @@
 #pragma once
 
 #include <BVR/config.h>
-#include <BVR/utils.h>
+#include <BVR/common.h>
 #include <BVR/buffer.h>
 
 #define BVR_OPEN_READ  1

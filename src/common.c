@@ -1,4 +1,4 @@
-#include <BVR/utils.h>
+#include <BVR/common.h>
 
 #include <BVR/config.h>
 
@@ -93,12 +93,19 @@ void bvr_nameof(const int type, char* name){
         case BVR_TEXTURE_2D_ARRAY:
             strcpy(name, "TEXTURE_2D_ARRAY");
             return;
+        
         case BVR_TEXTURE_2D_LAYER:
             strcpy(name, "TEXTURE_2D_LAYER");
             return;
+
+        case BVR_TEXTURE_2D_COMPOSITE:
+            strcpy(name, "COMPOSITE_2D");
+            return;
+
         case BVR_TEXTURE_2D_LAYER_STRUCT:
             strcpy(name, "LAYER_STRUCT");
             return;
+
         default:
             return;
     }

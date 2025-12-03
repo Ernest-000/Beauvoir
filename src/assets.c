@@ -31,7 +31,7 @@ struct bvri_header_data_s {
 bvr_uuid_t* bvr_register_asset(const char* path, char open_mode){
     BVR_ASSERT(path);
 
-    bvr_book_t* book = bvr_get_book_instance();
+    bvr_book_t* book = bvr_get_instance();
 
     // if the file does not exists
     if(access(path, F_OK) != 0){
@@ -73,7 +73,7 @@ bvr_uuid_t* bvr_register_asset(const char* path, char open_mode){
 bvr_uuid_t* bvr_find_asset(const char* path, bvr_asset_t* asset){
     BVR_ASSERT(path);
 
-    bvr_book_t* book = bvr_get_book_instance();
+    bvr_book_t* book = bvr_get_instance();
 
     bvr_uuid_t* uuid = NULL;
     uint16 string_length;
@@ -114,7 +114,7 @@ bvr_uuid_t* bvr_find_asset(const char* path, bvr_asset_t* asset){
 int bvr_find_asset_uuid(const bvr_uuid_t uuid, bvr_asset_t* asset){
     BVR_ASSERT(asset);
 
-    bvr_book_t* book = bvr_get_book_instance();
+    bvr_book_t* book = bvr_get_instance();
 
     uint16 string_length;
     bvr_uuid_t other;
@@ -133,7 +133,7 @@ int bvr_find_asset_uuid(const bvr_uuid_t uuid, bvr_asset_t* asset){
             book->asset_stream.cursor += string_length;
             asset->open_mode = *book->asset_stream.cursor;
 
-            return BVR_OK;
+            return BVR_TRUE;
         }
 
         book->asset_stream.cursor += sizeof(bvr_uuid_t);
@@ -142,7 +142,7 @@ int bvr_find_asset_uuid(const bvr_uuid_t uuid, bvr_asset_t* asset){
         bvr_memstream_seek(&book->asset_stream, sizeof(uint16) + sizeof(char) + string_length, SEEK_CUR);
     }
     
-    return BVR_FAILED;
+    return BVR_FALSE;
 }
 
 #pragma endregion

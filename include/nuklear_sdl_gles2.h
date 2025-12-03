@@ -21,7 +21,7 @@
 
 #include <GLAD/glad.h>
 
-#include <BVR/utils.h>
+#include <BVR/common.h>
 
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO

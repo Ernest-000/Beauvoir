@@ -1,7 +1,7 @@
 #pragma once
 
 #include <BVR/buffer.h>
-#include <BVR/utils.h>
+#include <BVR/common.h>
 #include <BVR/assets.h>
 
 #include <stdint.h>

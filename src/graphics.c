@@ -3,7 +3,7 @@
 #include <GLAD/glad.h>
 
 #include <BVR/math.h>
-#include <BVR/utils.h>
+#include <BVR/common.h>
 #include <BVR/scene.h>
 
 #include <memory.h>
@@ -81,14 +81,17 @@ void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cmd->element_buffer);
 
     bvr_shader_disable();
+
+    // update pipeline state
+    bvr_get_instance()->pipeline.state.command = cmd;
 }
 
 void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd){
     BVR_ASSERT(cmd);
 
-    if(bvr_get_book_instance()->pipeline.command_count + 1 < BVR_MAX_DRAW_COMMAND){
+    if(bvr_get_instance()->pipeline.command_count + 1 < BVR_MAX_DRAW_COMMAND){
         memcpy(
-            &bvr_get_book_instance()->pipeline.commands[bvr_get_book_instance()->pipeline.command_count++], 
+            &bvr_get_instance()->pipeline.commands[bvr_get_instance()->pipeline.command_count++], 
             cmd, sizeof(struct bvr_draw_command_s)
         );
     }
@@ -188,6 +191,8 @@ int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, const uint16 width, c
     }
     else {
         bvri_create_shader_vert_frag(&framebuffer->shader, __frbuffer_vertex_shdr, __frbuffer_frag_shdr);
+        const char* shaders[2] = { __frbuffer_vertex_shdr, __frbuffer_frag_shdr };
+
         bvr_shader_register_uniform(&framebuffer->shader, BVR_MAT4, 1, BVR_UNIFORM_PROJECTION, "bvr_projection");
     }
 
@@ -208,14 +213,14 @@ int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, const uint16 width, c
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
         BVR_PRINT("failed to create a new framebuffer!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 void bvr_framebuffer_enable(bvr_framebuffer_t* framebuffer){
@@ -228,14 +233,16 @@ void bvr_framebuffer_enable(bvr_framebuffer_t* framebuffer){
 
     glViewport(0, 0, framebuffer->width, framebuffer->height);
 
-    bvr_get_book_instance()->pipeline.render_target = framebuffer->buffer;
+    // update pipeline state
+    bvr_get_instance()->pipeline.state.framebuffer = framebuffer->buffer;
 }
 
 void bvr_framebuffer_disable(bvr_framebuffer_t* framebuffer){
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, framebuffer->target_width, framebuffer->target_height);
 
-    bvr_get_book_instance()->pipeline.render_target = 0;
+    // update pipeline state
+    bvr_get_instance()->pipeline.state.framebuffer = 0;
 }
 
 void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 const color){
@@ -285,6 +292,15 @@ void bvr_destroy_framebuffer(bvr_framebuffer_t* framebuffer){
     glDeleteTextures(1, &framebuffer->color_buffer);
     glDeleteRenderbuffers(1, &framebuffer->depth_buffer);
     glDeleteFramebuffers(1, &framebuffer->buffer);
+}
+
+
+void bvr_create_predefs(struct bvr_predefs* predefs){
+
+}
+
+void bvr_destroy_predefs(struct bvr_predefs* predefs){
+
 }
 
 static void bvri_pipeline_restore_blending(struct bvr_pipeline_state_s* const state){

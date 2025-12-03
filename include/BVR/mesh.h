@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include <BVR/utils.h>
+#include <BVR/common.h>
 #include <BVR/buffer.h>
 
 #include <BVR/math.h>

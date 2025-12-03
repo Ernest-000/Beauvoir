@@ -33,13 +33,13 @@ uniform ivec3 bvr_layer;
 
 void main() {
 	if(bvr_layer.x == -1){
-		gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+		gl_FragColor = texture(bvr_composite, vec2(vertex.uvs));
 		return;	
 	}
 
 	vec4 t_sample = texture(bvr_texture, vec3(vertex.uvs, bvr_layer.x));
 
-	gl_FragColor = t_sample * (bvr_layer.z / 255.0);
+	gl_FragColor = t_sample;
 }
 
 #endif

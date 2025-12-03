@@ -1,5 +1,5 @@
 #include <BVR/buffer.h>
-#include <BVR/utils.h>
+#include <BVR/common.h>
 
 #include <malloc.h>
 #include <string.h>
@@ -190,7 +190,7 @@ int bvr_overwrite_string(bvr_string_t* string, const char* value, uint32 length)
 
     if(!string->string){
         bvr_create_string(string, value);
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     if(length == 0){
@@ -209,7 +209,7 @@ int bvr_overwrite_string(bvr_string_t* string, const char* value, uint32 length)
         string->string[string->length - 1] = '\0';
     }
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 void bvr_string_concat(bvr_string_t* string, const char* other){

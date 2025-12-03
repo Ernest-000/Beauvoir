@@ -1,4 +1,4 @@
-#include <BVR/utils.h>
+#include <BVR/common.h>
 
 #define BVR_DEFAULT_SAMPLE_RATE 44100
 #define BVR_DEFAULT_AUDIO_BUFFER_SIZE 64

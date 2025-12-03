@@ -1,6 +1,6 @@
 #include <BVR/physics.h>
 
-#include <BVR/utils.h>
+#include <BVR/common.h>
 
 #include <memory.h>
 #include <malloc.h>
@@ -105,7 +105,7 @@ static void bvri_compare_box_colliders(bvr_collider_t* a, bvr_collider_t* b, str
             vec3_scale(intertia_b, b->body.direction, b->body.acceleration);
 
             if(bvri_aabb(&ba, &bb, intertia_a, intertia_b)){
-                result->collide = BVR_OK;
+                result->collide = BVR_TRUE;
                 result->other = b;
             
                 return;
@@ -132,7 +132,7 @@ static void bvri_compare_point_triangle(bvr_collider_t* a, bvr_collider_t* b, st
         triangle = &((struct bvri_triangle*)b->geometry.data)[i];
         
         if(bvr_is_point_inside_triangle(point, triangle->a, triangle->b, triangle->c)){
-            result->collide = BVR_OK;
+            result->collide = BVR_TRUE;
             result->other = b;
             
             return;

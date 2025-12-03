@@ -1,6 +1,6 @@
 #pragma once
 
-#include <BVR/utils.h>
+#include <BVR/common.h>
 #include <BVR/buffer.h>
 
 #include <BVR/assets.h>
@@ -104,12 +104,17 @@ void bvr_uniform_buffer_close();
 
 void bvr_destroy_uniform_buffer(uint32* buffer);
 
-/*
-    Create an empty shader only with vertex and fragment shaders.
-    Internal usages only.
+/**
+ * @brief Create a new shader directly from raw strings. 
+ * Howerver, this function is primarly used for internal usage. 
+ * You shall not use this function, use bvr_create_shader instead :3
+ * @param shader
+ * @param args An array of strings. Order must be: vertex , fragment, geometry...
+ * @param flags Define needed shaders.
+ * @return 
+ */
+int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int flags);
 
-    TODO: try to find another way to define this function
-*/
 int bvri_create_shader_vert_frag(bvr_shader_t* shader, const char* vert, const char* frag);
 
 /*
@@ -145,18 +150,17 @@ BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform(bvr_shader_t* shader, const ch
     return NULL;
 }
 
-void bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data);
-BVR_H_FUNC void bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, void* texture){
-    bvr_shader_set_uniformi(uniform, texture);
+int bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data);
+BVR_H_FUNC int bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, void* texture){
+    return bvr_shader_set_uniformi(uniform, texture);
 }
 
-void bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data);
-BVR_H_FUNC void bvr_shader_set_texture(bvr_shader_t* shader, const char* name, void* texture){
-    bvr_shader_set_uniformi(bvr_find_uniform(shader, name), texture);
+int bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data);
+BVR_H_FUNC int bvr_shader_set_texture(bvr_shader_t* shader, const char* name, void* texture){
+    return bvr_shader_set_uniformi(bvr_find_uniform(shader, name), texture);
 }
 
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data);
-
 
 void bvr_shader_enable(bvr_shader_t* shader);
 void bvr_shader_disable(void);

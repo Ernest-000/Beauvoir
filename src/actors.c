@@ -413,7 +413,8 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     bvr_shader_set_uniformi(&actor->shader.uniforms[0], &identity);
 
     // bind composite
-    //bvr_composite_enable(&actor->composite);
+    
+    bvr_composite_enable(&actor->composite);
 
     bvr_layer_t* layer;
     struct bvr_layer_info_s layer_info;
@@ -432,11 +433,6 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
         bvr_shader_set_uniformi(
             bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_COMPOSITE),
             &actor->composite.tex
-        );
-        
-        bvr_shader_set_uniformi(
-            bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_LAYER_INDEX), 
-            &i
         );
 
         bvr_shader_set_uniformi(
@@ -464,14 +460,11 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
         bvr_pipeline_draw_cmd(&cmd);
     }
 
-    /*layer_info.layer = -1;
+    bvr_composite_disable(&actor->composite);
 
-    //bvr_composite_disable(&actor->composite);
-
-    bvr_texture_disable(&actor->texture);
-    bvr_composite_prepare(&actor->composite);
-
-    bvr_texture_disable(&actor->texture);
+    layer_info.layer = -1;
+    layer_info.blend_mode = 0;
+    layer_info.opacity = 255;
 
     bvr_shader_set_uniformi(&actor->shader.uniforms[0], actor->self.transform.matrix);
 
@@ -494,7 +487,7 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     cmd.vertex_group = *(bvr_vertex_group_t*)bvr_pool_try_get(&actor->mesh.vertex_groups, 0);
     cmd.vertex_group.texture = actor->composite.tex;
 
-    bvr_pipeline_add_draw_cmd(&cmd);*/
+    bvr_pipeline_draw_cmd(&cmd);
 }
 
 static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){

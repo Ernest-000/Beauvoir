@@ -24,10 +24,11 @@ int main(){
     bvr_create_book(&book);
     bvr_create_page(&book.page, "empty");
     
-    bvr_create_book_memories(&book, BVR_BUFFER_SIZE, 0);
-
     /* create the window */
     bvr_create_window(&book.window, 800, 800, "Window", 0);
+    
+    /* Allocate buffers */
+    bvr_create_book_memories(&book, BVR_BUFFER_SIZE, 0);
     
     /* create the camera */
     bvr_create_main_camera(&book, BVR_CAMERA_ORTHOGRAPHIC, 0.0f, 1000.0f, 1.0f);
@@ -140,7 +141,7 @@ static bvr_layer_actor_t* _load_image(const char* path){
     bvr_shader_register_texture(&p_actor->shader, BVR_TEXTURE_2D_LAYER, &p_actor->texture, "bvr_texture");
 
     // link composite
-    bvr_shader_register_uniform(&p_actor->shader, BVR_TEXTURE_2D_COMPOSITE, BVR_UNIFORM_COMPOSITE, 1, "bvr_composite");
+    bvr_shader_register_texture(&p_actor->shader, BVR_TEXTURE_2D_COMPOSITE, &p_actor->composite, "bvr_composite");
     
     // define which uniform defines texture layer index
     bvr_shader_register_uniform(&p_actor->shader, BVR_TEXTURE_2D_LAYER_STRUCT, BVR_UNIFORM_LAYER_INDEX, 1, "bvr_layer");

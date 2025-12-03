@@ -1,5 +1,5 @@
 #include <bvr/image.h>
-#include <bvr/utils.h>
+#include <BVR/common.h>
 #include <BVR/file.h>
 
 #include <bvr/shader.h>
@@ -62,7 +62,7 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
 
     if(setjmp(png_jmpbuf(pngldr))){
         png_destroy_read_struct(&pngldr, &pnginfo, NULL);
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     fseek(file, BVR_PNG_HEADER_LENGTH, SEEK_SET);
@@ -218,7 +218,7 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
     // check for correct color plane
     if(header.color_plane != 1){
         BVR_PRINT("wrong color plane!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
     
     // check for bitmasks
@@ -327,7 +327,7 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
     // try to free color palette
     free(header.palette);
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 #endif
@@ -407,10 +407,10 @@ static int bvri_tif_do_ranges_overlap(uint64_t xstart, uint64_t xend, uint64_t y
         if(overlap_start){
             *overlap_start = fmax(xstart, ystart);
         }
-        return BVR_OK;
+        return BVR_TRUE;
     }
 
-    return BVR_FAILED;
+    return BVR_FALSE;
 }
 */
 
@@ -673,7 +673,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
         }
     }
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 #endif
@@ -1212,7 +1212,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
 
     free(layer_section.layers);
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 #endif
@@ -1331,7 +1331,7 @@ int bvr_create_bitmap(bvr_image_t* bitmap, const char* path, int channel){
         fclose(file);
 
         BVR_PRINT("failed to open image!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     bitmap->width = image.width;
@@ -1353,7 +1353,7 @@ int bvr_create_bitmap(bvr_image_t* bitmap, const char* path, int channel){
     fclose(file);
     bvr_destroy_image(&image);
     
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 void bvr_flip_image_vertically(bvr_image_t* image){
@@ -1482,7 +1482,7 @@ int bvr_create_view_texture(bvr_texture_t* origin, bvr_texture_t* dest, int widt
 
     glBindTexture(dest->target, 0);
     
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 int bvr_create_texture_from_image(bvr_texture_t* texture, bvr_image_t* image, int filter, int wrap){
@@ -1522,7 +1522,7 @@ int bvr_create_texture_from_image(bvr_texture_t* texture, bvr_image_t* image, in
     free(image->pixels);
     image->pixels = NULL;
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 int bvr_create_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap){
@@ -1532,7 +1532,7 @@ int bvr_create_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap
     bvr_create_imagef(&texture->image, file);
     if(!texture->image.pixels){
         BVR_PRINT("invalid image!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     return bvr_create_texture_from_image(texture, &texture->image, filter, wrap);    
@@ -1573,7 +1573,7 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
     bvr_create_imagef(&atlas->texture.image, file);
     if(!atlas->texture.image.pixels){
         BVR_PRINT("invalid image!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     if(BVR_BUFFER_COUNT(atlas->texture.image.layers) > 1){
@@ -1632,7 +1632,7 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
     free(atlas->texture.image.pixels);
     atlas->texture.image.pixels = NULL;
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 int bvr_create_layered_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap){
@@ -1648,7 +1648,7 @@ int bvr_create_layered_texturef(bvr_texture_t* texture, FILE* file, int filter, 
     bvr_create_imagef(&texture->image, file);
     if(!texture->image.pixels){
         BVR_PRINT("invalid image!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     if(texture->image.layers.size / sizeof(bvr_layer_t) < 1){
@@ -1703,7 +1703,7 @@ int bvr_create_layered_texturef(bvr_texture_t* texture, FILE* file, int filter, 
     free(texture->image.pixels);
     texture->image.pixels = NULL;
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 int bvr_create_composite(bvr_composite_t* composite, bvr_image_t* target){
@@ -1712,7 +1712,7 @@ int bvr_create_composite(bvr_composite_t* composite, bvr_image_t* target){
 
     if(target->width <= 0 || target->height <= 0){
         BVR_PRINT("invalid image!");
-        return BVR_OK;
+        return BVR_TRUE;
     }
 
     composite->framebuffer = 0;
@@ -1740,20 +1740,20 @@ int bvr_create_composite(bvr_composite_t* composite, bvr_image_t* target){
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
         BVR_PRINT("failed to create a new composite object!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 void bvr_composite_enable(bvr_composite_t* composite){
     BVR_ASSERT(composite && composite->framebuffer);
 
     glBindFramebuffer(GL_FRAMEBUFFER, composite->framebuffer);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
@@ -1765,7 +1765,7 @@ void bvr_composite_prepare(bvr_composite_t* composite){
 }
 
 void bvr_composite_disable(bvr_composite_t* composite){
-    glBindFramebuffer(GL_FRAMEBUFFER, bvr_get_book_instance()->pipeline.render_target);
+    glBindFramebuffer(GL_FRAMEBUFFER, bvr_get_instance()->pipeline.state.framebuffer);
 }
 
 void bvr_destroy_composite(bvr_composite_t* composite){

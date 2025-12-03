@@ -114,7 +114,7 @@ void bvr_create_string(bvr_string_t* string, const char* value);
 
 /*
     Use an already created string to replace its value.
-    Returns BVR_FAILED if it had to create a new string, BVR_OK otherwise 
+    Returns BVR_FALSE if it had to create a new string, BVR_TRUE otherwise 
 */
 int bvr_overwrite_string(bvr_string_t* string, const char* value, uint32 length);
 

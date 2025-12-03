@@ -3,7 +3,7 @@
 #include <BVR/editor/landscape.h>
 
 #include <BVR/buffer.h>
-#include <BVR/utils.h>
+#include <BVR/common.h>
 #include <BVR/window.h>
 #include <BVR/actors.h>
 
@@ -533,7 +533,7 @@ void bvr_editor_draw_inspector(){
                 
                 nk_layout_row_dynamic(__editor->gui.context, 15, 1);
 
-                nk_label(__editor->gui.context, BVR_FORMAT("render time %f ms", __editor->book->timer.delta_time), NK_TEXT_ALIGN_LEFT);
+                nk_label(__editor->gui.context, BVR_FORMAT("render time %f ms", __editor->book->timer.delta_timef), NK_TEXT_ALIGN_LEFT);
                 nk_label(__editor->gui.context, BVR_FORMAT("fps %i", __editor->book->timer.average_render_time), NK_TEXT_ALIGN_LEFT);
 
                 nk_checkbox_label(__editor->gui.context, "is blending", (int*)&pipeline->rendering_pass.blending);
@@ -993,7 +993,7 @@ int bvri_create_editor_render_buffers(uint32* array_buffer, uint32* vertex_buffe
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 void bvri_bind_editor_buffers(uint32 array_buffer, uint32 vertex_buffer){

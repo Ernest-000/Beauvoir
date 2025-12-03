@@ -91,7 +91,7 @@ static int bvri_landscapejson(FILE* file, bvr_landscape_actor_t* actor){
 
     if(!json_root){
         BVR_PRINT("failed to read file!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     json_width = json_object_object_get(json_root, "width");
@@ -105,7 +105,7 @@ static int bvri_landscapejson(FILE* file, bvr_landscape_actor_t* actor){
         json_object_get_int(json_height) != actor->dimension.count[1]){
         
         BVR_PRINT("map sizes aren't the same!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, actor->mesh.vertex_buffer);
@@ -118,7 +118,7 @@ static int bvri_landscapejson(FILE* file, bvr_landscape_actor_t* actor){
     // if we cannot get tiles informations
     if(!tiles){
         BVR_PRINTF("failed to read tiles informations! (0x%x)", glGetError());
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     // iterate through layers
@@ -137,7 +137,7 @@ static int bvri_landscapejson(FILE* file, bvr_landscape_actor_t* actor){
             json_object_get_int(json_height) != actor->dimension.count[1]){
             
             BVR_PRINT("layer sizes aren't the same!");
-            return BVR_FAILED;
+            return BVR_FALSE;
         }
 
         uint32 compression = bvr_hash(json_object_get_string(json_object_object_get(json_layer, "compression")));
@@ -190,7 +190,7 @@ static int bvri_landscapejson(FILE* file, bvr_landscape_actor_t* actor){
     glUnmapBuffer(GL_ARRAY_BUFFER);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 int bvr_landscape_loadf(FILE* file, bvr_landscape_actor_t* actor){
@@ -199,7 +199,7 @@ int bvr_landscape_loadf(FILE* file, bvr_landscape_actor_t* actor){
 
     if(!actor->mesh.vertex_buffer){
         BVR_PRINT("landscape should be loaded before!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     fseek(file, 0, SEEK_SET);
@@ -211,10 +211,10 @@ int bvr_landscape_loadf(FILE* file, bvr_landscape_actor_t* actor){
     }
     else {
         BVR_PRINT("file might be corrupted or use an unknown format!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 /*{

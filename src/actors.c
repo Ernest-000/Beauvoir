@@ -1,6 +1,7 @@
 #include <BVR/actors.h>
 
 #include <BVR/file.h>
+#include <BVR/scene.h>
 #include <BVR/graphics.h>
 
 #include <stdlib.h>
@@ -410,7 +411,7 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     BVR_IDENTITY_MAT4(identity);
 
     // calculate transform
-    bvr_shader_set_uniformi(&actor->shader.uniforms[0], &identity);
+    bvr_shader_set_uniformi(&actor->shader.uniforms[0], identity);
 
     // bind composite
     
@@ -466,11 +467,11 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     layer_info.blend_mode = 0;
     layer_info.opacity = 255;
 
-    bvr_shader_set_uniformi(&actor->shader.uniforms[0], actor->self.transform.matrix);
+    cmd.shader = &bvr_get_instance()->predefs.c_shaders.c_composite_shader;
 
     bvr_shader_set_uniformi(
-        bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_LAYER_INDEX),
-        &layer_info
+        bvr_find_uniform_tag(cmd.shader, BVR_UNIFORM_TRANSFORM),
+        actor->self.transform.matrix
     );
 
     cmd.order = actor->self.order_in_layer;
@@ -479,8 +480,6 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     cmd.element_buffer = actor->mesh.element_buffer;
     cmd.attrib_count = actor->mesh.attrib_count;
     cmd.element_type = actor->mesh.element_type;
-
-    cmd.shader = &actor->shader;
 
     cmd.draw_mode = drawmode;
 

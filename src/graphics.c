@@ -9,28 +9,6 @@
 #include <memory.h>
 #include <malloc.h>
 
-static const char* __frbuffer_vertex_shdr = "#version 400\n"
-"layout(location=0) in vec2 in_position;\n"
-"layout(location=1) in vec2 in_uvs;\n"
-"uniform mat4 bvr_projection;\n"
-"out V_DATA {\n"
-"	vec2 uvs;\n"
-"} vertex;\n"
-"void main() {\n"
-"	gl_Position = bvr_projection * vec4(in_position, 0.0, 1.0);\n"
-"	vertex.uvs = in_uvs;\n"
-"}";
-
-static const char* __frbuffer_frag_shdr = "#version 400\n"
-"in V_DATA {\n"
-"vec2 uvs;\n"
-"} vertex;\n"
-"uniform sampler2D bvr_texture;\n"
-"void main() {\n"
-	"vec4 tex = texture(bvr_texture, vertex.uvs);\n"
-	"gl_FragColor = vec4(tex.rgb, 1.0);\n"
-"}";
-
 static void bvri_pipeline_restore_blending(struct bvr_pipeline_state_s* const state);
 static void bvri_pipeline_restore_depth(struct bvr_pipeline_state_s* const state);
 
@@ -189,12 +167,6 @@ int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, const uint16 width, c
     if(shader){
         bvr_create_shader(&framebuffer->shader, shader, BVR_FRAMEBUFFER_SHADER);
     }
-    else {
-        bvri_create_shader_vert_frag(&framebuffer->shader, __frbuffer_vertex_shdr, __frbuffer_frag_shdr);
-        const char* shaders[2] = { __frbuffer_vertex_shdr, __frbuffer_frag_shdr };
-
-        bvr_shader_register_uniform(&framebuffer->shader, BVR_MAT4, 1, BVR_UNIFORM_PROJECTION, "bvr_projection");
-    }
 
     glGenFramebuffers(1, &framebuffer->buffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->buffer);
@@ -251,6 +223,8 @@ void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 const color){
 }
 
 void bvr_framebuffer_blit(bvr_framebuffer_t* framebuffer){
+    bvr_shader_t* shader = &bvr_get_instance()->predefs.c_shaders.c_framebuffer_shader;
+
     mat4x4 ortho;
     float half_width = framebuffer->width * 0.5f;
     float half_height = framebuffer->height * 0.5f;
@@ -261,11 +235,13 @@ void bvr_framebuffer_blit(bvr_framebuffer_t* framebuffer){
         0.0f, 0.1f
     );
 
-    bvr_shader_set_uniformi(&framebuffer->shader.uniforms[1], &ortho[0][0]);
+    BVR_ASSERT(bvr_shader_set_uniformi(
+        &shader->uniforms[0], &ortho[0][0]
+    ));
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    bvr_shader_enable(&framebuffer->shader);
+    bvr_shader_enable(shader);
 
     glBindVertexArray(framebuffer->vertex_buffer);
     glBindTexture(GL_TEXTURE_2D, framebuffer->color_buffer);
@@ -296,11 +272,131 @@ void bvr_destroy_framebuffer(bvr_framebuffer_t* framebuffer){
 
 
 void bvr_create_predefs(struct bvr_predefs* predefs){
+    BVR_ASSERT(predefs);
 
+    predefs->is_available = true;
+
+    char* vertex_shader;
+    char* fragment_shader;
+    char* shader_array[2];
+
+    /* invalid shader */
+    {
+        vertex_shader = "#version 400\n"
+            "layout(location=0) in vec2 in_position;\n"
+            "layout(location=1) in vec2 in_uvs;\n"
+            "uniform mat4 bvr_transform;\n"
+            "layout(std140) uniform bvr_camera {"
+            "	mat4 bvr_projection;"
+            "	mat4 bvr_view;"
+            "};"
+            "out V_DATA {\n"
+            "	vec2 uvs;\n"
+            "} vertex;\n"
+            "void main() {\n"
+            "	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(in_position, 0.0, 1.0);\n"
+            "	vertex.uvs = in_uvs;\n"
+            "}";
+        
+        fragment_shader = "#version 400\n"
+            "in V_DATA {\n"
+            "vec2 uvs;\n"
+            "} vertex;\n"
+            "void main() {\n"
+            	"gl_FragColor = vec4(vertex.uvs, 1.0, 1.0);\n"
+            "}";
+
+        shader_array[0] = vertex_shader;
+        shader_array[1] = fragment_shader;
+
+        predefs->is_available = bvr_create_shader_raw(&predefs->c_shaders.c_invalid_shader, 
+            (const char**)shader_array, 
+            BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER
+        );
+    }
+
+    /* framebuffer shader */
+    {
+        vertex_shader = "#version 400\n"
+            "layout(location=0) in vec2 in_position;\n"
+            "layout(location=1) in vec2 in_uvs;\n"
+            "uniform mat4 bvr_transform;\n"
+            "out V_DATA {\n"
+            "	vec2 uvs;\n"
+            "} vertex;\n"
+            "void main() {\n"
+            "	gl_Position = bvr_transform * vec4(in_position, 0.0, 1.0);\n"
+            "	vertex.uvs = in_uvs;\n"
+            "}";
+        
+        fragment_shader = "#version 400\n"
+            "in V_DATA {\n"
+            "vec2 uvs;\n"
+            "} vertex;\n"
+            "uniform sampler2D bvr_texture;\n"
+            "void main() {\n"
+            	"gl_FragColor = vec4(texture(bvr_texture, vertex.uvs).rgb, 1.0);\n"
+            "}";
+
+        shader_array[0] = vertex_shader;
+        shader_array[1] = fragment_shader;
+
+        predefs->is_available = bvr_create_shader_raw(&predefs->c_shaders.c_framebuffer_shader, 
+            (const char**)shader_array, 
+            BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER
+        );
+
+        predefs->is_available = bvr_shader_register_uniform(
+            &predefs->c_shaders.c_framebuffer_shader, 
+            BVR_MAT4, 1, BVR_UNIFORM_PROJECTION, "bvr_projection"
+        );
+    }
+
+    /* composite shader */
+    {
+        vertex_shader = "#version 400\n"
+            "layout(location=0) in vec2 in_position;\n"
+            "layout(location=1) in vec2 in_uvs;\n"
+            "uniform mat4 bvr_transform;\n"
+            "layout(std140) uniform bvr_camera {"
+            "	mat4 bvr_projection;"
+            "	mat4 bvr_view;"
+            "};"
+            "out V_DATA {\n"
+            "	vec2 uvs;\n"
+            "} vertex;\n"
+            "void main() {\n"
+            "	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(in_position, 0.0, 1.0);\n"
+            "	vertex.uvs = in_uvs;\n"
+            "}";
+        
+        fragment_shader = "#version 400\n"
+            "in V_DATA {\n"
+            "vec2 uvs;\n"
+            "} vertex;\n"
+            "uniform sampler2D bvr_texture;\n"
+            "void main() {\n"
+            	"gl_FragColor = vec4(texture(bvr_texture, vertex.uvs).rgb, 1.0);\n"
+            "}";
+
+        shader_array[0] = vertex_shader;
+        shader_array[1] = fragment_shader;
+
+        predefs->is_available = bvr_create_shader_raw(&predefs->c_shaders.c_composite_shader, 
+            (const char**)shader_array, 
+            BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER
+        );
+    }
 }
 
 void bvr_destroy_predefs(struct bvr_predefs* predefs){
+    BVR_ASSERT(predefs);
 
+    bvr_destroy_shader(&predefs->c_shaders.c_invalid_shader);
+    bvr_destroy_shader(&predefs->c_shaders.c_framebuffer_shader);
+    bvr_destroy_shader(&predefs->c_shaders.c_composite_shader);
+
+    predefs->is_available = false;
 }
 
 static void bvri_pipeline_restore_blending(struct bvr_pipeline_state_s* const state){

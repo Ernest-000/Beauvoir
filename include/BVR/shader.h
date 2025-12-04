@@ -23,10 +23,10 @@
 
 #define BVR_VERTEX_SHADER               0x001
 #define BVR_FRAGMENT_SHADER             0x002
-#define BVR_FRAMEBUFFER_SHADER          0x004
+#define BVR_FRAMEBUFFER_SHADER          0x010
 
-#define BVR_SHADER_EXT_LIGHT            0x010
-#define BVR_SHADER_EXT_SHARE_LAYERS     0x020
+#define BVR_SHADER_EXT_LIGHT            0x100
+#define BVR_SHADER_EXT_SHARE_LAYERS     0x200
 
 #define BVR_SHADER_EXT_GLOBAL_ILLUMINATION BVR_SHADER_EXT_LIGHT
 
@@ -115,7 +115,9 @@ void bvr_destroy_uniform_buffer(uint32* buffer);
  */
 int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int flags);
 
-int bvri_create_shader_vert_frag(bvr_shader_t* shader, const char* vert, const char* frag);
+/**
+ * int bvri_create_shader_vert_frag(bvr_shader_t* shader, const char* vert, const char* frag);
+*/
 
 /*
     Bind a new shader uniform.

@@ -53,9 +53,9 @@ static void bvri_draw_editor_transform(bvr_transform_t* transform){
         nk_property_float(__editor->gui.context, "y", -100000.0f, &transform->position[1], 100000.0f, 0.1f, 0.1f);
         nk_property_float(__editor->gui.context, "z", -100000.0f, &transform->position[2], 100000.0f, 0.1f, 0.1f);
         
-        nk_property_float(__editor->gui.context, "r", -100000.0f, &transform->rotation[0], 100000.0f, 0.1f, 0.1f);
-        nk_property_float(__editor->gui.context, "p", -100000.0f, &transform->rotation[1], 100000.0f, 0.1f, 0.1f);
-        nk_property_float(__editor->gui.context, "y", -100000.0f, &transform->rotation[2], 100000.0f, 0.1f, 0.1f);
+        nk_property_float(__editor->gui.context, "ro", -100000.0f, &transform->rotation[0], 100000.0f, 0.1f, 0.1f);
+        nk_property_float(__editor->gui.context, "pi", -100000.0f, &transform->rotation[1], 100000.0f, 0.1f, 0.1f);
+        nk_property_float(__editor->gui.context, "ya", -100000.0f, &transform->rotation[2], 100000.0f, 0.1f, 0.1f);
         
         nk_layout_row_dynamic(__editor->gui.context, 15, 1);
         float scale = transform->scale[0];
@@ -153,21 +153,50 @@ static void bvri_draw_editor_shader(bvr_shader_t* shader){
     }
 
     nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+    nk_label(__editor->gui.context, "Shader", NK_TEXT_ALIGN_CENTERED);    
 
-    nk_label(__editor->gui.context, "Shader", NK_TEXT_ALIGN_CENTERED);
-    nk_label(__editor->gui.context, shader->asset.pointer.asset_id, NK_TEXT_ALIGN_LEFT);
-    
-    nk_layout_row_dynamic(__editor->gui.context, 15, 2);
-    
-    char type_name[16];
-    for (size_t i = 0; i < shader->uniform_count; i++)
-    {
-        bvr_nameof(shader->uniforms[i].type, type_name);
-
-        nk_label_wrap(__editor->gui.context, BVR_FORMAT("%s", shader->uniforms[i].name.string));  
-        
-        nk_label_wrap(__editor->gui.context, BVR_FORMAT("%s", type_name));     
+    if(shader->asset.origin != BVR_ASSET_ORIGIN_NONE){
+        nk_label(__editor->gui.context, shader->asset.pointer.asset_id, NK_TEXT_ALIGN_LEFT);
     }
+    
+    if(shader->uniform_count){
+        nk_layout_row_dynamic(__editor->gui.context, (shader->uniform_count + 3) * 15, 1);
+        if(nk_group_begin_titled(__editor->gui.context, "uniformgroupe", "Uniforms", NK_WINDOW_BORDER | NK_WINDOW_TITLE)){  
+            nk_layout_row_dynamic(__editor->gui.context, 15, 2);
+
+            char type_name[16];
+            for (size_t i = 0; i < shader->uniform_count; i++)
+            {
+                bvr_nameof(shader->uniforms[i].type, type_name);
+
+                nk_label_wrap(__editor->gui.context, BVR_FORMAT("%s", shader->uniforms[i].name.string));  
+
+                nk_label_wrap(__editor->gui.context, BVR_FORMAT("%s", type_name));     
+            }
+
+            nk_group_end(__editor->gui.context);
+        }
+    }
+
+    if(shader->block_count){
+        nk_layout_row_dynamic(__editor->gui.context, (shader->block_count + 3) * 15, 1);
+
+        if(nk_group_begin_titled(__editor->gui.context, "blockgroupe", "Blocks", NK_WINDOW_BORDER | NK_WINDOW_TITLE)){
+            nk_layout_row_dynamic(__editor->gui.context, 15, 2);
+
+            char type_name[16];
+            for (size_t i = 0; i < shader->block_count; i++)
+            {
+                bvr_nameof(shader->blocks[i].type, type_name);
+
+                nk_label_wrap(__editor->gui.context, BVR_FORMAT("block%i", shader->blocks[i].location));  
+                nk_label_wrap(__editor->gui.context, BVR_FORMAT("%s", type_name));     
+            }
+
+            nk_group_end(__editor->gui.context);
+        }
+    }
+    
 }
 
 static void bvri_draw_hierarchy_button(const char* name, uint64 type, void* object){
@@ -235,8 +264,8 @@ void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book){
             	"gl_FragColor = vec4(bvr_color, 1.0);\n"
             "}";
         
-        bvri_create_shader_vert_frag(&editor->device.shader, vertex_shader, fragment_shader);
-        //BVR_ASSERT(bvr_shader_register_uniform(&editor->device.shader, BVR_MAT4, 1, "bvr_transform"));
+        const char* shaders[2] = { vertex_shader, fragment_shader };
+        BVR_ASSERT(bvr_create_shader_raw(&editor->device.shader, shaders, BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER));
         BVR_ASSERT(bvr_shader_register_uniform(&editor->device.shader, BVR_VEC3, 1, 0, "bvr_color"));
         BVR_ASSERT(bvr_shader_register_block(&editor->device.shader, BVR_UNIFORM_CAMERA_NAME, BVR_MAT4, 2, BVR_UNIFORM_BLOCK_CAMERA));
 
@@ -244,7 +273,6 @@ void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book){
         BVR_IDENTITY_MAT4(editor->device.transform);
         
         bvr_shader_set_uniformi(&editor->device.shader.uniforms[1], &color);
-        
     }
 
     if(bvri_create_editor_render_buffers(
@@ -609,7 +637,18 @@ void bvr_editor_draw_inspector(){
 
                     nk_combo_end(__editor->gui.context);
                 }
-                
+
+                if(__editor->book->predefs.is_available){
+                    nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+                    bvri_draw_editor_shader(&__editor->book->predefs.c_shaders.c_invalid_shader);
+        
+ 
+                    nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+                    bvri_draw_editor_shader(&__editor->book->predefs.c_shaders.c_framebuffer_shader);
+                    
+                    nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+                    bvri_draw_editor_shader(&__editor->book->predefs.c_shaders.c_composite_shader);
+                }
             }
             break;
 

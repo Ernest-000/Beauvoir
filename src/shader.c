@@ -318,16 +318,18 @@ int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int 
 
     shader->shader_count = 0;
     shader->uniform_count = 1;
-    shader->block_count = 0;
+    shader->block_count = 1;
 
     // if there is a vertex shader stage
     if(BVR_HAS_FLAG(flags, BVR_VERTEX_SHADER)){
         shader->shaders[shader->shader_count].type = GL_VERTEX_SHADER;
 
         bvri_compile_shader_raw(&shader->shaders[shader->shader_count].shader, 
-            strings[shader->shader_count++],
+            strings[shader->shader_count],
             GL_VERTEX_SHADER
         );
+
+        glAttachShader(shader->program, shader->shaders[shader->shader_count++].shader);
     }
 
     // if there is a fragment shader stage
@@ -335,27 +337,11 @@ int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int 
         shader->shaders[shader->shader_count].type = GL_FRAGMENT_SHADER;
 
         bvri_compile_shader_raw(&shader->shaders[shader->shader_count].shader, 
-            strings[shader->shader_count++],
+            strings[shader->shader_count],
             GL_FRAGMENT_SHADER
         );
-    }
 
-    // try to get uniform block,
-    // but instead of bvr_create_shader we consider the situation where the shader
-    // does not need a transform.
-    shader->uniforms[0].location = glGetUniformLocation(shader->program, BVR_UNIFORM_TRANSFORM_NAME);
-    if (shader->blocks[0].location >= 0) {
-        shader->uniforms[0].memory.data = NULL;
-        shader->uniforms[0].memory.size = sizeof(mat4x4);
-        shader->uniforms[0].memory.elemsize = sizeof(mat4x4);
-        shader->uniforms[0].name.string = NULL;
-        shader->uniforms[0].name.length = 0;
-        shader->uniforms[0].type = BVR_MAT4;
-        shader->uniforms[0].tags = BVR_UNIFORM_TRANSFORM;
-    }
-    else {
-        BVR_PRINT("cannot find transform uniform!");
-        shader->uniform_count = 0;
+        glAttachShader(shader->program, shader->shaders[shader->shader_count++].shader);
     }
 
     // failed if there is no shader attached to
@@ -372,10 +358,39 @@ int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int 
         return BVR_FALSE;
     }
 
+    // try to get uniform block,
+    // but instead of bvr_create_shader, we consider the situation where the shader
+    // does not need a transform.
+    shader->uniforms[0].location = glGetUniformLocation(shader->program, BVR_UNIFORM_TRANSFORM_NAME);
+    if (shader->blocks[0].location != -1) {
+        shader->uniforms[0].memory.data = NULL;
+        shader->uniforms[0].memory.size = sizeof(mat4x4);
+        shader->uniforms[0].memory.elemsize = sizeof(mat4x4);
+        shader->uniforms[0].name.string = NULL;
+        shader->uniforms[0].name.length = 0;
+        shader->uniforms[0].type = BVR_MAT4;
+        shader->uniforms[0].tags = BVR_UNIFORM_TRANSFORM;
+    }
+    else {
+        shader->uniforms[0].location = 0;
+        shader->uniform_count = 0;
+    }
+
+    shader->blocks[0].location = glGetUniformBlockIndex(shader->program, BVR_UNIFORM_CAMERA_NAME);
+    if (shader->blocks[0].location != -1) {
+        glUniformBlockBinding(shader->program, shader->blocks[0].location, BVR_UNIFORM_BLOCK_CAMERA);
+        shader->blocks[0].type = BVR_MAT4;
+        shader->blocks[0].count = 2;
+    }
+    else {
+        shader->blocks[0].location = 0;
+        shader->block_count--;
+    }
+
     return BVR_TRUE;
 }
 
-int bvri_create_shader_vert_frag(bvr_shader_t* shader, const char* vert, const char* frag){
+/*int bvri_create_shader_vert_frag(bvr_shader_t* shader, const char* vert, const char* frag){
     BVR_ASSERT(shader);
     BVR_ASSERT(vert);
     BVR_ASSERT(frag);
@@ -399,7 +414,7 @@ int bvri_create_shader_vert_frag(bvr_shader_t* shader, const char* vert, const c
     glAttachShader(shader->program, shader->shaders[1].shader);
 
     bvri_link_shader(shader->program);
-}
+}*/
 
 void bvr_create_uniform_buffer(uint32* buffer, uint64 size, uint32 binding_point){
     glGenBuffers(1, buffer);

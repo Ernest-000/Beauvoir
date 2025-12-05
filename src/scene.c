@@ -44,7 +44,7 @@ int bvr_create_book(bvr_book_t *book)
 
     BVR_IDENTITY_VEC3(book->pipeline.clear_color);
 
-    book->pipeline.state.framebuffer = 0;
+    book->pipeline.state.framebuffer = NULL;
     book->pipeline.state.command = NULL;
 
     book->pipeline.command_count = 0;

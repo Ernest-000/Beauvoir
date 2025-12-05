@@ -24,6 +24,8 @@ void main() {
 
 #ifdef _FRAGMENT_
 
+precision mediump float;
+
 in V_DATA vertex;
 
 uniform sampler2D bvr_composite;
@@ -32,10 +34,12 @@ uniform sampler2DArray bvr_texture;
 uniform ivec3 bvr_layer;
 
 void main() {
+	L_DATA layer = create_layer(bvr_layer);
+
 	vec4 composite = texture(bvr_composite, vertex.uvs);
 	vec4 t_sample = texture(bvr_texture, vec3(vertex.uvs, bvr_layer.x));
 
-	gl_FragColor = t_sample;
+	gl_FragColor = calc_blending(composite, t_sample, layer);
 }
 
 #endif

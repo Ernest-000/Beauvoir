@@ -116,7 +116,7 @@ typedef struct bvr_layer_s {
     uint16 flags;
 
     uint16 width, height;
-    uint16 anchor_x, anchor_y;
+    short anchor_x, anchor_y;
 
     uint8 opacity;
     bvr_layer_blend_mode_t blend_mode;

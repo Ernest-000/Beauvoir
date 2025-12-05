@@ -28,8 +28,7 @@ static const char* __ext_s_vlight = "struct V_LIGHT {\n"
 static const char* __ext_s_layer = "struct L_DATA {\n"
 "	int index;\n"
 "	int blend;\n"
-"	int opacity;\n"
-"	int flags;\n"
+"	float opacity;\n"
 "};\n";
 
 // light related function(s)
@@ -45,9 +44,30 @@ static const char* __ext_f_light = "vec4 calc_light(vec4 color, V_LIGHT light, V
 "	return vec4(l_color, 1.0) * vec4(light.color.rgb, 1.0);\n"
 "}\n";
 
-static const char* __ext_f_layer = "L_DATA create_layer(int layer){\n"
+static const char* __ext_f_layer = "L_DATA create_layer(ivec3 layer){\n"
 "	L_DATA info;\n"
+"   info.index = layer.x;\n"
+"   info.blend = layer.y;\n"
+"   info.opacity = layer.z / 255.0;\n"
 "	return info;\n"
+"}\n"
+"vec4 calc_blending(vec4 composite, vec4 pixel, L_DATA layer){\n"
+"    vec3 blend = pixel.rgb;\n"
+"    float alpha = pixel.a * layer.opacity;\n"
+"    if(layer.blend == 0 || layer.blend == 1){ // normal and passthrough\n"
+"        return mix(composite, pixel, alpha);}"
+"    if(layer.blend == 4){ // multiply\n"
+"        blend = composite.rgb * pixel.rgb;}\n"
+"    else if(layer.blend == 9){ // screen\n"
+"        blend = 1.0 - (1.0 - composite.rgb) * (1.0 - pixel.rgb);}\n"
+"    else if(layer.blend == 13){ // overlay\n"
+"        blend = mix(2.0 * composite.rgb * pixel.rgb, \n"
+"       1.0 - 2.0*(1.0-composite.rgb)*(1.0-pixel.rgb),\n"
+"            step(0.5, composite.rgb));\n"
+"    }\n"
+"    else if(layer.blend == 3){blend = min(composite.rgb, pixel.rgb);}\n"
+"    else if(layer.blend == 8){blend = max(composite.rgb, pixel.rgb);}\n"
+"    return mix(composite, vec4(blend, 1.0), alpha);\n"
 "}\n";
 
 static int bvri_compile_shader(uint32* shader, bvr_string_t* const content, int type);

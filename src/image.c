@@ -1753,8 +1753,11 @@ void bvr_composite_enable(bvr_composite_t* composite){
     BVR_ASSERT(composite && composite->framebuffer);
 
     glBindFramebuffer(GL_FRAMEBUFFER, composite->framebuffer);
+
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    glViewport(0, 0, composite->image->width, composite->image->height);
 }
 
 void bvr_composite_prepare(bvr_composite_t* composite){
@@ -1765,7 +1768,22 @@ void bvr_composite_prepare(bvr_composite_t* composite){
 }
 
 void bvr_composite_disable(bvr_composite_t* composite){
-    glBindFramebuffer(GL_FRAMEBUFFER, bvr_get_instance()->pipeline.state.framebuffer);
+    // if there is a working framebuffer
+    if(bvr_get_instance()->pipeline.state.framebuffer){
+        glBindFramebuffer(GL_FRAMEBUFFER, bvr_get_instance()->pipeline.state.framebuffer->buffer);
+        glViewport(0, 0, 
+            bvr_get_instance()->pipeline.state.framebuffer->width, 
+            bvr_get_instance()->pipeline.state.framebuffer->height
+        );
+    }
+    // use default framebuffer and window's screen size
+    else {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, 
+            bvr_get_instance()->window.framebuffer.width, 
+            bvr_get_instance()->window.framebuffer.height
+        );
+    }
 }
 
 void bvr_destroy_composite(bvr_composite_t* composite){

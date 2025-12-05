@@ -206,7 +206,7 @@ void bvr_framebuffer_enable(bvr_framebuffer_t* framebuffer){
     glViewport(0, 0, framebuffer->width, framebuffer->height);
 
     // update pipeline state
-    bvr_get_instance()->pipeline.state.framebuffer = framebuffer->buffer;
+    bvr_get_instance()->pipeline.state.framebuffer = framebuffer;
 }
 
 void bvr_framebuffer_disable(bvr_framebuffer_t* framebuffer){
@@ -214,7 +214,7 @@ void bvr_framebuffer_disable(bvr_framebuffer_t* framebuffer){
     glViewport(0, 0, framebuffer->target_width, framebuffer->target_height);
 
     // update pipeline state
-    bvr_get_instance()->pipeline.state.framebuffer = 0;
+    bvr_get_instance()->pipeline.state.framebuffer = NULL;
 }
 
 void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 const color){

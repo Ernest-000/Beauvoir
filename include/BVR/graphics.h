@@ -87,7 +87,7 @@ typedef struct bvr_pipeline_s {
     vec3 clear_color;
 
     struct {
-        uint32 framebuffer;
+        bvr_framebuffer_t* framebuffer;
         struct bvr_draw_command_s* command;
     } state;
 } bvr_pipeline_t;

@@ -408,34 +408,40 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     struct bvr_draw_command_s cmd;
     mat4x4 identity;
     
-    BVR_IDENTITY_MAT4(identity);
-
-    // calculate transform
-    bvr_shader_set_uniformi(&actor->shader.uniforms[0], identity);
+    mat4_ortho(
+        identity,
+        -actor->texture.image.width, actor->texture.image.width,
+        -actor->texture.image.height, actor->texture.image.height, 0.0, 1.0
+    );
 
     // bind composite
-    
     bvr_composite_enable(&actor->composite);
 
+    // update composite texture reference
+    bvr_shader_set_uniformi(
+        bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_COMPOSITE),
+        &actor->composite.tex
+    );
+
+    // draw each layers on the composite framebuffer
     bvr_layer_t* layer;
     struct bvr_layer_info_s layer_info;
-    for (int i = BVR_BUFFER_COUNT(actor->texture.image.layers) - 1; i >= 0; i--)
+    for (int i = 0; i < BVR_BUFFER_COUNT(actor->texture.image.layers); i++)
     {
         layer = &((bvr_layer_t*)actor->texture.image.layers.data)[i];
         
         layer_info.layer = i;
-        layer_info.blend_mode = 0;
-        layer_info.opacity = 255;
+        layer_info.blend_mode = layer->blend_mode;
+        layer_info.opacity = layer->opacity;
         
-        if(layer->opacity == 0){
-            continue;
-        }
+        // reset transform matrice
+        identity[3][0] = (float)layer->anchor_x / actor->texture.image.width;
+        identity[3][1] = (float)layer->anchor_y / actor->texture.image.height;
 
-        bvr_shader_set_uniformi(
-            bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_COMPOSITE),
-            &actor->composite.tex
-        );
+        // update transform's value
+        bvr_shader_set_uniformi(&actor->shader.uniforms[0], identity);
 
+        // update layer info
         bvr_shader_set_uniformi(
             bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_LAYER_INDEX),
             &layer_info
@@ -461,14 +467,13 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
         bvr_pipeline_draw_cmd(&cmd);
     }
 
+    // disable composite and target the renderbuffer
     bvr_composite_disable(&actor->composite);
 
-    layer_info.layer = -1;
-    layer_info.blend_mode = 0;
-    layer_info.opacity = 255;
-
+    // set the composite shader as a target
     cmd.shader = &bvr_get_instance()->predefs.c_shaders.c_composite_shader;
 
+    // update transform
     bvr_shader_set_uniformi(
         bvr_find_uniform_tag(cmd.shader, BVR_UNIFORM_TRANSFORM),
         actor->self.transform.matrix
@@ -486,7 +491,7 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     cmd.vertex_group = *(bvr_vertex_group_t*)bvr_pool_try_get(&actor->mesh.vertex_groups, 0);
     cmd.vertex_group.texture = actor->composite.tex;
 
-    bvr_pipeline_draw_cmd(&cmd);
+    bvr_pipeline_add_draw_cmd(&cmd);
 }
 
 static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){

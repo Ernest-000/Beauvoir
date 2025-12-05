@@ -23,6 +23,11 @@
 #define BVR_HIERARCHY_RECT(w, h) (nk_rect(0, 0, (200 + w) / BVR_EDITOR_SCALE, (450 + h) / BVR_EDITOR_SCALE))
 #define BVR_INSPECTOR_RECT(w, h) (nk_rect(__editor->book->window.framebuffer.width - (350 + w) / BVR_EDITOR_SCALE, 0, (350 + w) / BVR_EDITOR_SCALE, (400 + h) / BVR_EDITOR_SCALE))
 
+#define BVR_COMBO(value, e, name) int f ## ##e = value == e;\
+    if(nk_checkbox_label(__editor->gui.context, name, &(f ## ##e))){\
+        value = e;\
+    }
+
 static int bvri_create_editor_render_buffers(uint32* array_buffer, uint32* vertex_buffer, uint64 vertex_size);
 static void bvri_bind_editor_buffers(uint32 array_buffer, uint32 vertex_buffer);
 static void bvri_set_editor_buffers(float* vertices, uint32 vertices_count, uint8 stride);
@@ -49,13 +54,13 @@ static void bvri_draw_editor_transform(bvr_transform_t* transform){
         
         nk_layout_row_dynamic(__editor->gui.context, 15, 3);
      
-        nk_property_float(__editor->gui.context, "x", -100000.0f, &transform->position[0], 100000.0f, 0.1f, 0.1f);
-        nk_property_float(__editor->gui.context, "y", -100000.0f, &transform->position[1], 100000.0f, 0.1f, 0.1f);
-        nk_property_float(__editor->gui.context, "z", -100000.0f, &transform->position[2], 100000.0f, 0.1f, 0.1f);
+        nk_property_float(__editor->gui.context, "#x", -100000.0f, &transform->position[0], 100000.0f, 0.1f, 0.1f);
+        nk_property_float(__editor->gui.context, "#y", -100000.0f, &transform->position[1], 100000.0f, 0.1f, 0.1f);
+        nk_property_float(__editor->gui.context, "#z", -100000.0f, &transform->position[2], 100000.0f, 0.1f, 0.1f);
         
-        nk_property_float(__editor->gui.context, "ro", -100000.0f, &transform->rotation[0], 100000.0f, 0.1f, 0.1f);
-        nk_property_float(__editor->gui.context, "pi", -100000.0f, &transform->rotation[1], 100000.0f, 0.1f, 0.1f);
-        nk_property_float(__editor->gui.context, "ya", -100000.0f, &transform->rotation[2], 100000.0f, 0.1f, 0.1f);
+        nk_property_float(__editor->gui.context, "#r", -100000.0f, &transform->rotation[0], 100000.0f, 0.1f, 0.1f);
+        nk_property_float(__editor->gui.context, "#p", -100000.0f, &transform->rotation[1], 100000.0f, 0.1f, 0.1f);
+        nk_property_float(__editor->gui.context, "#y", -100000.0f, &transform->rotation[2], 100000.0f, 0.1f, 0.1f);
         
         nk_layout_row_dynamic(__editor->gui.context, 15, 1);
         float scale = transform->scale[0];
@@ -124,8 +129,7 @@ static void bvri_draw_editor_image(bvr_image_t* image){
 }
 
 static void bvri_draw_editor_layer(bvr_layer_t* layer){
-
-    nk_layout_row_dynamic(__editor->gui.context, 90, 1);
+    nk_layout_row_dynamic(__editor->gui.context, 120, 1);
     if(nk_group_begin_titled(__editor->gui.context, layer->name.string, layer->name.string, NK_WINDOW_BORDER | NK_WINDOW_TITLE)){
         int flag = 0;
         nk_layout_row_dynamic(__editor->gui.context, 15, 2);
@@ -134,17 +138,34 @@ static void bvri_draw_editor_layer(bvr_layer_t* layer){
             layer->opacity *= 255;
         }
 
+        nk_property_int(__editor->gui.context, "#opacity", 0, (int*)&layer->opacity, 255, 1, 1);
+
         flag = BVR_HAS_FLAG(layer->flags, BVR_LAYER_Y_SORTED);
         if(nk_checkbox_label(__editor->gui.context, "y sorted", &flag)){
             layer->flags ^= BVR_LAYER_Y_SORTED;
         }
 
-        nk_property_int(__editor->gui.context, "#x", -100000, (int*)&layer->anchor_x, 100000, 1, 1);
-        nk_property_int(__editor->gui.context, "#y", -100000, (int*)&layer->anchor_y, 100000, 1, 1);
+        if(nk_combo_begin_label(__editor->gui.context, "blend mode", nk_vec2(200, 150))){
+            nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+
+            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_PASSTHROUGH, "passthrough");
+            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_NORMAL, "normal");
+            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_MULTIPLY, "multiply");
+            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_SCREEN, "screen");
+            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_OVERLAY, "overlay");
+            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_DARKEN, "min");
+            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_LIGHTEN, "max");
+
+            nk_combo_end(__editor->gui.context);
+        }
+
+        nk_layout_row_dynamic(__editor->gui.context, 15, 2);
+
+        nk_property_short(__editor->gui.context, "#x", SHRT_MIN, &layer->anchor_x, SHRT_MAX, 1, 1);
+        nk_property_short(__editor->gui.context, "#y", SHRT_MIN, &layer->anchor_y, SHRT_MAX, 1, 1);
 
         nk_group_end(__editor->gui.context);
     }
-    
 }
 
 static void bvri_draw_editor_shader(bvr_shader_t* shader){
@@ -596,42 +617,42 @@ void bvr_editor_draw_inspector(){
                     nk_layout_row_dynamic(__editor->gui.context, 15, 1);
 
                     depth = BVR_HAS_FLAG(pipeline->rendering_pass.depth, BVR_DEPTH_FUNC_NEVER);
-                    if(nk_checkbox_label(__editor->gui.context, "never", &blending)){
+                    if(nk_checkbox_label(__editor->gui.context, "never", &depth)){
                         pipeline->rendering_pass.depth ^= BVR_DEPTH_FUNC_NEVER;
                     }
 
                     depth = BVR_HAS_FLAG(pipeline->rendering_pass.depth, BVR_DEPTH_FUNC_ALWAYS);
-                    if(nk_checkbox_label(__editor->gui.context, "always", &blending)){
+                    if(nk_checkbox_label(__editor->gui.context, "always", &depth)){
                         pipeline->rendering_pass.depth ^= BVR_DEPTH_FUNC_ALWAYS;
                     }
 
                     depth = BVR_HAS_FLAG(pipeline->rendering_pass.depth, BVR_DEPTH_FUNC_LESS);
-                    if(nk_checkbox_label(__editor->gui.context, "less", &blending)){
+                    if(nk_checkbox_label(__editor->gui.context, "less", &depth)){
                         pipeline->rendering_pass.depth ^= BVR_DEPTH_FUNC_LESS;
                     }
 
                     depth = BVR_HAS_FLAG(pipeline->rendering_pass.depth, BVR_DEPTH_FUNC_GREATER);
-                    if(nk_checkbox_label(__editor->gui.context, "greater", &blending)){
+                    if(nk_checkbox_label(__editor->gui.context, "greater", &depth)){
                         pipeline->rendering_pass.depth ^= BVR_DEPTH_FUNC_GREATER;
                     }
 
                     depth = BVR_HAS_FLAG(pipeline->rendering_pass.depth, BVR_DEPTH_FUNC_LEQUAL);
-                    if(nk_checkbox_label(__editor->gui.context, "less or equal", &blending)){
+                    if(nk_checkbox_label(__editor->gui.context, "less or equal", &depth)){
                         pipeline->rendering_pass.depth ^= BVR_DEPTH_FUNC_LEQUAL;
                     }
 
                     depth = BVR_HAS_FLAG(pipeline->rendering_pass.depth, BVR_DEPTH_FUNC_GEQUAL);
-                    if(nk_checkbox_label(__editor->gui.context, "greater or equal", &blending)){
+                    if(nk_checkbox_label(__editor->gui.context, "greater or equal", &depth)){
                         pipeline->rendering_pass.depth ^= BVR_DEPTH_FUNC_GEQUAL;
                     }
 
                     depth = BVR_HAS_FLAG(pipeline->rendering_pass.depth, BVR_DEPTH_FUNC_NOTEQUAL);
-                    if(nk_checkbox_label(__editor->gui.context, "not equal", &blending)){
+                    if(nk_checkbox_label(__editor->gui.context, "not equal", &depth)){
                         pipeline->rendering_pass.depth ^= BVR_DEPTH_FUNC_NOTEQUAL;
                     }
 
                     depth = BVR_HAS_FLAG(pipeline->rendering_pass.depth, BVR_DEPTH_FUNC_EQUAL);
-                    if(nk_checkbox_label(__editor->gui.context, "equal", &blending)){
+                    if(nk_checkbox_label(__editor->gui.context, "equal", &depth)){
                         pipeline->rendering_pass.depth ^= BVR_DEPTH_FUNC_EQUAL;
                     }
 
@@ -710,7 +731,7 @@ void bvr_editor_draw_inspector(){
                 nk_label(__editor->gui.context, BVR_FORMAT("flags %x", actor->flags), NK_TEXT_ALIGN_LEFT);
 
                 nk_checkbox_label(__editor->gui.context, "is active", (nk_bool*)&actor->active);
-                nk_property_int(__editor->gui.context, "order in layer", 0, (int*)&actor->order_in_layer, 0x7fff, 1, 1.0f);
+                nk_property_short(__editor->gui.context, "order in layer", 0, &actor->order_in_layer, SHRT_MAX, 1, 1.0f);
 
                 bvri_draw_editor_transform(&actor->transform);
 

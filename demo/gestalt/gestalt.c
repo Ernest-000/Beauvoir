@@ -99,21 +99,6 @@ static void _dialogue_box_callback(bvr_string_t* string){
 }
 
 static void _draw_editor(struct bvr_nuklear_s* gui, bvr_book_t* _){
-    nk_layout_row_dynamic(gui->context, 40, 1);
-    
-    if(nk_button_label(gui->context, "load image")){
-        target_image = true;
-        wait_for_input = true;
-        bvr_open_file_dialog(_dialogue_box_callback, NULL, 0);
-    }
-
-    if(nk_button_label(gui->context, "load mesh")){
-        target_image = false;
-        wait_for_input = true;
-        bvr_open_file_dialog(_dialogue_box_callback, NULL, 0);
-    }
-
-    nk_label_wrap(gui->context, BVR_FORMAT("texture id %i", p_image->texture.id));
 }
 
 

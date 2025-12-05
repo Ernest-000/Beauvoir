@@ -44,28 +44,31 @@ static const char* __ext_f_light = "vec4 calc_light(vec4 color, V_LIGHT light, V
 "	return vec4(l_color, 1.0) * vec4(light.color.rgb, 1.0);\n"
 "}\n";
 
-static const char* __ext_f_layer = "L_DATA create_layer(ivec3 layer){\n"
+static const char* __ext_f_layer = "L_DATA create_layer(int layer){\n"
 "	L_DATA info;\n"
-"   info.index = layer.x;\n"
-"   info.blend = layer.y;\n"
-"   info.opacity = layer.z / 255.0;\n"
+"   info.index = 0xFF & layer;\n"
+"   info.blend = (0xFF00 & layer) >> 8;\n"
+"   info.opacity = ((0xFF0000 & layer) >> 16) / 255.0;\n"
 "	return info;\n"
 "}\n"
 "vec4 calc_blending(vec4 composite, vec4 pixel, L_DATA layer){\n"
 "    vec3 blend = pixel.rgb;\n"
 "    float alpha = pixel.a * layer.opacity;\n"
-"    if(layer.blend == 0 || layer.blend == 1){ // normal and passthrough\n"
-"        return mix(composite, pixel, alpha);}"
-"    if(layer.blend == 4){ // multiply\n"
-"        blend = composite.rgb * pixel.rgb;}\n"
-"    else if(layer.blend == 9){ // screen\n"
-"        blend = 1.0 - (1.0 - composite.rgb) * (1.0 - pixel.rgb);}\n"
-"    else if(layer.blend == 13){ // overlay\n"
+    // normal and passthrough
+"    if(layer.blend == 0 || layer.blend == 1){ return mix(composite, pixel, alpha);}"
+    // multiply
+"    if(layer.blend == 4){blend = composite.rgb * pixel.rgb;}\n"
+    // screen
+"    else if(layer.blend == 9){ blend = 1.0 - (1.0 - composite.rgb) * (1.0 - pixel.rgb);}\n"
+    // overlay
+"    else if(layer.blend == 13){\n"
 "        blend = mix(2.0 * composite.rgb * pixel.rgb, \n"
 "       1.0 - 2.0*(1.0-composite.rgb)*(1.0-pixel.rgb),\n"
 "            step(0.5, composite.rgb));\n"
 "    }\n"
+    // darken
 "    else if(layer.blend == 3){blend = min(composite.rgb, pixel.rgb);}\n"
+    // lighten
 "    else if(layer.blend == 8){blend = max(composite.rgb, pixel.rgb);}\n"
 "    return mix(composite, vec4(blend, 1.0), alpha);\n"
 "}\n";
@@ -617,10 +620,6 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
             glUniform3fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (float*)data);
             break;
 
-        case BVR_TEXTURE_2D_LAYER_STRUCT:
-            glUniform3iv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (int*)data);
-            break;
-
         case BVR_VEC4:
             glUniform4fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (float*)data);
             break;
@@ -647,7 +646,11 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
                 glUniform1i(uniform->location, (int)texture->texture.unit);
             }
             break;
-        
+
+        case BVR_TEXTURE_2D_LAYER_STRUCT:
+            glUniform1iv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (int*)data);
+            break;
+
         case BVR_TEXTURE_2D_COMPOSITE:
             {
                 bvr_composite_t* composite = (bvr_composite_t*)data;

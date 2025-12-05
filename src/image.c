@@ -903,7 +903,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
                 case 0x6E6F726D: layer->blend_mode = BVR_LAYER_BLEND_NORMAL; break;
                 case 0x64697373: layer->blend_mode = BVR_LAYER_BLEND_DISSOLVE; break;
                 case 0x6461726B: layer->blend_mode = BVR_LAYER_BLEND_DARKEN; break;
-                case 0x6D756C00: layer->blend_mode = BVR_LAYER_BLEND_MULTIPLY; break;
+                case 0x6D756C20: layer->blend_mode = BVR_LAYER_BLEND_MULTIPLY; break;
                 case 0x69646976: layer->blend_mode = BVR_LAYER_BLEND_COLORBURN; break;
                 case 0x6C62726E: layer->blend_mode = BVR_LAYER_BLEND_LINEARBURN; break;
                 case 0x646B436C: layer->blend_mode = BVR_LAYER_BLEND_DARKERCOLOR; break;
@@ -927,8 +927,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
                 case 0x73617400: layer->blend_mode = BVR_LAYER_BLEND_SATURATION; break;
                 case 0x636F6C72: layer->blend_mode = BVR_LAYER_BLEND_COLOR; break;
                 case 0x65756D00: layer->blend_mode = BVR_LAYER_BLEND_LUMINOSITY; break;
-                default:
-                break;
+                default: layer->blend_mode = BVR_LAYER_BLEND_PASSTHROUGH; break;
             }
 
             BVR_ASSERT(strncmp(layer->sig, "8BIM", 4) == 0);

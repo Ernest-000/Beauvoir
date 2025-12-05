@@ -126,9 +126,9 @@ typedef struct bvr_layer_s {
     Layer informations that is sent to the shader
 */
 struct bvr_layer_info_s {
-    int32 layer;
-    int32 blend_mode;
-    int32 opacity;
+    uint8 layer;
+    uint8 blend_mode;
+    uint8 opacity;
 } __attribute__((packed));
 
 /*

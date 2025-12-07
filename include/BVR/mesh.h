@@ -2,10 +2,12 @@
 
 #include <stdint.h>
 
-#include <BVR/utils.h>
+#include <BVR/common.h>
 #include <BVR/buffer.h>
 
 #include <BVR/math.h>
+
+#define BVR_VERTEX_GROUP_FLAG_INVISIBLE 0x01
 
 typedef enum bvr_drawmode_e {
     BVR_DRAWMODE_LINES = 0x0001,
@@ -68,8 +70,8 @@ typedef struct bvr_vertex_group_s {
     uint32 element_count;
     uint32 element_offset;
 
-    uint16 texture;
-    uint16 flags;
+    uint8 texture;
+    uint8 flags;
 
     mat4x4 matrix;
 } __attribute__ ((packed)) bvr_vertex_group_t; 

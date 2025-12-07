@@ -50,7 +50,7 @@ int main(){
             because we want to define player's color inside the shader, we need to define this parameter (=uniform in OpenGL)
             so, we firstly register the uniform (because it's an RGB color we use a vector3).
         */
-        bvr_shader_register_uniform(&player.shader, BVR_VEC3, 1, "bvr_color");
+        bvr_shader_register_uniform(&player.shader, BVR_VEC3, BVR_UNIFORM_NONE, 1, "bvr_color");
 
         /*
             then, we copy 'color' value into our uniform 'bvr_color'.
@@ -60,7 +60,7 @@ int main(){
 
         /* create actor components */
         bvr_create_actor(
-            &player.object,
+            &player.self,
             "player",
             BVR_DYNAMIC_ACTOR,
             BVR_COLLISION_ENABLE | /* means that we enable collision */
@@ -69,7 +69,7 @@ int main(){
         );
 
         /* link this object to a scene */
-        bvr_link_actor_to_page(&book.page, &player.object);
+        bvr_alloc_actor(&book.page, &player.self);
     }
 
     /* main loop */
@@ -110,7 +110,7 @@ int main(){
         bvr_update(&book);
 
         /* draw player */
-        bvr_draw_actor((bvr_static_actor_t*)&player.object, BVR_DRAWMODE_TRIANGLES);
+        bvr_draw_actor((bvr_static_actor_t*)&player.self, BVR_DRAWMODE_TRIANGLES);
 
         /* draw editor */
         bvr_editor_handle();

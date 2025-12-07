@@ -3,92 +3,28 @@
 #include <GLAD/glad.h>
 
 #include <BVR/math.h>
-#include <BVR/utils.h>
+#include <BVR/common.h>
 #include <BVR/scene.h>
 
 #include <memory.h>
 #include <malloc.h>
 
+static void bvri_pipeline_restore_blending(struct bvr_pipeline_state_s* const state);
+static void bvri_pipeline_restore_depth(struct bvr_pipeline_state_s* const state);
+
 void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
-    BVR_ASSERT(state);
-
-    if(state->blending){
-        glEnable(GL_BLEND);
-        switch(state->blending)
-        {
-        case BVR_BLEND_FUNC_ALPHA_ONE_MINUS:
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            break;
-        case BVR_BLEND_FUNC_ALPHA_ADD:
-            glBlendFunc(GL_ONE, GL_ONE);
-            break;
-        case BVR_BLEND_FUNC_ALPHA_MULT:
-            glBlendFunc(GL_ONE, GL_SRC_COLOR);
-            break;
-        default:
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            break;
-        }
-    }
-    else {
-        glDisable(GL_BLEND);
-    }
-
-    if(state->depth){
-        glEnable(GL_DEPTH_TEST);
-
-        switch (state->depth)
-        {
-        case BVR_DEPTH_FUNC_NEVER:
-            glDepthFunc(GL_NEVER);
-            break;
-        
-        case BVR_DEPTH_FUNC_ALWAYS:
-            glDepthFunc(GL_ALWAYS);
-            break;
-        
-        case BVR_DEPTH_FUNC_LESS:
-            glDepthFunc(GL_LESS);
-            break;
-    
-        case BVR_DEPTH_FUNC_GREATER:
-            glDepthFunc(GL_GREATER);
-            break;
-
-        case BVR_DEPTH_FUNC_LEQUAL:
-            glDepthFunc(GL_LEQUAL);
-            break;
-        
-        case BVR_DEPTH_FUNC_GEQUAL:
-            glDepthFunc(GL_GEQUAL);
-            break;
-
-        case BVR_DEPTH_FUNC_NOTEQUAL:
-            glDepthFunc(GL_NOTEQUAL);
-            break;
-        
-        case BVR_DEPTH_FUNC_EQUAL:
-            glDepthFunc(GL_EQUAL);
-            break;
-
-        default:
-            glDepthFunc(GL_ALWAYS);
-            break;
-        }
-    }
-    else {
-        glDisable(GL_DEPTH_TEST);
-    }
+    bvri_pipeline_restore_blending(state);
+    bvri_pipeline_restore_depth(state);
 }
 
 void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
-    bvr_shader_enable(cmd->shader);
-    
     // try to apply local uniform
-    bvr_shader_use_uniform(
-        bvr_find_uniform(cmd->shader, "bvr_local"), 
-        &cmd->vertex_group.matrix[0][0]
+    bvr_shader_set_uniformi(
+        bvr_find_uniform_tag(cmd->shader, BVR_UNIFORM_LOCAL_TRANSFORM), 
+        cmd->vertex_group.matrix
     );
+
+    bvr_shader_enable(cmd->shader);
 
     glBindVertexArray(cmd->array_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, cmd->vertex_buffer);
@@ -101,11 +37,12 @@ void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
     
     // if use element 
     if(cmd->element_buffer){ 
-        glDrawElementsBaseVertex(cmd->draw_mode, 
-            cmd->vertex_group.element_count, 
-            cmd->element_type, 
-            NULL, 
-            cmd->vertex_group.element_offset
+        glDrawRangeElements(
+            cmd->draw_mode, 
+            cmd->vertex_group.element_offset,
+            cmd->vertex_group.element_offset + cmd->vertex_group.element_count,
+            cmd->vertex_group.element_count,
+            cmd->element_type, NULL
         );
     }
     else {
@@ -122,14 +59,17 @@ void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cmd->element_buffer);
 
     bvr_shader_disable();
+
+    // update pipeline state
+    bvr_get_instance()->pipeline.state.command = cmd;
 }
 
 void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd){
     BVR_ASSERT(cmd);
 
-    if(bvr_get_book_instance()->pipeline.command_count + 1 < BVR_MAX_DRAW_COMMAND){
+    if(bvr_get_instance()->pipeline.command_count + 1 < BVR_MAX_DRAW_COMMAND){
         memcpy(
-            &bvr_get_book_instance()->pipeline.commands[bvr_get_book_instance()->pipeline.command_count++], 
+            &bvr_get_instance()->pipeline.commands[bvr_get_instance()->pipeline.command_count++], 
             cmd, sizeof(struct bvr_draw_command_s)
         );
     }
@@ -227,34 +167,6 @@ int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, const uint16 width, c
     if(shader){
         bvr_create_shader(&framebuffer->shader, shader, BVR_FRAMEBUFFER_SHADER);
     }
-    else {
-        const char* vertex_shader = 
-            "#version 400\n"
-            "layout(location=0) in vec2 in_position;\n"
-            "layout(location=1) in vec2 in_uvs;\n"
-            "uniform mat4 bvr_projection;\n"
-            "out V_DATA {\n"
-            "	vec2 uvs;\n"
-            "} vertex;\n"
-            "void main() {\n"
-            "	gl_Position = bvr_projection * vec4(in_position, 0.0, 1.0);\n"
-            "	vertex.uvs = in_uvs;\n"
-            "}";
-
-        const char* fragment_shader = 
-            "#version 400\n"
-            "in V_DATA {\n"
-	        "vec2 uvs;\n"
-            "} vertex;\n"
-            "uniform sampler2D bvr_texture;\n"
-            "void main() {\n"
-            	"vec4 tex = texture(bvr_texture, vertex.uvs);\n"
-            	"gl_FragColor = vec4(tex.rgb, 1.0);\n"
-            "}";
-        
-        bvri_create_shader_vert_frag(&framebuffer->shader, vertex_shader, fragment_shader);
-        bvr_shader_register_uniform(&framebuffer->shader, BVR_MAT4, 1, "bvr_projection");
-    }
 
     glGenFramebuffers(1, &framebuffer->buffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->buffer);
@@ -273,14 +185,14 @@ int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, const uint16 width, c
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
         BVR_PRINT("failed to create a new framebuffer!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 void bvr_framebuffer_enable(bvr_framebuffer_t* framebuffer){
@@ -292,11 +204,17 @@ void bvr_framebuffer_enable(bvr_framebuffer_t* framebuffer){
     framebuffer->target_height = viewport[3];
 
     glViewport(0, 0, framebuffer->width, framebuffer->height);
+
+    // update pipeline state
+    bvr_get_instance()->pipeline.state.framebuffer = framebuffer;
 }
 
 void bvr_framebuffer_disable(bvr_framebuffer_t* framebuffer){
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, framebuffer->target_width, framebuffer->target_height);
+
+    // update pipeline state
+    bvr_get_instance()->pipeline.state.framebuffer = NULL;
 }
 
 void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 const color){
@@ -305,20 +223,25 @@ void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 const color){
 }
 
 void bvr_framebuffer_blit(bvr_framebuffer_t* framebuffer){
+    bvr_shader_t* shader = &bvr_get_instance()->predefs.c_shaders.c_framebuffer_shader;
+
     mat4x4 ortho;
-    mat4_ortho(ortho, 
-        -framebuffer->width  / 2.0f,
-         framebuffer->width  / 2.0f,
-        -framebuffer->height / 2.0f,
-         framebuffer->height / 2.0f,
+    float half_width = framebuffer->width * 0.5f;
+    float half_height = framebuffer->height * 0.5f;
+
+    mat4_ortho(ortho,  
+        -half_width, half_width,
+        -half_height, half_height,
         0.0f, 0.1f
     );
 
-    bvr_shader_set_uniformi(&framebuffer->shader.uniforms[1], &ortho[0][0]);
+    BVR_ASSERT(bvr_shader_set_uniformi(
+        &shader->uniforms[0], &ortho[0][0]
+    ));
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    bvr_shader_enable(&framebuffer->shader);
+    bvr_shader_enable(shader);
 
     glBindVertexArray(framebuffer->vertex_buffer);
     glBindTexture(GL_TEXTURE_2D, framebuffer->color_buffer);
@@ -345,4 +268,207 @@ void bvr_destroy_framebuffer(bvr_framebuffer_t* framebuffer){
     glDeleteTextures(1, &framebuffer->color_buffer);
     glDeleteRenderbuffers(1, &framebuffer->depth_buffer);
     glDeleteFramebuffers(1, &framebuffer->buffer);
+}
+
+
+void bvr_create_predefs(struct bvr_predefs* predefs){
+    BVR_ASSERT(predefs);
+
+    predefs->is_available = true;
+
+    char* vertex_shader;
+    char* fragment_shader;
+    char* shader_array[2];
+
+    /* invalid shader */
+    {
+        vertex_shader = "#version 400\n"
+            "layout(location=0) in vec2 in_position;\n"
+            "layout(location=1) in vec2 in_uvs;\n"
+            "uniform mat4 bvr_transform;\n"
+            "layout(std140) uniform bvr_camera {"
+            "	mat4 bvr_projection;"
+            "	mat4 bvr_view;"
+            "};"
+            "out V_DATA {\n"
+            "	vec2 uvs;\n"
+            "} vertex;\n"
+            "void main() {\n"
+            "	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(in_position, 0.0, 1.0);\n"
+            "	vertex.uvs = in_uvs;\n"
+            "}";
+        
+        fragment_shader = "#version 400\n"
+            "in V_DATA {\n"
+            "vec2 uvs;\n"
+            "} vertex;\n"
+            "void main() {\n"
+            	"gl_FragColor = vec4(vertex.uvs, 1.0, 1.0);\n"
+            "}";
+
+        shader_array[0] = vertex_shader;
+        shader_array[1] = fragment_shader;
+
+        predefs->is_available = bvr_create_shader_raw(&predefs->c_shaders.c_invalid_shader, 
+            (const char**)shader_array, 
+            BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER
+        );
+    }
+
+    /* framebuffer shader */
+    {
+        vertex_shader = "#version 400\n"
+            "layout(location=0) in vec2 in_position;\n"
+            "layout(location=1) in vec2 in_uvs;\n"
+            "uniform mat4 bvr_transform;\n"
+            "out V_DATA {\n"
+            "	vec2 uvs;\n"
+            "} vertex;\n"
+            "void main() {\n"
+            "	gl_Position = bvr_transform * vec4(in_position, 0.0, 1.0);\n"
+            "	vertex.uvs = in_uvs;\n"
+            "}";
+        
+        fragment_shader = "#version 400\n"
+            "in V_DATA {\n"
+            "vec2 uvs;\n"
+            "} vertex;\n"
+            "uniform sampler2D bvr_texture;\n"
+            "void main() {\n"
+            	"gl_FragColor = vec4(texture(bvr_texture, vertex.uvs).rgb, 1.0);\n"
+            "}";
+
+        shader_array[0] = vertex_shader;
+        shader_array[1] = fragment_shader;
+
+        predefs->is_available = bvr_create_shader_raw(&predefs->c_shaders.c_framebuffer_shader, 
+            (const char**)shader_array, 
+            BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER
+        );
+
+        predefs->is_available = bvr_shader_register_uniform(
+            &predefs->c_shaders.c_framebuffer_shader, 
+            BVR_MAT4, 1, BVR_UNIFORM_PROJECTION, "bvr_projection"
+        );
+    }
+
+    /* composite shader */
+    {
+        vertex_shader = "#version 400\n"
+            "layout(location=0) in vec2 in_position;\n"
+            "layout(location=1) in vec2 in_uvs;\n"
+            "uniform mat4 bvr_transform;\n"
+            "layout(std140) uniform bvr_camera {"
+            "	mat4 bvr_projection;"
+            "	mat4 bvr_view;"
+            "};"
+            "out V_DATA {\n"
+            "	vec2 uvs;\n"
+            "} vertex;\n"
+            "void main() {\n"
+            "	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(in_position, 0.0, 1.0);\n"
+            "	vertex.uvs = in_uvs;\n"
+            "}";
+        
+        fragment_shader = "#version 400\n"
+            "in V_DATA {\n"
+            "vec2 uvs;\n"
+            "} vertex;\n"
+            "uniform sampler2D bvr_texture;\n"
+            "void main() {\n"
+            	"gl_FragColor = vec4(texture(bvr_texture, vertex.uvs).rgb, 1.0);\n"
+            "}";
+
+        shader_array[0] = vertex_shader;
+        shader_array[1] = fragment_shader;
+
+        predefs->is_available = bvr_create_shader_raw(&predefs->c_shaders.c_composite_shader, 
+            (const char**)shader_array, 
+            BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER
+        );
+    }
+}
+
+void bvr_destroy_predefs(struct bvr_predefs* predefs){
+    BVR_ASSERT(predefs);
+
+    bvr_destroy_shader(&predefs->c_shaders.c_invalid_shader);
+    bvr_destroy_shader(&predefs->c_shaders.c_framebuffer_shader);
+    bvr_destroy_shader(&predefs->c_shaders.c_composite_shader);
+
+    predefs->is_available = false;
+}
+
+static void bvri_pipeline_restore_blending(struct bvr_pipeline_state_s* const state){
+    BVR_ASSERT(state);
+
+    if(state->blending){
+        glEnable(GL_BLEND);
+        switch(state->blending)
+        {
+        case BVR_BLEND_FUNC_ALPHA_ONE_MINUS:
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            break;
+        case BVR_BLEND_FUNC_ALPHA_ADD:
+            glBlendFunc(GL_ONE, GL_ONE);
+            break;
+        case BVR_BLEND_FUNC_ALPHA_MULT:
+            glBlendFunc(GL_ONE, GL_SRC_COLOR);
+            break;
+        default:
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            break;
+        }
+    }
+    else {
+        glDisable(GL_BLEND);
+    }
+}
+
+static void bvri_pipeline_restore_depth(struct bvr_pipeline_state_s* const state){
+    if(state->depth){
+        glEnable(GL_DEPTH_TEST);
+
+        switch (state->depth)
+        {
+        case BVR_DEPTH_FUNC_NEVER:
+            glDepthFunc(GL_NEVER);
+            break;
+        
+        case BVR_DEPTH_FUNC_ALWAYS:
+            glDepthFunc(GL_ALWAYS);
+            break;
+        
+        case BVR_DEPTH_FUNC_LESS:
+            glDepthFunc(GL_LESS);
+            break;
+    
+        case BVR_DEPTH_FUNC_GREATER:
+            glDepthFunc(GL_GREATER);
+            break;
+
+        case BVR_DEPTH_FUNC_LEQUAL:
+            glDepthFunc(GL_LEQUAL);
+            break;
+        
+        case BVR_DEPTH_FUNC_GEQUAL:
+            glDepthFunc(GL_GEQUAL);
+            break;
+
+        case BVR_DEPTH_FUNC_NOTEQUAL:
+            glDepthFunc(GL_NOTEQUAL);
+            break;
+        
+        case BVR_DEPTH_FUNC_EQUAL:
+            glDepthFunc(GL_EQUAL);
+            break;
+
+        default:
+            glDepthFunc(GL_ALWAYS);
+            break;
+        }
+    }
+    else {
+        glDisable(GL_DEPTH_TEST);
+    }
 }

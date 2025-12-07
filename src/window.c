@@ -1,7 +1,7 @@
 #include <BVR/window.h>
 
 #include <BVR/scene.h>
-#include <BVR/utils.h>
+#include <BVR/common.h>
 
 #include <string.h>
 #include <memory.h>
@@ -83,15 +83,18 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     }
 
     window->awake = 1;
+    window->focus = 1;
 }
 
 void bvr_window_poll_events(){
-    bvr_window_t* window = &bvr_get_book_instance()->window;
+    bvr_window_t* window = &bvr_get_instance()->window;
     SDL_Event event;
 
     SDL_StartTextInput(window->handle);
 
     window->inputs.scroll = 0.0f;
+    window->inputs.relative_motion[0] = 0.0f;
+    window->inputs.relative_motion[1] = 0.0f;
 
     window->events = 0;
     while(SDL_PollEvent(&event)){
@@ -101,6 +104,12 @@ void bvr_window_poll_events(){
         {
         case SDL_EVENT_QUIT:
             window->awake = 0;
+            break;
+        case SDL_EVENT_WINDOW_FOCUS_GAINED:
+            window->focus = 1;
+            break;
+        case SDL_EVENT_WINDOW_FOCUS_LOST:
+            window->focus = 0;
             break;
         
         case SDL_EVENT_KEY_UP:
@@ -202,7 +211,7 @@ void bvr_window_poll_events(){
 }
 
 void bvr_window_push_buffers(){
-    SDL_GL_SwapWindow(bvr_get_book_instance()->window.handle);
+    SDL_GL_SwapWindow(bvr_get_instance()->window.handle);
 }
 
 void bvr_destroy_window(bvr_window_t* window){
@@ -216,12 +225,12 @@ void bvr_destroy_window(bvr_window_t* window){
 }
 
 int bvr_key_presssed(uint16 key){
-    return bvr_get_book_instance()->window.inputs.keys[key] == BVR_INPUT_PRESSED;
+    return bvr_get_instance()->window.inputs.keys[key] == BVR_INPUT_PRESSED;
 }
 
 int bvr_key_down(uint16 key){
-    return  bvr_get_book_instance()->window.inputs.keys[key] == BVR_INPUT_DOWN || 
-            bvr_get_book_instance()->window.inputs.keys[key] == BVR_INPUT_PRESSED;
+    return  bvr_get_instance()->window.inputs.keys[key] == BVR_INPUT_DOWN || 
+            bvr_get_instance()->window.inputs.keys[key] == BVR_INPUT_PRESSED;
 }
 
 int bvr_axis_down(bvr_keyaxis_t* axis){
@@ -237,22 +246,22 @@ int bvr_axis_presssed(bvr_keyaxis_t* axis){
 }
 
 int bvr_button_down(uint16 button){
-    return bvr_get_book_instance()->window.inputs.buttons[button] == BVR_INPUT_DOWN;
+    return bvr_get_instance()->window.inputs.buttons[button] == BVR_INPUT_DOWN;
 }
 
 int bvr_button_double_pressed(uint16 button){
-    return bvr_get_book_instance()->window.inputs.buttons[button] == BVR_MOUSE_BUTTON_DOUBLE_PRESSED;
+    return bvr_get_instance()->window.inputs.buttons[button] == BVR_MOUSE_BUTTON_DOUBLE_PRESSED;
 }
 
 void bvr_mouse_position(float* x, float* y){
     SDL_GetMouseState(x, y);
-    *x = clamp(*x, 0.0f, bvr_get_book_instance()->window.framebuffer.width);
-    *y = clamp(*y, 0.0f, bvr_get_book_instance()->window.framebuffer.height);
+    *x = clamp(*x, 0.0f, bvr_get_instance()->window.framebuffer.width);
+    *y = clamp(*y, 0.0f, bvr_get_instance()->window.framebuffer.height);
 }
 
 void bvr_mouse_relative_position(float* x, float *y){
-    *x = bvr_get_book_instance()->window.inputs.relative_motion[0];
-    *y = bvr_get_book_instance()->window.inputs.relative_motion[1];
+    *x = bvr_get_instance()->window.inputs.relative_motion[0];
+    *y = bvr_get_instance()->window.inputs.relative_motion[1];
 }
 
 void bvri_file_dialog_callback(void (*userdata) (bvr_string_t* path), const char * const *filelist, int filter){
@@ -268,10 +277,19 @@ void bvri_file_dialog_callback(void (*userdata) (bvr_string_t* path), const char
     bvr_destroy_string(&string);
 }
 
-void bvr_open_file_dialog(void (*callback) (bvr_string_t* path)){
+void bvr_open_file_dialog(void (*callback) (bvr_string_t* path), const char* filters, bool allow_many){
+    /*SDL_DialogFileFilter filter;
+    filter.name = "All files";
+    filter.pattern = "*";
+
+    if(filters){
+        filter.name = "All images";
+        filter.pattern = filters;
+    }*/
+
     SDL_ShowOpenFileDialog(
         (SDL_DialogFileCallback)bvri_file_dialog_callback, callback, NULL,
-        NULL, 0, NULL, 0
+        NULL, 0, NULL, allow_many
     );
 }
 

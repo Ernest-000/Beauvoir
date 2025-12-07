@@ -1,7 +1,7 @@
 #pragma once
 
 #include <BVR/config.h>
-#include <BVR/utils.h>
+#include <BVR/common.h>
 #include <BVR/buffer.h>
 
 #define BVR_OPEN_READ  1
@@ -11,6 +11,7 @@ enum bvr_asset_reference_origin_e {
     BVR_ASSET_ORIGIN_NONE,
     BVR_ASSET_ORIGIN_RAW,
     BVR_ASSET_ORIGIN_PATH,
+    BVR_ASSET_ORIGIN_REFERENCE
 };
 
 struct bvr_asset_reference_s {
@@ -43,7 +44,7 @@ bvr_uuid_t* bvr_register_asset(const char* path, char open_mode);
 */
 bvr_uuid_t* bvr_find_asset(const char* path, bvr_asset_t* asset);
 
-int bvr_find_asset_uuid(bvr_uuid_t uuid, bvr_asset_t* asset);
+int bvr_find_asset_uuid(const bvr_uuid_t uuid, bvr_asset_t* asset);
 
 /*
     Open a file stream to a game asset

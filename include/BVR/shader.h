@@ -1,6 +1,6 @@
 #pragma once
 
-#include <BVR/utils.h>
+#include <BVR/common.h>
 #include <BVR/buffer.h>
 
 #include <BVR/assets.h>
@@ -9,27 +9,37 @@
 
 #define BVR_UNIFORM_CAMERA_NAME "bvr_camera"
 #define BVR_UNIFORM_TRANSFORM_NAME "bvr_transform"
+
 #define BVR_UNIFORM_GLOBAL_ILLUMINATION_NAME "bvr_global_illumination"
+#define BVR_UNIFORM_SHARE_LAYER_NAME "bvr_layers"
 
 #define BVR_UNIFORM_BLOCK_CAMERA                0x0
 #define BVR_UNIFORM_BLOCK_GLOBAL_ILLUMINATION   0x1
+#define BVR_UNIFORM_BLOCK_LAYERS                0x2
 
-#define BVR_MAX_SHADER_COUNT 7
+#define BVR_MAX_SHADER_COUNT 3
 #define BVR_MAX_UNIFORM_COUNT 20
 #define BVR_MAX_SHADER_BLOCK_COUNT 5
 
-#define BVR_VERTEX_SHADER       0x001
-#define BVR_FRAGMENT_SHADER     0x002
-#define BVR_FRAMEBUFFER_SHADER  0x004
+#define BVR_VERTEX_SHADER               0x001
+#define BVR_FRAGMENT_SHADER             0x002
+#define BVR_FRAMEBUFFER_SHADER          0x010
 
-#define BVR_SHADER_EXT_LIGHT    0x010
+#define BVR_SHADER_EXT_LIGHT            0x100
+#define BVR_SHADER_EXT_SHARE_LAYERS     0x200
 
 #define BVR_SHADER_EXT_GLOBAL_ILLUMINATION BVR_SHADER_EXT_LIGHT
 
-#define BVR_UNIFORM_NONE        0x000
-#define BVR_UNIFORM_TRANSFORM   0x001
-#define BVR_UNIFORM_TEXTURE     0x002
-#define BVR_UNIFORM_LAYER_INDEX 0x004
+enum bvr_uniform_tag_e {
+    BVR_UNIFORM_NONE = 0x000,
+    BVR_UNIFORM_PROJECTION = 0x001,
+    BVR_UNIFORM_TRANSFORM = 0x002,
+    BVR_UNIFORM_LOCAL_TRANSFORM = 0x003,
+    BVR_UNIFORM_TEXTURE = 0x004,
+    BVR_UNIFORM_LAYER_INDEX = 0x005,
+    BVR_UNIFORM_LAYER_INFO = 0x006,
+    BVR_UNIFORM_COMPOSITE = 0x007
+};
 
 typedef struct bvr_shader_uniform_s {
     struct bvr_buffer_s memory;
@@ -94,20 +104,38 @@ void bvr_uniform_buffer_close();
 
 void bvr_destroy_uniform_buffer(uint32* buffer);
 
-/*
-    Create an empty shader only with vertex and fragment shaders.
-    Internal usages only.
+/**
+ * @brief Create a new shader directly from raw strings. 
+ * Howerver, this function is primarly used for internal usage. 
+ * You shall not use this function, use bvr_create_shader instead :3
+ * @param shader
+ * @param args An array of strings. Order must be: vertex , fragment, geometry...
+ * @param flags Define needed shaders.
+ * @return 
+ */
+int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int flags);
 
-    TODO: try to find another way to define this function
+/**
+ * int bvri_create_shader_vert_frag(bvr_shader_t* shader, const char* vert, const char* frag);
 */
-int bvri_create_shader_vert_frag(bvr_shader_t* shader, const char* vert, const char* frag);
 
 /*
     Bind a new shader uniform.
 */
-bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type, int count, const char* name);
+bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type, enum bvr_uniform_tag_e tag, int count, const char* name);
 bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type, void* texture, const char* name);
 bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* name, int type, int count, int index);
+
+BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform_tag(bvr_shader_t* shader, enum bvr_uniform_tag_e tag){
+    for (uint64 i = 0; i < shader->uniform_count; i++)
+    {
+        if(shader->uniforms[i].tags == tag){
+            return &shader->uniforms[i];
+        }
+    }
+
+    return NULL;
+}
 
 BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform(bvr_shader_t* shader, const char* name){
     for (uint64 i = 1; i < shader->uniform_count; i++)
@@ -124,18 +152,17 @@ BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform(bvr_shader_t* shader, const ch
     return NULL;
 }
 
-void bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data);
-BVR_H_FUNC void bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, void* texture){
-    bvr_shader_set_uniformi(uniform, &texture);
+int bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data);
+BVR_H_FUNC int bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, void* texture){
+    return bvr_shader_set_uniformi(uniform, texture);
 }
 
-void bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data);
-BVR_H_FUNC void bvr_shader_set_texture(bvr_shader_t* shader, const char* name, void* texture){
-    bvr_shader_set_uniformi(bvr_find_uniform(shader, name), &texture);
+int bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data);
+BVR_H_FUNC int bvr_shader_set_texture(bvr_shader_t* shader, const char* name, void* texture){
+    return bvr_shader_set_uniformi(bvr_find_uniform(shader, name), texture);
 }
 
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data);
-
 
 void bvr_shader_enable(bvr_shader_t* shader);
 void bvr_shader_disable(void);

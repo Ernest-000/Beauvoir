@@ -134,8 +134,8 @@ enum bvr_mouse_button_e {
     BVR_MOUSE_BUTTON_8 = 8,
     BVR_MOUSE_BUTTON_LAST = BVR_MOUSE_BUTTON_8,
     BVR_MOUSE_BUTTON_LEFT = BVR_MOUSE_BUTTON_1,
-    BVR_MOUSE_BUTTON_RIGHT = BVR_MOUSE_BUTTON_2,
-    BVR_MOUSE_BUTTON_MIDDLE = BVR_MOUSE_BUTTON_3,
+    BVR_MOUSE_BUTTON_RIGHT = BVR_MOUSE_BUTTON_3,
+    BVR_MOUSE_BUTTON_MIDDLE = BVR_MOUSE_BUTTON_2,
 };
 
 enum bvr_input_state_e {
@@ -160,8 +160,8 @@ typedef struct bvr_window_s {
     bvr_framebuffer_t framebuffer;
     
     struct {
-        char keys[BVR_KEYBOARD_SIZE] __attribute ((packed));
-        char buttons[BVR_MOUSE_SIZE] __attribute ((packed));
+        char keys[BVR_KEYBOARD_SIZE];
+        char buttons[BVR_MOUSE_SIZE];
         char text_input[4];
         float sensivity;
         float scroll;
@@ -181,7 +181,7 @@ typedef struct bvr_window_s {
     } inputs;
 
     int events;
-    bool awake;
+    bool awake, focus;
 } bvr_window_t;
 
 int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 height, const char* title, const int flags);
@@ -207,7 +207,7 @@ void bvr_mouse_relative_position(float* x, float *y);
     Ask the user to return a file. 
     File's path is return through a callback.
 */
-void bvr_open_file_dialog(void (*callback) (bvr_string_t* path));
+void bvr_open_file_dialog(void (*callback) (bvr_string_t* path), const char* filters, bool allow_multiple);
 
 /*
     Returns the number of milliseconds since SDL has started.

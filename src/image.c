@@ -1,8 +1,9 @@
 #include <bvr/image.h>
-#include <bvr/utils.h>
+#include <BVR/common.h>
 #include <BVR/file.h>
 
 #include <bvr/shader.h>
+#include <bvr/scene.h>
 
 #include <malloc.h>
 #include <memory.h>
@@ -49,8 +50,7 @@ static int bvri_is_png(FILE* __file) {
 }
 
 static void bvri_png_error(png_structp sptr, png_const_charp cc){
-    BVR_PRINT(cc);
-    BVR_ASSERT(0);
+    BVR_ASSERT(cc || 0);
 }
 
 static int bvri_load_png(bvr_image_t* image, FILE* file){
@@ -62,7 +62,7 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
 
     if(setjmp(png_jmpbuf(pngldr))){
         png_destroy_read_struct(&pngldr, &pnginfo, NULL);
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     fseek(file, BVR_PNG_HEADER_LENGTH, SEEK_SET);
@@ -218,7 +218,7 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
     // check for correct color plane
     if(header.color_plane != 1){
         BVR_PRINT("wrong color plane!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
     
     // check for bitmasks
@@ -327,7 +327,7 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
     // try to free color palette
     free(header.palette);
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 #endif
@@ -407,10 +407,10 @@ static int bvri_tif_do_ranges_overlap(uint64_t xstart, uint64_t xend, uint64_t y
         if(overlap_start){
             *overlap_start = fmax(xstart, ystart);
         }
-        return BVR_OK;
+        return BVR_TRUE;
     }
 
-    return BVR_FAILED;
+    return BVR_FALSE;
 }
 */
 
@@ -673,7 +673,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
         }
     }
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 #endif
@@ -894,7 +894,41 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
             }
             
             bvr_freadstr(layer->sig, 5, file);
+
+            // get blend mode
             layer->blend_mode = bvr_freadu32_be(file);
+            switch (layer->blend_mode)
+            {
+                case 0x70617373: layer->blend_mode = BVR_LAYER_BLEND_PASSTHROUGH; break;
+                case 0x6E6F726D: layer->blend_mode = BVR_LAYER_BLEND_NORMAL; break;
+                case 0x64697373: layer->blend_mode = BVR_LAYER_BLEND_DISSOLVE; break;
+                case 0x6461726B: layer->blend_mode = BVR_LAYER_BLEND_DARKEN; break;
+                case 0x6D756C20: layer->blend_mode = BVR_LAYER_BLEND_MULTIPLY; break;
+                case 0x69646976: layer->blend_mode = BVR_LAYER_BLEND_COLORBURN; break;
+                case 0x6C62726E: layer->blend_mode = BVR_LAYER_BLEND_LINEARBURN; break;
+                case 0x646B436C: layer->blend_mode = BVR_LAYER_BLEND_DARKERCOLOR; break;
+                case 0x6C697465: layer->blend_mode = BVR_LAYER_BLEND_LIGHTEN; break;
+                case 0x7363726E: layer->blend_mode = BVR_LAYER_BLEND_SCREEN; break;
+                case 0x64697600: layer->blend_mode = BVR_LAYER_BLEND_COLORDODGE; break;
+                case 0x6C646467: layer->blend_mode = BVR_LAYER_BLEND_LINEARDODGE; break;
+                case 0x6C67436C: layer->blend_mode = BVR_LAYER_BLEND_LIGHTERCOLOR; break;
+                case 0x6F766572: layer->blend_mode = BVR_LAYER_BLEND_OVERLAY; break;
+                case 0x734C6974: layer->blend_mode = BVR_LAYER_BLEND_SOFTLIGHT; break;
+                case 0x684C6974: layer->blend_mode = BVR_LAYER_BLEND_HARDLIGHT; break;
+                case 0x764C6974: layer->blend_mode = BVR_LAYER_BLEND_VIVIDLIGHT; break;
+                case 0x6C4C6974: layer->blend_mode = BVR_LAYER_BLEND_LINEARLIGHT; break;
+                case 0x704C6974: layer->blend_mode = BVR_LAYER_BLEND_PINLIGHT; break;
+                case 0x684D6978: layer->blend_mode = BVR_LAYER_BLEND_HARDMIX; break;
+                case 0x64696666: layer->blend_mode = BVR_LAYER_BLEND_DIFFERENCE; break;
+                case 0x736D7564: layer->blend_mode = BVR_LAYER_BLEND_EXCLUSION; break;
+                case 0x66737566: layer->blend_mode = BVR_LAYER_BLEND_SUBSTRACT; break;
+                case 0x66646976: layer->blend_mode = BVR_LAYER_BLEND_DIVIDE; break;
+                case 0x68756500: layer->blend_mode = BVR_LAYER_BLEND_HUE; break;
+                case 0x73617400: layer->blend_mode = BVR_LAYER_BLEND_SATURATION; break;
+                case 0x636F6C72: layer->blend_mode = BVR_LAYER_BLEND_COLOR; break;
+                case 0x65756D00: layer->blend_mode = BVR_LAYER_BLEND_LUMINOSITY; break;
+                default: layer->blend_mode = BVR_LAYER_BLEND_PASSTHROUGH; break;
+            }
 
             BVR_ASSERT(strncmp(layer->sig, "8BIM", 4) == 0);
             // TODO: define blend mode
@@ -1177,7 +1211,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
 
     free(layer_section.layers);
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 #endif
@@ -1296,7 +1330,7 @@ int bvr_create_bitmap(bvr_image_t* bitmap, const char* path, int channel){
         fclose(file);
 
         BVR_PRINT("failed to open image!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     bitmap->width = image.width;
@@ -1318,7 +1352,7 @@ int bvr_create_bitmap(bvr_image_t* bitmap, const char* path, int channel){
     fclose(file);
     bvr_destroy_image(&image);
     
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 void bvr_flip_image_vertically(bvr_image_t* image){
@@ -1447,7 +1481,7 @@ int bvr_create_view_texture(bvr_texture_t* origin, bvr_texture_t* dest, int widt
 
     glBindTexture(dest->target, 0);
     
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 int bvr_create_texture_from_image(bvr_texture_t* texture, bvr_image_t* image, int filter, int wrap){
@@ -1487,7 +1521,7 @@ int bvr_create_texture_from_image(bvr_texture_t* texture, bvr_image_t* image, in
     free(image->pixels);
     image->pixels = NULL;
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 int bvr_create_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap){
@@ -1497,7 +1531,7 @@ int bvr_create_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap
     bvr_create_imagef(&texture->image, file);
     if(!texture->image.pixels){
         BVR_PRINT("invalid image!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     return bvr_create_texture_from_image(texture, &texture->image, filter, wrap);    
@@ -1538,7 +1572,7 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
     bvr_create_imagef(&atlas->texture.image, file);
     if(!atlas->texture.image.pixels){
         BVR_PRINT("invalid image!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     if(BVR_BUFFER_COUNT(atlas->texture.image.layers) > 1){
@@ -1597,7 +1631,7 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
     free(atlas->texture.image.pixels);
     atlas->texture.image.pixels = NULL;
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 int bvr_create_layered_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap){
@@ -1613,7 +1647,7 @@ int bvr_create_layered_texturef(bvr_texture_t* texture, FILE* file, int filter, 
     bvr_create_imagef(&texture->image, file);
     if(!texture->image.pixels){
         BVR_PRINT("invalid image!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     if(texture->image.layers.size / sizeof(bvr_layer_t) < 1){
@@ -1668,5 +1702,94 @@ int bvr_create_layered_texturef(bvr_texture_t* texture, FILE* file, int filter, 
     free(texture->image.pixels);
     texture->image.pixels = NULL;
 
-    return BVR_OK;
+    return BVR_TRUE;
+}
+
+int bvr_create_composite(bvr_composite_t* composite, bvr_image_t* target){
+    BVR_ASSERT(composite);
+    BVR_ASSERT(target);
+
+    if(target->width <= 0 || target->height <= 0){
+        BVR_PRINT("invalid image!");
+        return BVR_TRUE;
+    }
+
+    composite->framebuffer = 0;
+    composite->tex = 0;
+    composite->image = target;
+
+    glGenFramebuffers(1, &composite->framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, composite->framebuffer);
+
+    glGenTextures(1, &composite->tex);
+    glBindTexture(GL_TEXTURE_2D, composite->tex);
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, 
+        GL_RGB, 
+        composite->image->width, 
+        composite->image->height, 
+        0, GL_RGB, GL_UNSIGNED_BYTE, 
+        NULL
+    );
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, composite->tex, 0);
+
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
+        BVR_PRINT("failed to create a new composite object!");
+        return BVR_FALSE;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    return BVR_TRUE;
+}
+
+void bvr_composite_enable(bvr_composite_t* composite){
+    BVR_ASSERT(composite && composite->framebuffer);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, composite->framebuffer);
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glViewport(0, 0, composite->image->width, composite->image->height);
+}
+
+void bvr_composite_prepare(bvr_composite_t* composite){
+    BVR_ASSERT(composite);
+
+    glBindTexture(GL_TEXTURE_2D, composite->tex);
+    glActiveTexture(GL_TEXTURE0);
+}
+
+void bvr_composite_disable(bvr_composite_t* composite){
+    // if there is a working framebuffer
+    if(bvr_get_instance()->pipeline.state.framebuffer){
+        glBindFramebuffer(GL_FRAMEBUFFER, bvr_get_instance()->pipeline.state.framebuffer->buffer);
+        glViewport(0, 0, 
+            bvr_get_instance()->pipeline.state.framebuffer->width, 
+            bvr_get_instance()->pipeline.state.framebuffer->height
+        );
+    }
+    // use default framebuffer and window's screen size
+    else {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, 
+            bvr_get_instance()->window.framebuffer.width, 
+            bvr_get_instance()->window.framebuffer.height
+        );
+    }
+}
+
+void bvr_destroy_composite(bvr_composite_t* composite){
+    BVR_ASSERT(composite);
+
+    glDeleteFramebuffers(1, &composite->framebuffer);
+    glDeleteTextures(1, &composite->tex);
+
+    composite->image = NULL;
 }

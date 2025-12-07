@@ -2,7 +2,7 @@
 Here you'll find some important informations if you want to get learn how to use Beauvoir!
 I'll try to reference everything, but this will take time...
 
-## All Macros
+## Macros
 |Name                 |Usage        |Description                                                                                                |Default value|
 |---------------------|--------------|-----------------------------------------------------------------------------------------------------------|-------------|
 |\_FRAGMENT\_           |GLSL          |Define Fragment shader’s section                                                                           |False          |
@@ -23,3 +23,10 @@ I'll try to reference everything, but this will take time...
 |BVR_NO_BMP           |Engine        |Disable BMP loading                                                                                        |False          |
 |BVR_NO_PNG           |Engine        |Disable PNG loading                                                                                        |False          |
 |BVR_NO_GROWTH        |Engine        |Disable growing factors on buffers (less memory but it will take more time to add data to lists or strings)|False          |
+
+## Functions
+|Name         |Declaration                                                 |Usage|
+|-------------|------------------------------------------------------------|---------|
+|calc_light   |vec4 calc_light(vec4 color, V_LIGHT light, V_DATA vertex)   |GLSL     |
+|create_layer |L_DATA create_layer(int layer)                            |GLSL     |
+|calc_blending|vec4 calc_blending(vec4 composite, vec4 pixel, L_DATA layer)|GLSL     |

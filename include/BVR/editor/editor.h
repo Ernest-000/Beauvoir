@@ -13,6 +13,10 @@
     #define BVR_EDITOR_SHOW_INPUT 63
 #endif
 
+#ifndef BVR_EDITOR_SCALE
+    #define BVR_EDITOR_SCALE 1.1f
+#endif
+
 typedef enum bvr_editor_state_e {
     BVR_EDITOR_STATE_HIDDEN,
     BVR_EDITOR_STATE_HANDLE,
@@ -20,11 +24,14 @@ typedef enum bvr_editor_state_e {
     BVR_EDITOR_STATE_RENDERING
 };
 
+typedef void (*_bvr_editor_callback)(bvr_nuklear_t* context, bvr_book_t* book);
+
 typedef struct bvr_editor_s {
     bvr_nuklear_t gui;
     bvr_book_t* book;
 
     enum bvr_editor_state_e state;
+    _bvr_editor_callback callback;
 
     struct {
         bvr_shader_t shader;
@@ -33,6 +40,7 @@ typedef struct bvr_editor_s {
         uint32 vertex_buffer;
 
         mat4x4 transform;
+
         bool is_gui_hovered;
     } device;
 
@@ -48,7 +56,6 @@ typedef struct bvr_editor_s {
         necessary editor's components
     */
     union {
-
         // landscape buffer
         struct {
             uint32 cursor[2];
@@ -66,6 +73,11 @@ typedef struct bvr_editor_s {
 } bvr_editor_t;
 
 void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book);
+
+/*
+    Attach a callback function called when drawing a user-specific UI section
+*/
+void bvr_editor_attach_callback(_bvr_editor_callback function);
 
 /*
     Prepare beauvoir editor for drawing

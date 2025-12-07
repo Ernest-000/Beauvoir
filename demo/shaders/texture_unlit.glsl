@@ -12,12 +12,10 @@ layout(std140) uniform bvr_camera {
 	mat4 bvr_view;
 };
 
-out V_DATA {
-	vec2 uvs;
-} vertex;
+out V_DATA vertex;
 
 void main() {
-	gl_Position = bvr_projection * bvr_view * vec4(in_position, 1.0);
+	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(in_position, 1.0);
 	
 	vertex.uvs = in_uvs;
 }
@@ -26,20 +24,20 @@ void main() {
 
 #ifdef _FRAGMENT_
 
-in V_DATA {
-	vec2 uvs;
-} vertex;
+in V_DATA vertex;
 
 uniform sampler2DArray bvr_texture;
-uniform int bvr_texture_layer;
+uniform int bvr_texture_z;
 
 void main() {
-	vec4 tex = texture(bvr_texture, vec3(vertex.uvs, bvr_texture_layer));
+	vec4 tex = texture(bvr_texture, vec3(vertex.uvs, bvr_texture_z));
 
-	if(tex.a < 0.1){
-		tex = vec4(0.2, 0.2, 0.2, 0.2);
+	// optional
+	if(tex.a < 0.2){
+		discard;
 	}
-	gl_FragColor = vec4(tex);
+	
+	gl_FragColor = tex;
 }
 
 #endif

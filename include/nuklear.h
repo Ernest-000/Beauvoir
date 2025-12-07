@@ -3579,6 +3579,8 @@ NK_API nk_bool nk_color_pick(struct nk_context*, struct nk_colorf*, enum nk_colo
  */
 NK_API void nk_property_int(struct nk_context*, const char *name, int min, int *val, int max, int step, float inc_per_pixel);
 
+NK_API void nk_property_short(struct nk_context *ctx, const char *name, short min, short *val, short max, int step, float inc_per_pixel);
+
 /**
  * # # nk_property_float
  * Float property directly modifying a passed in value
@@ -29058,6 +29060,26 @@ nk_property(struct nk_context *ctx, const char *name, struct nk_property_variant
         win->property.active = 0;
     }
 }
+NK_API void
+nk_property_short(struct nk_context *ctx, const char *name,
+    short min, short *val, short max, int step, float inc_per_pixel)
+{
+    struct nk_property_variant variant;
+    NK_ASSERT(ctx);
+    NK_ASSERT(name);
+    NK_ASSERT(val);
+
+    if (!ctx || !ctx->current || !name || !val) return;
+    variant.kind = NK_PROPERTY_INT;
+    variant.value.i = *val;
+    variant.min_value.i = min;
+    variant.max_value.i = max;
+    variant.step.i = step;
+
+    nk_property(ctx, name, &variant, inc_per_pixel, NK_FILTER_INT);
+    *val = (short)variant.value.i;
+}
+
 NK_API void
 nk_property_int(struct nk_context *ctx, const char *name,
     int min, int *val, int max, int step, float inc_per_pixel)

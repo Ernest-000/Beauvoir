@@ -1,5 +1,5 @@
 #include <BVR/file.h>
-#include <BVR/utils.h>
+#include <BVR/common.h>
 
 #include <malloc.h>
 #include <memory.h>
@@ -34,7 +34,7 @@ int bvr_read_file(bvr_string_t* string, FILE* file){
 
     }
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 short bvr_fread16_le(FILE* file){

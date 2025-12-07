@@ -8,11 +8,9 @@
 #include <BVR/audio.h>
 
 #include <BVR/lights.h>
+#include <BVR/camera.h>
 
 #include <stdint.h>
-
-#define BVR_CAMERA_ORTHOGRAPHIC 0x1
-#define BVR_CAMERA_PERSPECTIVE  0x2
 
 #ifndef BVR_MAX_SCENE_ACTOR_COUNT
     #define BVR_MAX_SCENE_ACTOR_COUNT 64
@@ -34,24 +32,6 @@
     #define BVR_FRAMERATE (1 / BVR_TARGET_FRAMERATE)
 #endif
 
-typedef struct bvr_camera_s {
-    uint32 mode;
-
-    struct bvr_transform_s transform;
-    bvr_framebuffer_t* framebuffer;
-    uint32 buffer; /* uniform buffer object reference */
-    
-    float near;
-    float far;
-    union bvr_camera_field_of_view_u
-    {
-        // ortho scale
-        float scale;
-
-        // perspective scale
-        float fov;
-    } field_of_view;
-} bvr_camera_t;
 
 /*
     Contains all world's informations and data
@@ -70,16 +50,21 @@ typedef struct bvr_page_s {
 
     // all world's colliders (pointers)
     bvr_collider_collection_t colliders;
+
+    bool is_available;
 } bvr_page_t;
 
 /*
     Contains all game's related data
 */
 typedef struct bvr_book_s {
+    // window object
     bvr_window_t window;
 
+    // graphic pipeline
     bvr_pipeline_t pipeline;
 
+    // audio channels and buffers
     bvr_audio_stream_t audio;
 
     // contains all assets informations
@@ -90,10 +75,16 @@ typedef struct bvr_book_s {
     // all scene-actor heap relative elements
     bvr_memstream_t garbage_stream;
 
+    // current page
     bvr_page_t page;
 
+    // constant object predefitions
+    // 
+    struct bvr_predefs predefs;
+
+    // time informations
     struct {
-        float delta_time, frame_timer;
+        float delta_timef, frame_timer;
         int average_render_time, frames;
         uint64 prev_time, current_time;
     } timer;
@@ -104,34 +95,33 @@ typedef struct bvr_book_s {
 */
 int bvr_create_book(bvr_book_t* book);
 
-bvr_book_t* bvr_get_book_instance();
+bvr_book_t* bvr_get_instance();
+
+/**
+ * @brief Create and allocate common book's memory blocks (asset stream, garbage and predefs)
+ * @param book
+ * @param asset_size asset memory stream size (in bytes) 
+ * @param garbage_size garbage memory stream size (in bytes)
+ * @return (void)
+ */
+void bvr_create_book_memories(bvr_book_t* book, const uint64 asset_size, const uint64 garbage_size);
 
 /*
-    Allocate scene's memory streams
-*/
-BVR_H_FUNC void bvr_create_book_memories(bvr_book_t* book, const uint64 asset_size, const uint64 garbage_size){
-    if(!book->asset_stream.data && asset_size){
-        bvr_create_memstream(&book->asset_stream, asset_size);        
-    }
-
-    if(garbage_size){
-        bvr_destroy_memstream(&book->garbage_stream);
-        bvr_create_memstream(&book->garbage_stream, garbage_size);
-    }
-}
-
-/*
-    Returns BVR_OK if the game is still running.
+    Returns BVR_TRUE if the game is still running.
 */
 BVR_H_FUNC int bvr_is_awake(bvr_book_t* book){
     return book->window.awake;
 }
 
+BVR_H_FUNC int bvr_is_focus(bvr_book_t* book){
+    return book->window.focus;
+}
+
 /*
-    Returns BVR_OK is a scene is active.
+    Returns BVR_TRUE is a scene is active.
 */
 BVR_H_FUNC int bvr_is_active(bvr_book_t* book){
-    return book->page.name.string != NULL;
+    return book->page.is_available;
 }
 
 /*
@@ -158,6 +148,19 @@ void bvr_destroy_book(bvr_book_t* book);
 */
 int bvr_create_page(bvr_page_t* page, const char* name);
 
+/**
+ * @brief create a new camera that target current page.
+ * @param book 
+ * @param mode ```BVR_CAMERA_ORTHOGRAPHIC``` or ```BVR_CAMERA_PERSPECTIVE```
+ * @param near near plane distance
+ * @param far far plane distance
+ * @param scale fov or camera's scale (depending on camera's mode)
+ * @return 
+ */
+BVR_H_FUNC void bvr_create_main_camera(bvr_book_t* book, int mode, int near, int far, int scale){
+    bvr_create_camera(&book->page.camera, &book->window.framebuffer, mode, near, far, scale);
+}
+
 /*
     Set another page as the target one.
     Setting a new page will overwrite the previous page. Previous page will be freed.
@@ -169,29 +172,12 @@ void bvr_enable_page(bvr_page_t* page);
 */
 void bvr_disable_page(bvr_page_t* page);
 
-bvr_camera_t* bvr_create_orthographic_camera(bvr_page_t* page, bvr_framebuffer_t* framebuffer, float near, float far, float scale);
-
-void bvr_camera_lookat(bvr_page_t* page, vec3 target, vec3 up);
-
-/*
-    Set the view matrix of the camera.
-*/
-BVR_H_FUNC void bvr_camera_set_view(bvr_page_t* page, mat4x4 matrix){
-    bvr_enable_uniform_buffer(page->camera.buffer);
-    bvr_uniform_buffer_set(sizeof(mat4x4), sizeof(mat4x4), &matrix[0][0]);
-    bvr_enable_uniform_buffer(0);
-}
-
-/*
-    Transpose a screen-space coords into a world-space coord.
-*/
-void bvr_screen_to_world_coords(bvr_book_t* book, vec2 screen, vec3 world);
-
 /*
     Register a new actor inside page's pool. 
     Return NULL if cannot register actor.
 */
-struct bvr_actor_s* bvr_link_actor_to_page(bvr_page_t* page, struct bvr_actor_s* actor);
+struct bvr_actor_s* bvr_alloc_actor(bvr_page_t* page, bvr_actor_type_t type);
+void bvr_free_actor(bvr_page_t* page, struct bvr_actor_s* actor);
 
 struct bvr_actor_s* bvr_find_actor(bvr_book_t* book, const char* name);
 
@@ -201,6 +187,6 @@ struct bvr_actor_s* bvr_find_actor_uuid(bvr_book_t* book, bvr_uuid_t uuid);
     Register a new non-actor collider inside page's pool.
     Return NULL if cannot register collider.
 */
-bvr_collider_t* bvr_link_collider_to_page(bvr_page_t* page, bvr_collider_t* collider);
+bvr_collider_t* bvr_register_collider(bvr_page_t* page, bvr_collider_t* collider);
 
 void bvr_destroy_page(bvr_page_t* page);

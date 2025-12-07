@@ -21,8 +21,8 @@ void bvr_update_free_camera(bvr_book_t* book, struct bvr_free_camera_s* _camera_
     }
 
     if(bvr_button_down(BVR_MOUSE_BUTTON_LEFT) && !editor->device.is_gui_hovered){
-        _camera_controller->rotation += book->window.inputs.relative_motion[0] * _camera_controller->rot_speed * book->timer.delta_time;
-        _camera_controller->tilt -= book->window.inputs.relative_motion[1] * _camera_controller->pitch_speed * book->timer.delta_time;
+        _camera_controller->rotation += book->window.inputs.relative_motion[0] * _camera_controller->rot_speed * book->timer.delta_timef;
+        _camera_controller->tilt -= book->window.inputs.relative_motion[1] * _camera_controller->pitch_speed * book->timer.delta_timef;
 
         book->page.camera.transform.rotation[2] = _camera_controller->rotation;
         book->page.camera.transform.rotation[1] = _camera_controller->tilt;
@@ -31,11 +31,11 @@ void bvr_update_free_camera(bvr_book_t* book, struct bvr_free_camera_s* _camera_
     _camera_controller->forward = 0;
     _camera_controller->strafe = 0;
 
-    _camera_controller->forward += bvr_axis_down(&book->window.inputs.axis.vertical) * _camera_controller->forward_speed * book->timer.delta_time;
-    _camera_controller->strafe  -= bvr_axis_down(&book->window.inputs.axis.horizontal) * _camera_controller->strafe_speed * book->timer.delta_time;
+    _camera_controller->forward += bvr_axis_down(&book->window.inputs.axis.vertical) * _camera_controller->forward_speed * book->timer.delta_timef;
+    _camera_controller->strafe  -= bvr_axis_down(&book->window.inputs.axis.horizontal) * _camera_controller->strafe_speed * book->timer.delta_timef;
 
     book->page.camera.transform.position[0] += _camera_controller->strafe;
     book->page.camera.transform.position[1] += _camera_controller->forward;
 
-    book->page.camera.field_of_view.scale += book->window.inputs.scroll * _camera_controller->forward_speed * book->timer.delta_time;
+    book->page.camera.field_of_view.scale += book->window.inputs.scroll * _camera_controller->forward_speed * book->timer.delta_timef;
 }

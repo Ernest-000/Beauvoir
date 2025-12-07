@@ -2,7 +2,7 @@
 #define BVR_H_IMPL
 
 #include <BVR/config.h>
-#include <BVR/utils.h>
+#include <BVR/common.h>
 #include <BVR/math.h>
 
 #include <BVR/scene.h>

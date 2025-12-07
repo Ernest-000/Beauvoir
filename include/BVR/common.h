@@ -11,8 +11,8 @@
     #include <unistd.h>
 #endif
 
-#define BVR_FAILED  0x0
-#define BVR_OK      0x1
+#define BVR_FALSE  0UL
+#define BVR_TRUE   1UL
 
 /*   based on OpenGLES   */  
 #define BVR_NULL                    0x00
@@ -38,10 +38,18 @@
 #define BVR_TEXTURE_2D              0x141A
 #define BVR_TEXTURE_2D_ARRAY        0x141B
 #define BVR_TEXTURE_2D_LAYER        0x141C
+#define BVR_TEXTURE_2D_COMPOSITE    0x141D
+
+#define BVR_TEXTURE_2D_LAYER_STRUCT 0x141E
 
 #define BVR_INCLUDE_BUFFER
 #define BVR_INCLUDE_DEBUG
 #define BVR_INCLUDE_IO
+
+/*
+    Returns a boolean. Check if 't' (which an int that determine a type) is a texture.
+*/
+#define BVR_IS_TEXTURE(t) (t >= BVR_TEXTURE_2D && t <= BVR_TEXTURE_2D_COMPOSITE)
 
 /*          UTILS               */
 /*                              */
@@ -114,7 +122,7 @@ void bvri_break(const char* __file, unsigned long long __line);
 )
 #endif
 
-#define BVR_FILE_EXISTS(path) (void)(((access(path, F_OK) != 0) ? bvri_wassert(path, __FILE__, __LINE__) : 0))
+#define BVR_FILE_EXISTS(path) (void)(((access(path, F_OK) == 0) ? 0 : bvri_wassert(path, __FILE__, __LINE__)))
 
 #define BVR_BREAK() (void)(bvri_break(__FILE__, __LINE__))
 

@@ -78,15 +78,15 @@ static int bvri_is_obj(FILE* file){
         }
 
         if(!strncmp(sig, "mtllib ", 7)){
-            return BVR_OK;
+            return BVR_TRUE;
         }
 
         if(sig[0] == 'o'){
-            return BVR_OK;
+            return BVR_TRUE;
         }
     }
     
-    return BVR_FAILED;
+    return BVR_FALSE;
 }
 
 static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
@@ -224,7 +224,7 @@ static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
     if(bvri_create_mesh_buffers(mesh, 
         object.vertices.count * sizeof(float), 
         object.elements.count * sizeof(uint32),
-        object.vertices.type, object.elements.type, mesh->attrib) == BVR_FAILED){
+        object.vertices.type, object.elements.type, mesh->attrib) == BVR_FALSE){
 
         BVR_PRINT("failed to allocate object buffers");
         goto bvr_objfailed;
@@ -286,7 +286,7 @@ static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
     free(object.vertices.data);
     free(object.elements.data);
 
-    return BVR_OK;
+    return BVR_TRUE;
 
 // called when obj's loading failed
 bvr_objfailed:
@@ -302,7 +302,7 @@ bvr_objfailed:
     free(object.vertices.data);
     free(object.elements.data);
 
-    return BVR_FAILED;
+    return BVR_FALSE;
 }
 
 static int bvri_objreadline(char* buffer, FILE* file){
@@ -449,7 +449,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
     }
     else {
         BVR_PRINT("failed to locate json gltf chunk");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     // bin section;
@@ -465,7 +465,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
     }
     else {
         BVR_PRINT("failed to locate binary gltf chunk");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     // read json section and create json context
@@ -492,7 +492,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
         json_object_put((json_object*) json_section.data);
 
         BVR_PRINT("corrupted or missing gdb json!");
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     json_object* json_node = NULL;
@@ -623,17 +623,10 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
         json_pritimive = json_object_object_get(json_mesh, "primitives");
 
         group->texture = 0;
-        group->name.length = json_object_get_string_len(json_object_object_get(json_node, "name"));
-        group->name.string = malloc(group->name.length);
-        strncpy(group->name.string, 
-            json_object_get_string(json_object_object_get(json_node, "name")), 
-            group->name.length
-        );
-
-        group->name.string[group->name.length] = '\0';
-
         group->element_count = 0;
         group->element_offset = object.elements.count;
+
+        bvr_create_string(&group->name, json_object_get_string(json_object_object_get(json_node, "name")));
 
         bvri_gltfhandletransform(json_node, group);
 
@@ -664,7 +657,11 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
                 bvri_gltfpushbackattribute(&object, json_normal, 5, 8);
             }
         
-            json_object* json_elements = json_object_object_get(json_object_array_get_idx(json_pritimive, p), "indices");
+            json_object* json_elements = json_object_object_get(
+                json_object_array_get_idx(json_pritimive, p), 
+                "indices"
+            );
+            
             group->element_count += bvri_gltfpushbackattribute(&object, json_elements, 0, 1);
         }
         
@@ -681,7 +678,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
 
     free(bin_section.data);
     
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 /*
@@ -809,6 +806,7 @@ static void bvri_gltfhandletransform(const json_object* node, bvr_vertex_group_t
         group->matrix[3][0] = json_object_get_double(json_object_array_get_idx(translation, 0));
         group->matrix[3][1] = json_object_get_double(json_object_array_get_idx(translation, 1));
         group->matrix[3][2] = json_object_get_double(json_object_array_get_idx(translation, 2));
+        BVR_PRINT_VEC3("", group->matrix[3]);
     }
 
     // if the node contains scaling informations
@@ -986,19 +984,19 @@ static void bvri_copyfbxproperty(FILE* file, char** destination, size_t* length,
 
 static int bvri_readfbxproperty(FILE* file, struct bvri_fbxobject* object, struct bvri_fbxnode* parent_node) {
     if(!parent_node->name.length){
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     if(strcmp(parent_node->name.string, "Vertices\0") == 0){
         bvri_copyfbxproperty(file, &object->vertices.data, &object->vertices.count, &object->vertices.type);
-        return BVR_OK;
+        return BVR_TRUE;
     }
     
     if(strcmp(parent_node->name.string, "PolygoneVertexIndex\0") == 0){
         bvri_copyfbxproperty(file, &object->elements.data, &object->elements.count, &object->elements.type);
     }
 
-    return BVR_FAILED;
+    return BVR_FALSE;
 }
 
 static int bvri_readfbxnode(FILE* file, struct bvri_fbxobject* object, struct bvri_fbxnode* node, size_t offset){
@@ -1022,7 +1020,7 @@ static int bvri_readfbxnode(FILE* file, struct bvri_fbxobject* object, struct bv
     node->length = 13 + node->name.length + node->property_list_length;
 
     if(node->end_offset > object->total_bytes || node->offset + node->length > object->total_bytes){
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
     
     // create name if there is one
@@ -1064,7 +1062,7 @@ static int bvri_readfbxnode(FILE* file, struct bvri_fbxobject* object, struct bv
     bvr_destroy_string(&node->name);
     free(node->childs);
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 // https://docs.fileformat.com/3d/fbx/
@@ -1114,7 +1112,7 @@ static int bvri_load_fbx(bvr_mesh_t* mesh, FILE* file){
 
     BVR_BREAK();
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 #endif
@@ -1193,7 +1191,7 @@ int bvr_create_meshv(bvr_mesh_t* mesh, bvr_mesh_buffer_t* vertices, bvr_mesh_buf
 
     // if cannot create buffers
     if(!status){
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     bvr_vertex_group_t* group = bvr_pool_alloc(&mesh->vertex_groups);
@@ -1217,7 +1215,7 @@ int bvr_create_meshv(bvr_mesh_t* mesh, bvr_mesh_buffer_t* vertices, bvr_mesh_buf
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 /*
@@ -1331,13 +1329,13 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
             BVR_PRINT("cannot recognize attribute type!");
             bvr_destroy_mesh(mesh);
         }
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     if(!mesh->stride){
         BVR_PRINT("cannot get vertex type size!");
         bvr_destroy_mesh(mesh);
-        return BVR_FAILED;
+        return BVR_FALSE;
     }
 
     for (uint64 i = 0; i < mesh->attrib_count; i++){ 
@@ -1348,7 +1346,7 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    return BVR_OK;
+    return BVR_TRUE;
 }
 
 // https://github.com/joelibaceta/triangulator/blob/main/triangulator/ear_clipping_method.py

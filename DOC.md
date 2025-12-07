@@ -28,5 +28,5 @@ I'll try to reference everything, but this will take time...
 |Name         |Declaration                                                 |Usage|
 |-------------|------------------------------------------------------------|---------|
 |calc_light   |vec4 calc_light(vec4 color, V_LIGHT light, V_DATA vertex)   |GLSL     |
-|create_layer |L_DATA create_layer(ivec3 layer)                            |GLSL     |
+|create_layer |L_DATA create_layer(int layer)                            |GLSL     |
 |calc_blending|vec4 calc_blending(vec4 composite, vec4 pixel, L_DATA layer)|GLSL     |

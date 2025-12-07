@@ -54,7 +54,7 @@
 /*          UTILS               */
 /*                              */
 
-typedef char bvr_uuid_t[37] __attribute__ ((aligned(8), packed));
+typedef char bvr_uuid_t[37];
 
 /*
     Return the size of a beauvoir type.

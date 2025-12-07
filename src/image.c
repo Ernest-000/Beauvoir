@@ -1005,19 +1005,19 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
     // initialize layers to make sure they're correct
     for (uint64 layer = 0; layer < layer_section.layer_count; layer++)
     {
-        bvr_layer_t* layer_ptr = &((bvr_layer_t*)image->layers.data)[layer];
+        bvr_layer_t* p_layer = &((bvr_layer_t*)image->layers.data)[layer];
 
-        bvr_string_create_and_copy(&layer_ptr->name, &layer_section.layers[layer].name);
-        layer_ptr->flags = 0;
-        layer_ptr->blend_mode = (bvr_layer_blend_mode_t)layer_section.layers[layer].blend_mode;
-        layer_ptr->width = layer_section.layers[layer].bounds[3] - layer_section.layers[layer].bounds[1];
-        layer_ptr->height = layer_section.layers[layer].bounds[2] - layer_section.layers[layer].bounds[0];
-        layer_ptr->anchor_x = layer_section.layers[layer].bounds[1];
-        layer_ptr->anchor_y = layer_section.layers[layer].bounds[0];
-        layer_ptr->opacity = layer_section.layers[layer].opacity;
+        bvr_string_create_and_copy(&p_layer->name, &layer_section.layers[layer].name);
+        p_layer->flags = 0;
+        p_layer->blend_mode = (bvr_layer_blend_mode_t)layer_section.layers[layer].blend_mode;
+        p_layer->width = layer_section.layers[layer].bounds[3] - layer_section.layers[layer].bounds[1];
+        p_layer->height = layer_section.layers[layer].bounds[2] - layer_section.layers[layer].bounds[0];
+        p_layer->anchor_x =  MIN(layer_section.layers[layer].bounds[1], image->width - p_layer->width);
+        p_layer->anchor_y = MIN(layer_section.layers[layer].bounds[0], image->height - p_layer->height);
+        p_layer->opacity = layer_section.layers[layer].opacity;
 
         if(layer_section.layers[layer].clipping){
-            layer_ptr->flags |= BVR_LAYER_CLIPPED;
+            p_layer->flags |= BVR_LAYER_CLIPPED;
         }
     }
 
@@ -1037,8 +1037,8 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
             {
                 int layer_width = layer_section.layers[layer].bounds[3] - layer_section.layers[layer].bounds[1];
                 int layer_height = layer_section.layers[layer].bounds[2] - layer_section.layers[layer].bounds[0];
-                int layer_anchor_x = __min(layer_section.layers[layer].bounds[1], image->width - layer_width);
-                int layer_anchor_y = __min(layer_section.layers[layer].bounds[0], image->height - layer_height);
+                int layer_anchor_x = MIN(layer_section.layers[layer].bounds[1], image->width - layer_width);
+                int layer_anchor_y = MIN(layer_section.layers[layer].bounds[0], image->height - layer_height);
             
                 image_data_section.channels = layer_section.layers[layer].channel_count;
                 image_data_section.rle_pack_lengths = calloc(layer_height, sizeof(uint16));

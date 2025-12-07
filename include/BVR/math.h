@@ -23,8 +23,8 @@ typedef struct bvr_transform_s {
 
 struct bvr_bounds_s {
     vec2 coords;
-    unsigned int width;
-    unsigned int height;
+    float width;
+    float height;
 };
 
 #define BVR_SCALE_VEC3(vec, a) vec[0] = a; vec[1] = a; vec[2] = a;

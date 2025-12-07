@@ -106,6 +106,26 @@ void bvr_nameof(const int type, char* name){
             strcpy(name, "LAYER_STRUCT");
             return;
 
+        case 0x1903: // BVR_R
+            strcpy(name, "RED");
+            return;
+
+        case 0x8227: // BVR_RG
+            strcpy(name, "RG");
+            return;
+        case 0x1907: // BVR_RGB
+            strcpy(name, "RGB");
+            return;
+        case 0x80E0: // BVR_BGR
+            strcpy(name, "BGR");
+            return;
+        case 0x1908: // BVR_RGBA
+            strcpy(name, "RGBA");
+            return;
+        case 0x80E1: // BVR_BGRA
+            strcpy(name, "BGRA");
+            return;
+
         default:
             return;
     }

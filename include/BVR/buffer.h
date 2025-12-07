@@ -18,42 +18,30 @@
 
 /*
     This macro creates a for loop that interates through a pool.
-    It will define each `a` as the current used value.
+    It will define each `_v` as the current used value.
 */
 
 // GCC specific macro
 #ifdef __GNUC__
-    #define BVR_POOL_FOR_EACH(a, pool)    \
-        struct bvr_pool_block_s (first ## ##a) = {0};   \
-        struct bvr_pool_block_s* (block ## ##a) = &(first ## ##a); \
-        while(                                                     \
-            ((int)(((block ## ##a) = (struct bvr_pool_block_s*)(pool.data + ((block ## ##a)->next * (pool.elemsize + sizeof(struct bvr_pool_block_s))))) \
-            && ((void*)memcpy(&a, ((block ## ##a) + sizeof(struct bvr_pool_block_s)), sizeof(__typeof(a))) == NULL))) \
-            || (pool.data && pool.count && (NULL != (block ## ##a)->next) || 0 == (first ## ##a).next++) \
-        )     
-
-// Clang specific macro
+    #define BVR_POOL_FOR_EACH(_v, _pool) for (struct bvr_pool_block_u* b = _pool.blocks; b->next; b++)\
+                                            if (b->data && (void*)memcpy(&_v, b->data, _pool.elemsize) != NULL)
+    // Clang specific macro
 #elif defined(__clang__) || defined(_MSC_VER)
-    #define BVR_POOL_FOR_EACH(a, pool)    \
-        struct bvr_pool_block_s (first ## ##a) = {0};   \
-        struct bvr_pool_block_s* (block ## ##a) = &(first ## ##a); \
-        while(                                                     \
-            ((int)(((block ## ##a) = (struct bvr_pool_block_s*)(pool.data + ((block ## ##a)->next * (pool.elemsize + sizeof(struct bvr_pool_block_s))))) \
-            && (a = *((char*)block_##a + sizeof(struct bvr_pool_block_s))))) \
-            || (pool.data && pool.count && ((block ## ##a)->next) || 0 == (first ## ##a).next++) \
-        ) 
+    #define BVR_POOL_FOR_EACH(_v, _pool) for (struct bvr_pool_block_u* b = _pool.blocks; b->next; b++)\
+                                            if (b->data && (void*)memcpy(&_v, b->data, _pool.elemsize) != NULL)
 #else
-    #define BVR_POOL_FOR_EACH(a, pool) for(int i = 0; i < pool.count; i++, a = bvr_pool_try_get(&pool, i))                                 
+    #define BVR_POOL_FOR_EACH(_v, _pool) for (struct bvr_pool_block_u* b = _pool.blocks; b->next; b++)\
+                                            if (b->data && (void*)memcpy(&_v, b->data, _pool.elemsize) != NULL)                               
 #endif
 
 /*
     Generic data pointer
 */
-struct bvr_buffer_s {
+struct __attribute__((packed)) bvr_buffer_s {
     void* data;
     unsigned long size;
     unsigned int elemsize;
-} __attribute__((packed));
+};
 
 typedef struct bvr_memstream_s {
     void* data;
@@ -66,31 +54,27 @@ typedef struct bvr_memstream_s {
 /*
     pascal typed string
 */
-typedef struct bvr_string_s  { 
+typedef __attribute__ ((packed)) struct bvr_string_s  { 
     unsigned short length;
     char* string;
-} __attribute__ ((packed)) bvr_string_t;
+} bvr_string_t;
+
+__attribute__ ((packed)) struct bvr_pool_block_u {
+    void* data;
+    struct bvr_pool_block_u* next;
+};
 
 typedef struct bvr_pool_s {
     char* data;
+    char* avail;
 
-    /*
-        Pool's data is structured as such :
+    struct bvr_pool_block_u* blocks;
+    struct bvr_pool_block_u* next_block;
 
-        | next data block id |
-        |        ----        |
-        |        data        |
-    
-
-        everything is aligned to this pattern.
-    */
-    struct bvr_pool_block_s {
-        unsigned char next;
-    }* next;
-
-    unsigned int capacity;
-    unsigned int count;
-    unsigned int elemsize;
+    uint32 size;
+    uint32 elemsize;
+    uint32 count;
+    uint32 capacity;
 } bvr_pool_t;
 
 /*
@@ -149,7 +133,7 @@ BVR_H_FUNC const char* bvr_string_get(bvr_string_t* string){
 */
 void bvr_destroy_string(bvr_string_t* string);
 
-void bvr_create_pool(bvr_pool_t* pool, uint64 size, uint64 count);
+void bvr_create_pool(bvr_pool_t* pool, const uint64 size, const uint64 count);
 
 /*
     Get a pointer to the next writable slot.
@@ -161,8 +145,14 @@ void* bvr_pool_alloc(bvr_pool_t* pool);
 */
 void* bvr_pool_try_get(bvr_pool_t* pool, int index);
 
-/*
+/**
     Deallocate a memory block.
 */
 void bvr_pool_free(bvr_pool_t* pool, void* ptr);
+
+/**
+ * Remove an element from the pool by using its value.
+ */
+void bvr_pool_remove(bvr_pool_t* pool, const void* value);
+
 void bvr_destroy_pool(bvr_pool_t* pool);

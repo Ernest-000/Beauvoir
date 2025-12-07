@@ -1134,10 +1134,10 @@ int bvr_create_meshf(bvr_mesh_t* mesh, FILE* file, bvr_mesh_array_attrib_t attri
     mesh->attrib = attrib;
     
     mesh->vertex_groups.data = NULL;
-    mesh->vertex_groups.next = NULL;
+    mesh->vertex_groups.avail = NULL;
+    mesh->vertex_groups.next_block = NULL;
     mesh->vertex_groups.count = 0;
     mesh->vertex_groups.elemsize = sizeof(bvr_vertex_group_t);
-    mesh->vertex_groups.capacity = 0;
 
 #ifndef BVR_NO_GLTF
     if(bvri_is_gltf(file)){

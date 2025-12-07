@@ -23,7 +23,7 @@ struct bvr_asset_reference_s {
 
         // raw data 
         struct bvr_buffer_s raw_data;
-    } pointer __attribute__ ((packed));
+    } __attribute__ ((packed)) pointer;
     
 } __attribute__ ((packed));
 

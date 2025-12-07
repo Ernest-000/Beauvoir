@@ -6,6 +6,10 @@ if(NOT DEFINED BVR_TARGET_SHARED)
     set(BVR_TARGET_SHARED OFF)
 endif()
 
+if(NOT DEFINED BVR_DEBUG)
+    set(BVR_DEBUG OFF)
+endif()
+
 # Setting up Beauvoir paths
 if(NOT DEFINED BVR_CURRENT_DIR)
     set(BVR_CURRENT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -23,8 +27,10 @@ set(BVR_DEMO_DIR ${BVR_CURRENT_DIR}/dev)
 # Development only
 if(NOT ${BVR_TARGET_SHARED})
     if (NOT DEFINED BVR_MAIN_FILE)
-        #set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/landscape.c")
-        set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/model_viewer.c")
+        set(BVR_DEBUG OFF)
+        # set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/landscape.c")
+        # set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/model_viewer.c")
+        set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/memory.c")
     endif()
 endif()
 
@@ -99,16 +105,21 @@ if(NOT EXISTS ${BVR_JSON_LIB})
 endif()
 include_directories(${BVR_INCLUDE_DIR})
 
-set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+if(${BVR_DEBUG})
+    add_compile_options(-g  -w)
+    message("setup for debugging")
+else()
+    # add_compile_options(-g)
+    message("setup for release")
+endif()
+    
+add_compile_options(-static -static-libgcc)
 
 ## Create library or executable depends on the compilation mode
 if(${BVR_TARGET_SHARED})
-    add_compile_options(-g -w)
-    add_library(Beauvoir STATIC)
+    add_library(Beauvoir SHARED)
     message("Successfully create a new library")
 else()
-    add_compile_options(-g -w)
     add_executable(Beauvoir ${BVR_MAIN_FILE})
     message("Successfully create a new executable")
 endif()
@@ -139,8 +150,8 @@ set_target_properties(Beauvoir PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${BVR_BUILD_DIR}"
 )
 
-if(MSVC)
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set_target_properties(Beauvoir PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${BVR_BUILD_DIR} )
     set_target_properties(Beauvoir PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG ${BVR_BUILD_DIR} )
     set_target_properties(Beauvoir PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE ${BVR_BUILD_DIR} )
-endif(MSVC)
+endif()

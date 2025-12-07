@@ -286,85 +286,108 @@ void bvr_destroy_string(bvr_string_t* string){
     string->length = 0;
 }
 
-void bvr_create_pool(bvr_pool_t* pool, uint64 size, uint64 count){
+void bvr_create_pool(bvr_pool_t* pool, const uint64 size, const uint64 count){
     BVR_ASSERT(pool);
-    BVR_ASSERT(size < 255);
-
+    
     pool->data = NULL;
-    pool->next = NULL;
-    pool->count = 0;
+    pool->next_block = NULL;
+    pool->avail = NULL;
+
+    pool->capacity = count + 1;
+    pool->size = (size + sizeof(struct bvr_pool_block_u)) * pool->capacity;
     pool->elemsize = size;
-    pool->capacity = count;
+    pool->count = 0;
 
-    if(size && count){
-        pool->data = calloc(pool->capacity, (pool->elemsize + sizeof(struct bvr_pool_block_s)));
-        BVR_ASSERT(pool->data);
+    // allocate enough space for the linked list and raw memory space
+    pool->data = malloc(pool->size);
+    BVR_ASSERT(pool->data);
 
-        pool->next = (struct bvr_pool_block_s*)pool->data;
+    pool->next_block = (void*)pool->data;
+    pool->blocks = (void*)pool->data;
+    pool->avail = &pool->data[pool->capacity * sizeof(struct bvr_pool_block_u)];
 
-        struct bvr_pool_block_s* block = (struct bvr_pool_block_s*)pool->data;
-        for (uint64 i = 0; i < pool->capacity; i++)
-        {
-            block->next = i;
-            block = (struct bvr_pool_block_s*)(pool->data + i * (pool->elemsize + sizeof(struct bvr_pool_block_s)));
-        }
-        
-        block->next = 0;
+    // link all chunk together
+    for (size_t i = 0; i < pool->capacity; i++)
+    {
+        pool->blocks[i].data = NULL;
+        pool->blocks[i].next = &pool->blocks[i + 1];
     }
+
+    pool->blocks[pool->capacity - 1].next = NULL;
 }
 
 void* bvr_pool_alloc(bvr_pool_t* pool){
     BVR_ASSERT(pool);
 
-    if(pool->next){
-        struct bvr_pool_block_s* block = pool->next;
-        
-        if(block->next >= pool->capacity){
-            BVR_PRINT("pool is full");
-            return NULL;
-        }
-
-        pool->count++;
-        pool->next = (struct bvr_pool_block_s*)(
-            pool->data + block->next * (pool->elemsize + sizeof(struct bvr_pool_block_s))
-        );
-        
-        return (void*)(block + sizeof(struct bvr_pool_block_s));
+    // check if a next block is available and if data can be added
+    if(pool->next_block == NULL || 
+        pool->avail + pool->elemsize >= pool->data + pool->size){
+        return NULL;
     }
 
-    return NULL;
+    struct bvr_pool_block_u* block = pool->next_block;
+    pool->next_block = pool->next_block->next;
+
+    block->data = pool->avail;
+    pool->avail += pool->elemsize;
+
+    pool->count++;
+    return block->data;
 }
 
 void* bvr_pool_try_get(bvr_pool_t* pool, int index){
     BVR_ASSERT(pool);
     
-    int counter = pool->capacity;
-    struct bvr_pool_block_s* block = (struct bvr_pool_block_s*)pool->data;
-    while (block->next || counter > 0)
-    {
-        if(index == pool->capacity - counter) {
-            return (void*)(block + sizeof(struct bvr_pool_block_s));
-        }
-
-        block = (struct bvr_pool_block_s*)(pool->data + block->next * (pool->elemsize + sizeof(struct bvr_pool_block_s)));
-
-        counter--;
+    if(index < 0 && index >= pool->count){
+        return NULL;
     }
     
-    return NULL;
+    return pool->blocks[index].data;
 }
 
 void bvr_pool_free(bvr_pool_t* pool, void* ptr){
     BVR_ASSERT(pool);
 
-    if(ptr){
-        pool->count--;
-        
-        /*
-        struct bvr_pool_block_s* prev = pool->next;
-        pool->next = (struct bvr_pool_block_s*)((char*)ptr - sizeof(struct bvr_pool_block_s));
-        pool->next->next = ((uint64)prev / (pool->elemsize + sizeof(struct bvr_pool_block_s))) - (uint64)pool->data;
-        */
+    if(ptr == NULL) {
+        return;
+    }
+
+    // set current block as free 
+    // and push it as the next allocated block
+    struct bvr_pool_block_u* block = (struct bvr_pool_block_u*)ptr;
+    uint32 index = ((char*)block - pool->data) / sizeof(struct bvr_pool_block_u);
+
+    if(index){      
+        memmove(block->data, block->data + pool->elemsize, 
+            (pool->capacity - index - 1) * pool->elemsize
+        );
+
+        // remap 
+        for (struct bvr_pool_block_u* b = &pool->blocks[index]; b->next; b++)
+        {
+            if(b->data){
+                b->data -= pool->elemsize;
+            }
+        }
+    }
+
+    block->next = pool->next_block;
+    block->data = NULL;
+
+    pool->next_block = block;
+    pool->count--;
+}
+
+void bvr_pool_remove(bvr_pool_t* pool, const void* value){
+    BVR_ASSERT(pool);
+    BVR_ASSERT(value);
+
+    for (struct bvr_pool_block_u* b = pool->blocks; b->next; b++)
+    {
+        if(b->data && value == *(void**)b->data){
+            bvr_pool_free(pool, b);
+            return;
+        }
     }
 }
 
@@ -372,6 +395,9 @@ void bvr_destroy_pool(bvr_pool_t* pool){
     BVR_ASSERT(pool);
 
     free(pool->data);
+
     pool->data = NULL;
-    pool->next = NULL;
+    pool->avail = NULL;
+    pool->blocks = NULL;
+    pool->next_block = NULL;
 }

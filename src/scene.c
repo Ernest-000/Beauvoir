@@ -383,7 +383,7 @@ void bvr_free_actor(bvr_page_t* page, struct bvr_actor_s* actor){
     
     if(actor){
         bvr_destroy_actor(actor);
-        bvr_pool_free(&page->actors, actor);
+        bvr_pool_remove(&page->actors, actor);
 
         __s_book_instance->garbage_stream.cursor = (char*)actor;
     }

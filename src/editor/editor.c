@@ -20,8 +20,7 @@
 
 #define BVR_EDITOR_VERTEX_BUFFER_SIZE 1000
 
-#define BVR_HIERARCHY_RECT(w, h) (nk_rect(0, 0, (200 + w) / BVR_EDITOR_SCALE, (450 + h) / BVR_EDITOR_SCALE))
-#define BVR_INSPECTOR_RECT(w, h) (nk_rect(__editor->book->window.framebuffer.width - (350 + w) / BVR_EDITOR_SCALE, 0, (350 + w) / BVR_EDITOR_SCALE, (400 + h) / BVR_EDITOR_SCALE))
+#define BVR_RECT(rect) nk_rect(rect.coords[0], rect.coords[1], rect.width, rect.height)
 
 #define BVR_COMBO(value, e, name) int f ## ##e = value == e;\
     if(nk_checkbox_label(__editor->gui.context, name, &(f ## ##e))){\
@@ -126,6 +125,15 @@ static void bvri_draw_editor_image(bvr_image_t* image){
 
     nk_label(__editor->gui.context, "Image", NK_TEXT_ALIGN_CENTERED);
     nk_label_wrap(__editor->gui.context, image->asset.pointer.asset_id);
+
+    char format[16];
+    bvr_nameof(image->format, format);
+
+    nk_layout_row_dynamic(__editor->gui.context, 15, 2);
+    nk_label_wrap(__editor->gui.context, BVR_FORMAT("width %i", image->width));
+    nk_label_wrap(__editor->gui.context, BVR_FORMAT("height %i", image->height));
+    nk_label_wrap(__editor->gui.context, BVR_FORMAT("depth %i", image->depth));
+    nk_label_wrap(__editor->gui.context, BVR_FORMAT("format %s", format));
 }
 
 static void bvri_draw_editor_layer(bvr_layer_t* layer){
@@ -182,7 +190,7 @@ static void bvri_draw_editor_shader(bvr_shader_t* shader){
     
     if(shader->uniform_count){
         nk_layout_row_dynamic(__editor->gui.context, (shader->uniform_count + 3) * 15, 1);
-        if(nk_group_begin_titled(__editor->gui.context, "uniformgroupe", "Uniforms", NK_WINDOW_BORDER | NK_WINDOW_TITLE)){  
+        if(nk_group_begin_titled(__editor->gui.context, "#ugroup", "Uniforms", NK_WINDOW_BORDER | NK_WINDOW_TITLE)){  
             nk_layout_row_dynamic(__editor->gui.context, 15, 2);
 
             char type_name[16];
@@ -202,7 +210,7 @@ static void bvri_draw_editor_shader(bvr_shader_t* shader){
     if(shader->block_count){
         nk_layout_row_dynamic(__editor->gui.context, (shader->block_count + 3) * 15, 1);
 
-        if(nk_group_begin_titled(__editor->gui.context, "blockgroupe", "Blocks", NK_WINDOW_BORDER | NK_WINDOW_TITLE)){
+        if(nk_group_begin_titled(__editor->gui.context, "#bgroup", "Blocks", NK_WINDOW_BORDER | NK_WINDOW_TITLE)){
             nk_layout_row_dynamic(__editor->gui.context, 15, 2);
 
             char type_name[16];
@@ -263,13 +271,22 @@ void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book){
     editor->draw_cmd.element_offset = 0;
     editor->draw_cmd.element_count = 0;
 
+    editor->device.hierarchy_viewport.width = 200.0f / BVR_EDITOR_SCALE;
+    editor->device.hierarchy_viewport.height = 450.0f / BVR_EDITOR_SCALE;
+    editor->device.hierarchy_viewport.coords[0] = 0.0f;
+    editor->device.hierarchy_viewport.coords[1] = 0.0f;
+    
+    editor->device.inspector_viewport.width = 350.0f / BVR_EDITOR_SCALE;
+    editor->device.inspector_viewport.height = 400.0f / BVR_EDITOR_SCALE;
+    editor->device.inspector_viewport.coords[0] = book->window.framebuffer.width - editor->device.inspector_viewport.width;
+    editor->device.inspector_viewport.coords[1] = 0.0f;
+
     memset(&editor->memory, 0, sizeof(editor->memory));
 
     {
         const char* vertex_shader = 
             "#version 400\n"
             "layout(location=0) in vec3 in_position;\n"
-            "uniform mat4 bvr_transform;\n"
             "layout(std140) uniform bvr_camera {\n"
 	        "mat4 bvr_projection;\n"
 	        "mat4 bvr_view;\n"
@@ -288,7 +305,6 @@ void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book){
         const char* shaders[2] = { vertex_shader, fragment_shader };
         BVR_ASSERT(bvr_create_shader_raw(&editor->device.shader, shaders, BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER));
         BVR_ASSERT(bvr_shader_register_uniform(&editor->device.shader, BVR_VEC3, 1, 0, "bvr_color"));
-        BVR_ASSERT(bvr_shader_register_block(&editor->device.shader, BVR_UNIFORM_CAMERA_NAME, BVR_MAT4, 2, BVR_UNIFORM_BLOCK_CAMERA));
 
         vec3 color = {0.0f, 1.0f, 0.0f};
         BVR_IDENTITY_MAT4(editor->device.transform);
@@ -343,7 +359,7 @@ void bvr_editor_draw_page_hierarchy(){
     BVR_ASSERT(__editor->state == BVR_EDITOR_STATE_HANDLE);
     __editor->state = BVR_EDITOR_STATE_DRAWING;
 
-    if(nk_begin(__editor->gui.context, BVR_FORMAT("scene '%s'", __editor->book->page.name.string), BVR_HIERARCHY_RECT(0, 0), 
+    if(nk_begin(__editor->gui.context, BVR_FORMAT("scene '%s'", __editor->book->page.name.string), BVR_RECT(__editor->device.hierarchy_viewport), 
         NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE)){
 
         {
@@ -501,10 +517,10 @@ void bvr_editor_draw_page_hierarchy(){
                     break;
                 }
 
-                bvri_draw_hierarchy_button(
+                /*bvri_draw_hierarchy_button(
                     BVR_FORMAT("collider%x", (uint64)blockcollider - (uint64)__editor->book->page.colliders.data),
                     BVR_EDITOR_COLLIDER, collider
-                );
+                );*/
             }
 
             if(nk_button_label(__editor->gui.context, "Add")){
@@ -515,6 +531,13 @@ void bvr_editor_draw_page_hierarchy(){
         }
         
         __editor->device.is_gui_hovered |= nk_window_is_hovered(__editor->gui.context);
+
+        struct nk_rect bounds = nk_window_get_bounds(__editor->gui.context);
+        __editor->device.hierarchy_viewport.width = bounds.w;
+        __editor->device.hierarchy_viewport.height = bounds.h;
+        __editor->device.hierarchy_viewport.coords[0] = bounds.x;
+        __editor->device.hierarchy_viewport.coords[1] = bounds.y;
+
         nk_end(__editor->gui.context);
     }
 }
@@ -537,7 +560,7 @@ void bvr_editor_draw_inspector(){
 
     BVR_ASSERT(__editor->state == BVR_EDITOR_STATE_DRAWING);
 
-    if(nk_begin(__editor->gui.context, BVR_FORMAT("inspector '%s'", __editor->inspector_cmd.name.string), BVR_INSPECTOR_RECT(0, 0), 
+    if(nk_begin(__editor->gui.context, BVR_FORMAT("inspector '%s'", __editor->inspector_cmd.name.string), BVR_RECT(__editor->device.inspector_viewport), 
         NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE)){
     
         if(!__editor->inspector_cmd.pointer){
@@ -570,7 +593,7 @@ void bvr_editor_draw_inspector(){
                     nk_group_end(__editor->gui.context);
                 }
 
-                nk_property_float(__editor->gui.context, "scale", 0.01f, &camera->field_of_view.scale, 20.0f, 0.1f, 0.1f);
+                nk_property_float(__editor->gui.context, "scale", 0.01f, &camera->field_of_view.scale, 20.0f, 0.01f, 0.01f);
                 
                 bvri_draw_editor_transform(&camera->transform);
             }
@@ -749,7 +772,8 @@ void bvr_editor_draw_inspector(){
                         bvri_draw_editor_shader(&((bvr_layer_actor_t*)actor)->shader);
                         bvri_draw_editor_image(&((bvr_layer_actor_t*)actor)->texture.image);
 
-                        nk_label(__editor->gui.context, "LAYERS", NK_TEXT_ALIGN_CENTERED);
+                        nk_layout_row_dynamic(__editor->gui.context, 15, 1);
+                        nk_label(__editor->gui.context, BVR_FORMAT("LAYERS (%i)", BVR_BUFFER_COUNT(((bvr_layer_actor_t*)actor)->texture.image.layers)), NK_TEXT_ALIGN_CENTERED);
                         for (uint64 layer = 0; layer < BVR_BUFFER_COUNT(((bvr_layer_actor_t*)actor)->texture.image.layers); layer++)
                         {
                             bvri_draw_editor_layer(&layers[layer]);
@@ -959,7 +983,7 @@ void bvr_editor_draw_inspector(){
                 nk_property_float(__editor->gui.context, "ambiant", 0.0, &illumination->light.position[3], 255, 1.0f, 1.0f);
                 
                 nk_label(__editor->gui.context, "LIGHT COLOR", NK_TEXT_ALIGN_CENTERED);
-                nk_layout_row_dynamic(__editor->gui.context, BVR_INSPECTOR_RECT(0, 0).w / 2, 1);
+                nk_layout_row_dynamic(__editor->gui.context, __editor->device.inspector_viewport.width / 2.0f, 1);
                 nk_color_pick(__editor->gui.context, (struct nk_colorf*)&illumination->light.color, NK_RGB);
                 
                 nk_layout_row_dynamic(__editor->gui.context, 15, 1);
@@ -970,7 +994,7 @@ void bvr_editor_draw_inspector(){
                 nk_property_float(__editor->gui.context, "z", -100000.0f, &illumination->light.position[2], 100000.0f, 0.1f, 0.1f);
                 
                 // draw light gizmo
-                {
+                if(illumination->light.type == BVR_LIGHT_GLOBAL_ILLUMINATION){
                     float distance = (illumination->light.intensity);
                     vec3 normalized_dir;
                     vec3_norm(normalized_dir, illumination->light.direction);
@@ -1003,6 +1027,13 @@ void bvr_editor_draw_inspector(){
         }
 
         __editor->device.is_gui_hovered |= nk_window_is_hovered(__editor->gui.context);
+
+        struct nk_rect bounds = nk_window_get_bounds(__editor->gui.context);
+        __editor->device.inspector_viewport.width = bounds.w;
+        __editor->device.inspector_viewport.height = bounds.h;
+        __editor->device.inspector_viewport.coords[0] = bounds.x;
+        __editor->device.inspector_viewport.coords[1] = bounds.y;
+
         nk_end(__editor->gui.context);
     }
 }

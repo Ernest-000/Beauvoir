@@ -17,7 +17,7 @@
     #define BVR_EDITOR_SCALE 1.1f
 #endif
 
-typedef enum bvr_editor_state_e {
+enum bvr_editor_state_e {
     BVR_EDITOR_STATE_HIDDEN,
     BVR_EDITOR_STATE_HANDLE,
     BVR_EDITOR_STATE_DRAWING,
@@ -41,6 +41,9 @@ typedef struct bvr_editor_s {
 
         mat4x4 transform;
 
+        struct bvr_bounds_s hierarchy_viewport;
+        struct bvr_bounds_s inspector_viewport;
+        
         bool is_gui_hovered;
     } device;
 

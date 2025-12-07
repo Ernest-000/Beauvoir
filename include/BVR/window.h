@@ -151,7 +151,7 @@ enum bvr_input_state_e {
 typedef struct bvr_keyaxis_s {
     uint16 keys[2];
     uint16 alt_keys[2];
-} bvr_keyaxis_t __attribute ((packed));
+} __attribute ((packed)) bvr_keyaxis_t ;
 
 typedef struct bvr_window_s {
     void* handle;

@@ -22,7 +22,7 @@ static bvr_layer_actor_t* p_image;
 int main(){
     /* create initial game's context */
     bvr_create_book(&book);
-    bvr_create_page(&book.page, "empty");
+    bvr_create_page(&book.page, "GESTALT");
     
     /* create the window */
     bvr_create_window(&book.window, 800, 800, "Window", 0);
@@ -38,7 +38,7 @@ int main(){
 
     target_image = true;
     wait_for_input = false;
-    p_image = _load_image("samples/template.psd");
+    p_image = _load_image("samples/illustration.psd");
 
     /* main loop */
     while (1)

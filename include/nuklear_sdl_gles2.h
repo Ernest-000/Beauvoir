@@ -206,12 +206,12 @@ nk_sdl_render(enum nk_anti_aliasing AA, int max_vertex_buffer, int max_element_b
     sdl.ctx.delta_time_seconds = (float)(now - sdl.time_of_last_frame) / 1000;
     sdl.time_of_last_frame = now;
 
-    //SDL_GetWindowSize(sdl.win, &width, &height);
-    //SDL_GetWindowSize(sdl.win, &display_width, &display_height);
-    width = sdl.framebuffer_size[0];
-    height = sdl.framebuffer_size[1];
-    display_width = sdl.framebuffer_size[0];
-    display_height = sdl.framebuffer_size[1];
+    SDL_GetWindowSize(sdl.win, &width, &height);
+    SDL_GetWindowSize(sdl.win, &display_width, &display_height);
+    //width = sdl.framebuffer_size[0];
+    //height = sdl.framebuffer_size[1];
+    //display_width = sdl.framebuffer_size[0];
+    //display_height = sdl.framebuffer_size[1];
     
     ortho[0][0] /= (GLfloat)width;
     ortho[1][1] /= (GLfloat)height;

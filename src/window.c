@@ -34,11 +34,14 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     window->handle = NULL;
     window->context = NULL;
     
-    int wflags = SDL_WINDOW_OPENGL;
-    //wflags |= SDL_WINDOW_RESIZABLE;
+    window->wflags = SDL_WINDOW_OPENGL;
+    window->wflags |= SDL_WINDOW_RESIZABLE * BVR_HAS_FLAG(flags, BVR_WINDOW_RESIZABLE);
+    window->wflags |= SDL_WINDOW_ALWAYS_ON_TOP * BVR_HAS_FLAG(flags, BVR_WINDOW_ALWAYS_ON_TOP);
+    window->wflags |= SDL_WINDOW_BORDERLESS * BVR_HAS_FLAG(flags, BVR_WINDOW_BORDERLESS);
+    window->wflags |= SDL_WINDOW_FULLSCREEN * BVR_HAS_FLAG(flags, BVR_WINDOW_FULLSCREEN);
 
     // create a new window
-    window->handle = SDL_CreateWindow(title, width, height, wflags);
+    window->handle = SDL_CreateWindow(title, width, height, window->wflags);
     BVR_ASSERT(window->handle);
 
     // create a new context
@@ -75,12 +78,7 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     }
     
     // create framebuffer
-    if(BVR_HAS_FLAG(flags, BVR_WINDOW_USER_FRAMEBUFFER)){
-        bvr_create_framebuffer(&window->framebuffer, width, height, BVR_WINDOW_FRAMEBUFFER_PATH);
-    }
-    else {
-        bvr_create_framebuffer(&window->framebuffer, width, height, NULL);
-    }
+    bvr_window_resize(window, width, height);
 
     window->awake = 1;
     window->focus = 1;
@@ -185,8 +183,7 @@ void bvr_window_poll_events(){
         case SDL_EVENT_WINDOW_RESIZED:
             {
                 if(event.display.data1 & event.display.data2){
-                    window->framebuffer.width = event.display.data1;
-                    window->framebuffer.height = event.display.data2;
+                    bvr_window_resize(window, event.display.data1, event.display.data2);
                 }
             }
             break;
@@ -212,6 +209,25 @@ void bvr_window_poll_events(){
 
 void bvr_window_push_buffers(){
     SDL_GL_SwapWindow(bvr_get_instance()->window.handle);
+}
+
+void bvr_window_resize(bvr_window_t* window, const uint16 width, const uint16 height){
+    BVR_ASSERT(window);
+    BVR_ASSERT(width > 0 && height > 0);
+
+    // if a framebuffer has already been initialized
+    if(window->framebuffer.buffer){
+        bvr_destroy_framebuffer(&window->framebuffer);
+    }
+    
+    if(BVR_HAS_FLAG(window->wflags, BVR_WINDOW_USER_FRAMEBUFFER)){
+        bvr_create_framebuffer(&window->framebuffer, width, height, BVR_WINDOW_FRAMEBUFFER_PATH);
+    }
+    else {
+        bvr_create_framebuffer(&window->framebuffer, width, height, NULL);
+    }
+
+    SDL_SetWindowSize(window->handle, width, height);
 }
 
 void bvr_destroy_window(bvr_window_t* window){

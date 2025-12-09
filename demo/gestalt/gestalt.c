@@ -25,7 +25,7 @@ int main(){
     bvr_create_page(&book.page, "GESTALT");
     
     /* create the window */
-    bvr_create_window(&book.window, 800, 800, "Window", 0);
+    bvr_create_window(&book.window, 800, 800, "Window", BVR_WINDOW_DEFAULT);
     
     /* Allocate buffers */
     bvr_create_book_memories(&book, BVR_BUFFER_SIZE, 0);
@@ -38,7 +38,8 @@ int main(){
 
     target_image = true;
     wait_for_input = false;
-    p_image = _load_image("samples/illustration.psd");
+    
+    p_image = _load_image("samples/template.psd");
 
     /* main loop */
     while (1)

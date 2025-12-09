@@ -7,7 +7,12 @@
 
 // window flags
 #define BVR_WINDOW_NONE 0x0
-#define BVR_WINDOW_USER_FRAMEBUFFER 0x01
+#define BVR_WINDOW_RESIZABLE 0x01
+#define BVR_WINDOW_ALWAYS_ON_TOP 0x02
+#define BVR_WINDOW_BORDERLESS 0x04
+#define BVR_WINDOW_FULLSCREEN 0x08
+#define BVR_WINDOW_USER_FRAMEBUFFER 0x10
+#define BVR_WINDOW_DEFAULT BVR_WINDOW_RESIZABLE
 
 #ifndef BVR_WINDOW_FRAMEBUFFER_PATH
     #define BVR_WINDOW_FRAMEBUFFER_PATH "framebuffer.glsl"
@@ -181,6 +186,7 @@ typedef struct bvr_window_s {
     } inputs;
 
     int events;
+    int wflags;
     bool awake, focus;
 } bvr_window_t;
 
@@ -188,6 +194,7 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
 
 void bvr_window_poll_events(void);
 void bvr_window_push_buffers(void);
+void bvr_window_resize(bvr_window_t* window, const uint16 width, const uint16 height);
 
 void bvr_destroy_window(bvr_window_t* window);
 

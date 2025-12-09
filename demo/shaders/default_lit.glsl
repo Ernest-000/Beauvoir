@@ -45,7 +45,7 @@ in V_LIGHT light;
 uniform sampler2D bvr_texture;
 
 void main() {
-	vec4 tex = vec4(1.0, 1.0, 1.0, 1.0); // texture(bvr_texture, vec2(vertex.uvs));
+	vec4 tex = texture(bvr_texture, vec2(vertex.uvs));
 
 	gl_FragColor = tex * calc_light(tex, light, vertex);
 }

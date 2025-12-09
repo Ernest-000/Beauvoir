@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16.3)
 project(gestalt)
 
 set(BVR_TARGET_SHARED ON)
-set(BVR_DEBUG ON)
+set(BVR_DEBUG OFF)
 
 set(BVR_CURRENT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 set(BVR_DEMO_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../..)

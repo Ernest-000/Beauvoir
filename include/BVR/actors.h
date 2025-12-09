@@ -55,6 +55,11 @@ typedef enum bvr_actor_type_e {
     BVR_LANDSCAPE_ACTOR
 } bvr_actor_type_t;
 
+/**
+ * Event called when an actor is used
+ */
+typedef void(*bvr_actor_event_t)(const bvr_book_t* book, struct bvr_actor_s* actor);
+
 /*
     Each actor based struct must start by 
     an actor struct.

@@ -32,7 +32,6 @@
     #define BVR_FRAMERATE (1 / BVR_TARGET_FRAMERATE)
 #endif
 
-
 /*
     Contains all world's informations and data
 */

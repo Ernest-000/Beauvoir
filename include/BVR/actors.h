@@ -55,11 +55,6 @@ typedef enum bvr_actor_type_e {
     BVR_LANDSCAPE_ACTOR
 } bvr_actor_type_t;
 
-/**
- * Event called when an actor is used
- */
-typedef void(*bvr_actor_event_t)(const bvr_book_t* book, struct bvr_actor_s* actor);
-
 /*
     Each actor based struct must start by 
     an actor struct.
@@ -70,14 +65,24 @@ struct bvr_actor_s {
     bvr_actor_type_t type;
     bvr_uuid_t id;
 
-    int flags;
-
     bool active;
+
+    uint16 flags;
     uint16 order_in_layer;
 
     struct bvr_transform_s transform;
+
+    void(*callback)(struct bvr_actor_s* self);
 };
 
+/**
+ * Event called when an actor is used
+ */
+typedef void(*bvr_actor_event_t)(struct bvr_actor_s* self);
+
+/**
+ * Default empty actor without external component
+ */
 typedef struct bvr_actor_s bvr_empty_actor_t;
 
 typedef struct bvr_layer_actor_s {
@@ -144,7 +149,7 @@ struct bvr_tile_s {
 /*
     Initialize a generic actor.
 */
-void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_type_t type, int flags);
+void bvr_create_actor(struct bvr_actor_s* actor, const char* name, int flags, bvr_actor_event_t event);
 void bvr_destroy_actor(struct bvr_actor_s* actor);
 
 void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode);

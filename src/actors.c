@@ -299,13 +299,13 @@ static void bvri_create_landscape(bvr_landscape_actor_t* landscape, int flags){
     }
 }
 
-void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_type_t type, int flags){
+void bvr_create_actor(struct bvr_actor_s* actor, const char* name, int flags, bvr_actor_event_t event){
     BVR_ASSERT(actor);
 
-    actor->type = type;
     actor->flags = flags;
     actor->order_in_layer = 0;
     actor->active = true;
+    actor->callback = event;
 
     BVR_IDENTITY_VEC3(actor->transform.position);
     BVR_IDENTITY_VEC3(actor->transform.rotation);
@@ -315,7 +315,7 @@ void bvr_create_actor(struct bvr_actor_s* actor, const char* name, bvr_actor_typ
     bvr_create_string(&actor->name, name);
     bvr_create_uuid(actor->id);
 
-    switch (type)
+    switch (actor->type)
     {
     case BVR_EMPTY_ACTOR:
         /* doing nothing */
@@ -415,13 +415,15 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     );
 
     // bind composite
-    bvr_composite_enable(&actor->composite);
+    bvr_composite_enable(&actor->composite, &actor->self.transform);
 
     // update composite texture reference
     bvr_shader_set_uniformi(
         bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_COMPOSITE),
         &actor->composite.tex
     );
+
+    cmd.shader = &actor->shader;
 
     // draw each layers on the composite framebuffer
     bvr_layer_t* layer;
@@ -447,10 +449,10 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
             &layer_info
         );
 
-        cmd.order = actor->self.order_in_layer + i;
-        if(BVR_HAS_FLAG(layer->flags, BVR_LAYER_Y_SORTED)){
-            cmd.order += layer->anchor_y;
-        }
+        //cmd.order = actor->self.order_in_layer + i;
+        //if(BVR_HAS_FLAG(layer->flags, BVR_LAYER_Y_SORTED)){
+        //    cmd.order += layer->anchor_y;
+        //}
 
         cmd.array_buffer = actor->mesh.array_buffer;
         cmd.vertex_buffer = actor->mesh.vertex_buffer;
@@ -458,7 +460,14 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
         cmd.attrib_count = actor->mesh.attrib_count;
         cmd.element_type = actor->mesh.element_type;
 
-        cmd.shader = &actor->shader;
+        // invalid shader
+        //if(actor->shader.program && bvr_get_instance()->predefs.is_available){
+        //    mat4x4 mat;
+        //    BVR_IDENTITY_MAT4(mat);
+        //
+        //    cmd.shader = &bvr_get_instance()->predefs.c_shaders.c_invalid_shader;
+        //    bvr_shader_set_uniformi(&cmd.shader->uniforms[0], mat);
+        //}
 
         cmd.draw_mode = drawmode;
         cmd.vertex_group = *(bvr_vertex_group_t*)bvr_pool_try_get(&actor->mesh.vertex_groups, 0);
@@ -471,7 +480,9 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     bvr_composite_disable(&actor->composite);
 
     // set the composite shader as a target
-    cmd.shader = &bvr_get_instance()->predefs.c_shaders.c_composite_shader;
+    if(bvr_get_instance()->predefs.is_available){
+        cmd.shader = &bvr_get_instance()->predefs.c_shaders.c_composite_shader;
+    }
 
     // update transform
     bvr_shader_set_uniformi(
@@ -527,6 +538,9 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
         return;
     }
 
+    // actor's callback
+    BVR_CALL(actor->callback, actor);
+
     // empty actors cannot be drawn
     if(actor->type == BVR_EMPTY_ACTOR){
         return;
@@ -548,7 +562,6 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     }
 
     // update shaders transform
-
     bvr_static_actor_t* _actor = (bvr_static_actor_t*)actor;
 
     // update actor's transform

@@ -68,7 +68,7 @@ static inline uint8 bvr_freadu8_be(FILE* file){
 */
 static inline uint16 bvr_freadu16_be(FILE* file){
     uint16 value = bvr_freadu16_le(file);
-    return BVR_BE_TO_LE_U16(value);
+    return __bswap_16(value);
 }
 
 /*
@@ -76,5 +76,5 @@ static inline uint16 bvr_freadu16_be(FILE* file){
 */
 static inline uint32 bvr_freadu32_be(FILE* file){
     uint32 value = bvr_freadu32_le(file);
-    return BVR_BE_TO_LE_U32(value);
+    return __bswap_32(value);
 }

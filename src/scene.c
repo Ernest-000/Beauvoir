@@ -9,7 +9,9 @@
 
 #include <malloc.h>
 
-#define BVR_SCENE_PADDING (sizeof(bvr_layer_actor_t) + sizeof(int))
+#define BVR_SCENE_PADDING (BVR_MAX_SIZEOF(bvr_layer_actor_t, \
+    BVR_MAX_SIZEOF(bvr_dynamic_actor_t, BVR_MAX_SIZEOF(bvr_texture_actor_t, \
+    bvr_landscape_actor_t))) + 2)
 
 static bvr_book_t *__s_book_instance = NULL;
 bvr_book_t *bvr_get_instance() { return __s_book_instance; }
@@ -52,6 +54,12 @@ int bvr_create_book(bvr_book_t *book)
 
     book->predefs.is_available = false;
     book->page.is_available = false;
+
+    // reset scene's callbacks
+    book->page.events.construct = NULL;
+    book->page.events.load = NULL;
+    book->page.events.update = NULL;
+    book->page.events.destroy = NULL;
 
     bvr_create_memstream(&book->asset_stream, 0);
     bvr_create_memstream(
@@ -179,14 +187,14 @@ void bvr_flush(bvr_book_t *book)
 {
     // WARN: i did that because it work but idk 
     // when there is only one element to draw, things get overwritten :<
-    if(book->pipeline.command_count > 1){
-        // sort draw command by using their 'order'
-        qsort(book->pipeline.commands,
-            book->pipeline.command_count,
-            sizeof(struct bvr_draw_command_s),
-            bvr_pipeline_compare_commands
-        );
-    }
+    //if(book->pipeline.command_count > 1){
+    //    // sort draw command by using their 'order'
+    //    qsort(book->pipeline.commands,
+    //        book->pipeline.command_count,
+    //        sizeof(struct bvr_draw_command_s),
+    //        bvr_pipeline_compare_commands
+    //    );
+    //}
 
     // draw each command
     for (uint64 i = 0; i < book->pipeline.command_count; i++)
@@ -295,6 +303,8 @@ int bvr_create_page(bvr_page_t *page, const char *name)
 
     page->is_available = true;
 
+    BVR_CALL(page->events.construct, page);
+
     return BVR_TRUE;
 }
 
@@ -320,6 +330,8 @@ void bvr_enable_page(bvr_page_t *page)
         bvr_open_book(BVR_FORMAT("%s.bin", __book_instance->page.name.string), bvr_get_book_instance());
     }
 #endif
+
+    BVR_CALL(page->events.load, page);
 }
 
 void bvr_disable_page(bvr_page_t *page)
@@ -369,6 +381,17 @@ struct bvr_actor_s *bvr_alloc_actor(bvr_page_t *page, bvr_actor_type_t type)
     BVR_PRINTF("alloacted a new actor (%x) remains %i bytes", 
         *pp_actor, __s_book_instance->garbage_stream.size - (size_t)(__s_book_instance->garbage_stream.cursor - (char*)__s_book_instance->garbage_stream.data)
     );
+
+    (*pp_actor)->type = type;
+    (*pp_actor)->flags = 0;
+    (*pp_actor)->order_in_layer = 0;
+    (*pp_actor)->active = true;
+    (*pp_actor)->callback = NULL;
+
+    BVR_IDENTITY_VEC3((*pp_actor)->transform.position);
+    BVR_IDENTITY_VEC3((*pp_actor)->transform.rotation);
+    BVR_SCALE_VEC3((*pp_actor)->transform.scale, 1.0f);
+    BVR_IDENTITY_MAT4((*pp_actor)->transform.matrix);
 
     // types that have colliders
     if(type == BVR_DYNAMIC_ACTOR || type == BVR_TEXTURE_ACTOR){
@@ -452,13 +475,14 @@ struct bvr_actor_s *bvr_find_actor_uuid(bvr_book_t *book, bvr_uuid_t uuid)
 void bvr_destroy_page(bvr_page_t *page)
 {
     BVR_ASSERT(page);
+    BVR_CALL(page->events.destroy, page);
 
-    int i = 0;
     struct bvr_actor_s *actor = NULL;
     BVR_POOL_FOR_EACH(actor, page->actors)
     {
-        if (!actor)
+        if (!actor) {
             break;
+        }
 
         // destroy actor
         bvr_destroy_actor(actor);
@@ -467,8 +491,9 @@ void bvr_destroy_page(bvr_page_t *page)
     bvr_collider_t *collider = NULL;
     BVR_POOL_FOR_EACH(collider, page->colliders)
     {
-        if (!collider)
+        if (!collider){
             break;
+        }
 
         // remove collider
         collider = NULL;
@@ -477,8 +502,9 @@ void bvr_destroy_page(bvr_page_t *page)
     struct bvr_light_s *light = NULL;
     BVR_POOL_FOR_EACH(light, page->lights)
     {
-        if (!light)
+        if (!light){
             break;
+        }
 
         // destroy light
     }

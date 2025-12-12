@@ -3,6 +3,7 @@
 #include <BVR/buffer.h>
 #include <BVR/common.h>
 #include <BVR/assets.h>
+#include <BVR/math.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -123,7 +124,7 @@ typedef struct bvr_layer_s {
 } bvr_layer_t;
 
 /*
-    Layer informations that is sent to the shader
+    Layer informations sent to the shader
 */
 struct bvr_layer_info_s {
     uint8 layer;
@@ -132,7 +133,7 @@ struct bvr_layer_info_s {
 } __attribute__((packed));
 
 /*
-    Contains an image informations and data
+    Contains informations and data of an image
 */
 typedef struct bvr_image_s {
     int width, height, depth;
@@ -282,7 +283,7 @@ int bvr_create_composite(bvr_composite_t* composite, bvr_image_t* target);
 /*
     Set this composite as the target framebuffer 
 */
-void bvr_composite_enable(bvr_composite_t* composite);
+void bvr_composite_enable(bvr_composite_t* composite, bvr_transform_t* const transform);
 
 /*
     Bind this composite as a texture

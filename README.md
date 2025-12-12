@@ -40,7 +40,7 @@ static bvr_book_t book;
     player's object 
     Because the player is movable, it has to be a dynamic actor.
 */
-static bvr_dynamic_actor_t player;
+static bvr_dynamic_actor_t* player;
 
 int main(){
     /* create initial game's context */
@@ -49,44 +49,47 @@ int main(){
 
     /* create the window */
     bvr_create_window(&book.window, 800, 800, "Window", 0);
+    
+    /* Allocate buffers */
+    bvr_create_book_memories(&book, BVR_BUFFER_SIZE, 0);
 
     /* create an ortho camera */
-    bvr_create_orthographic_camera(&book.page, &book.window.framebuffer, 0.1f, 100.0f, 1.0f);
+    bvr_create_main_camera(&book, BVR_CAMERA_ORTHOGRAPHIC, 0.1f, 1000.0f, 1.0f);
 
     {
+        /* link this object to a scene */
+        player = (bvr_dynamic_actor_t*) bvr_alloc_actor(&book.page, BVR_DYNAMIC_ACTOR);
+
+        /* create actor components */
+        bvr_create_actor(
+            &player->self,
+            "player",
+            BVR_COLLISION_ENABLE | /* means that we enable collision */
+            BVR_DYNACTOR_AGGRESSIVE | /* means that this actor can respond to physics */
+            BVR_DYNACTOR_CREATE_COLLIDER_FROM_BOUNDS, /* means that we automaticly create collision boxes based on mesh's vertices */
+            NULL /* actor's callback */
+        );
+
         /* create player's mesh (here a square) */
-        bvr_create_2d_square_mesh(&player.mesh, 20.0f, 20.0f);
+        bvr_create_2d_square_mesh(&player->mesh, 20.0f, 20.0f);
 
         /* 
             create player's shader. 
             the shader has BVR_VERTEX_SHADER and BVR_FRAGMENT_SHADER flags, meaning that it has a vertex and a fragment stage 
         */
-        bvr_create_shader(&player.shader, "monochrome.glsl", BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER);
+        bvr_create_shader(&player->shader, "monochrome.glsl", BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER);
 
         /*
             because we want to define player's color inside the shader, we need to define this parameter (=uniform in OpenGL)
             so, we firstly register the uniform (because it's an RGB color we use a vector3).
         */
-        bvr_shader_register_uniform(&player.shader, BVR_VEC3, 1, "bvr_color");
+        bvr_shader_register_uniform(&player->shader, BVR_VEC3, BVR_UNIFORM_NONE, 1, "bvr_color");
 
         /*
             then, we copy 'color' value into our uniform 'bvr_color'.
         */
         vec3 color = {1.0f, 1.0f, 1.0f};
-        bvr_shader_set_uniform(&player.shader, "bvr_color", &color[0]);
-
-        /* create a new actor components */
-        bvr_create_actor(
-            &player.object,
-            "player",
-            BVR_DYNAMIC_ACTOR,
-            BVR_COLLISION_ENABLE | /* means that we enable collision */
-            BVR_DYNACTOR_AGGRESSIVE | /* means that this actor can respond to physics */
-            BVR_DYNACTOR_CREATE_COLLIDER_FROM_BOUNDS /* means that we automaticly create collision boxes based on mesh's vertices */
-        );
-
-        /* link this object to a scene */
-        bvr_link_actor_to_page(&book.page, &player.object);
+        bvr_shader_set_uniform(&player->shader, "bvr_color", &color[0]);
     }
 
     /* main loop */
@@ -100,25 +103,23 @@ int main(){
             break;
         }
 
-        /* get player's inputs */
+        // get player's inputs
         {
             /*
                 here, we are getting user's inputs
                 because bvr_key_down returns a bool, if a key is down it will return 1.
             */
-            vec2 inputs;
-            float speed = 5.0f;
+            vec2 inputs = {0.0f, 0.0f};
+            float speed = 1.0f;
 
-            /* get axis inputs (those are default ones) */
             inputs[0] += bvr_axis_down(&book.window.inputs.axis.horizontal);
             inputs[1] += bvr_axis_down(&book.window.inputs.axis.vertical);
 
             /* we scale input with the speed */
             vec2_scale(inputs, inputs, speed);
 
-            /* create a force to move the player around in the world */
             bvr_body_add_force(
-                &player.collider.body,
+                &player->collider.body,
                 inputs[0],  /* x axis */
                 inputs[1],  /* y axis */
                 0           /* z axis */
@@ -129,7 +130,7 @@ int main(){
         bvr_update(&book);
 
         /* draw player */
-        bvr_draw_actor((bvr_static_actor_t*)&player.object, BVR_DRAWMODE_TRIANGLES);
+        bvr_draw_actor(&player->self, BVR_DRAWMODE_TRIANGLES);
 
         /* push Beauvoir's graphics to the window */
         bvr_render(&book);

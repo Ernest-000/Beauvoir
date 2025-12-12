@@ -15,10 +15,13 @@ int main(){
     bvr_create_page(&book.page, "empty");
 
     /* create the window */
-    bvr_create_window(&book.window, 800, 800, "Window", 0);
+    bvr_create_window(&book.window, 800, 800, "Window", BVR_WINDOW_DEFAULT);
+
+    /* Allocate buffers */
+    bvr_create_book_memories(&book, BVR_BUFFER_SIZE, 0);
     
     /* create the camera */
-    bvr_create_orthographic_camera(&book.page, &book.window.framebuffer, 0.01f, 100.0f, 1.0f);
+    bvr_create_main_camera(&book, BVR_CAMERA_ORTHOGRAPHIC, 0.0f, 1000.0f, 1.0f);
 
     /* main loop */
     while (1)

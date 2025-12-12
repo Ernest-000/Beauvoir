@@ -11,13 +11,15 @@ static bvr_book_t book;
 static bvr_editor_t editor;
 
 static void _draw_editor(bvr_nuklear_t* gui, bvr_book_t* _);
+static void _actor_callback(struct bvr_actor_s* self);
 static void _dialogue_box_callback(bvr_string_t* string);
 
 static bvr_layer_actor_t* _load_image(const char* path);
-static void _load_mesh(bvr_static_actor_t* actor, const char* path);
+static bvr_static_actor_t* _load_mesh(const char* path);
 
 static bool target_image, wait_for_input; 
 static bvr_layer_actor_t* p_image;
+static bvr_static_actor_t* p_mesh;
 
 int main(){
     /* create initial game's context */
@@ -36,10 +38,12 @@ int main(){
     bvr_create_editor(&editor, &book);
     bvr_editor_attach_callback(_draw_editor);
 
-    target_image = true;
+    target_image = false;
     wait_for_input = false;
     
     p_image = _load_image("samples/template.psd");
+    p_mesh = _load_mesh("samples/fish.glb");
+    p_mesh->self.transform.position[2] = -200.0f;
 
     /* main loop */
     while (1)
@@ -56,12 +60,16 @@ int main(){
         bvr_update(&book);
 
         if(target_image){
-            bvr_draw_actor(&p_image->self, BVR_DRAWMODE_TRIANGLES);
+            // ;
         }
         else {
-
         }
+        
+        bvr_draw_actor(&p_mesh->self, BVR_DRAWMODE_TRIANGLES);
+        // previous actors need to be flushed to appears on the composite
+        bvr_flush(&book);
 
+        bvr_draw_actor(&p_image->self, BVR_DRAWMODE_TRIANGLES);
         bvr_flush(&book);
 
         // draw editor
@@ -99,9 +107,11 @@ static void _dialogue_box_callback(bvr_string_t* string){
     wait_for_input = false;
 }
 
-static void _draw_editor(struct bvr_nuklear_s* gui, bvr_book_t* _){
-}
+// nuklear callback
+static void _draw_editor(struct bvr_nuklear_s* gui, bvr_book_t* _){}
 
+// actor callback
+static void _actor_callback(struct bvr_actor_s* self){}
 
 static bvr_layer_actor_t* _load_image(const char* path){
     BVR_ASSERT(path);
@@ -112,7 +122,7 @@ static bvr_layer_actor_t* _load_image(const char* path){
     // WARN: actor dynamic components (eg: textures, layers, transform...) that might
     // change overtime MUST link to the new allocated pointer, not the older object!
     p_actor = (bvr_layer_actor_t*) bvr_alloc_actor(&book.page, BVR_LAYER_ACTOR);
-    bvr_create_actor(&p_actor->self, "image", BVR_LAYER_ACTOR, BVR_COLLISION_DISABLE);
+    bvr_create_actor(&p_actor->self, "image", BVR_COLLISION_DISABLE, _actor_callback);
 
     // create shader
     bvr_create_shader(&p_actor->shader, "texture_unlit.glsl", BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER | BVR_SHADER_EXT_SHARE_LAYERS);
@@ -139,6 +149,27 @@ static bvr_layer_actor_t* _load_image(const char* path){
     return p_actor;
 }
 
-static void _load_mesh(bvr_static_actor_t* actor, const char* path){
+static bvr_static_actor_t* _load_mesh(const char* path){
+    BVR_ASSERT(path);
 
+    bvr_static_actor_t* p_actor = NULL;
+
+    // link actor to the scene
+    // WARN: actor dynamic components (eg: textures, layers, transform...) that might
+    // change overtime MUST link to the new allocated pointer, not the older object!
+    p_actor = (bvr_static_actor_t*) bvr_alloc_actor(&book.page, BVR_STATIC_ACTOR);
+    bvr_create_actor(&p_actor->self, "mesh", BVR_COLLISION_DISABLE, _actor_callback);
+
+    // create shader
+    bvr_create_shader(&p_actor->shader, "lit.glsl", 
+        BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER | BVR_SHADER_EXT_GLOBAL_ILLUMINATION
+    );
+    
+    // link local transform
+    bvr_shader_register_uniform(&p_actor->shader, BVR_MAT4, BVR_UNIFORM_LOCAL_TRANSFORM, 1, "bvr_local");
+
+    // import mesh
+    bvr_create_mesh(&p_actor->mesh, path, BVR_MESH_ATTRIB_V3UV2N3);
+
+    return p_actor;
 }

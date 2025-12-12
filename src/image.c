@@ -1748,7 +1748,7 @@ int bvr_create_composite(bvr_composite_t* composite, bvr_image_t* target){
     return BVR_TRUE;
 }
 
-void bvr_composite_enable(bvr_composite_t* composite){
+void bvr_composite_enable(bvr_composite_t* composite, bvr_transform_t* const transform){
     BVR_ASSERT(composite && composite->framebuffer);
 
     glBindFramebuffer(GL_FRAMEBUFFER, composite->framebuffer);
@@ -1757,11 +1757,49 @@ void bvr_composite_enable(bvr_composite_t* composite){
     glClear(GL_COLOR_BUFFER_BIT);
 
     glViewport(0, 0, composite->image->width, composite->image->height);
+
+    // try to copy previous framebuffer content onto the current framebuffer
+    if(bvr_get_instance()->pipeline.state.framebuffer && transform){
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, bvr_get_instance()->pipeline.state.framebuffer->buffer);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, composite->framebuffer);
+
+        float hw = composite->image->width * 0.5f;
+        float hh = composite->image->height * 0.5f;
+
+        vec2 src0, src1;
+        vec4 world0, world1;
+
+        world0[0] = -hw;
+        world0[1] = -hh;
+        world0[2] = 0.0f;
+        world0[3] = 0.0f;
+
+        world1[0] = +hw;
+        world1[1] = +hh;
+        world1[2] = 0.0f;
+        world1[3] = 0.0f;
+
+        mat4_mul_vec4(world0, transform->matrix, world0);
+        mat4_mul_vec4(world1, transform->matrix, world1);
+
+        bvr_world_to_screen(&bvr_get_instance()->page.camera, world0, src0);
+        bvr_world_to_screen(&bvr_get_instance()->page.camera, world1, src1);
+
+        glBlitFramebuffer(
+            src0[0], src0[1], src1[0], src1[1], 
+            0.0f, 0.0f, composite->image->width - 1.0f, composite->image->height - 1.0f,
+            GL_COLOR_BUFFER_BIT, GL_LINEAR
+        );
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, composite->framebuffer);
+    }
 }
 
 void bvr_composite_prepare(bvr_composite_t* composite){
     BVR_ASSERT(composite);
-
+    
     glBindTexture(GL_TEXTURE_2D, composite->tex);
     glActiveTexture(GL_TEXTURE0);
 }

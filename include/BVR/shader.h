@@ -108,6 +108,7 @@ void bvr_destroy_uniform_buffer(uint32* buffer);
  * @brief Create a new shader directly from raw strings. 
  * Howerver, this function is primarly used for internal usage. 
  * You shall not use this function, use bvr_create_shader instead :3
+ * WARN: no error handling
  * @param shader
  * @param args An array of strings. Order must be: vertex , fragment, geometry...
  * @param flags Define needed shaders.

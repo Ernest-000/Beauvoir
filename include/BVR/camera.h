@@ -64,3 +64,12 @@ void bvr_camera_lookat(bvr_camera_t*, const vec3 target, const vec3 up);
  * @return (void)
  */
 void bvr_screen_to_world(bvr_camera_t* camera, vec2 screen, vec3 world);
+
+/**
+ * @brief transform a world coordinate to a screen coordinate
+ * @param camera
+ * @param screen
+ * @param world
+ * @return (void)
+ */
+void bvr_world_to_screen(bvr_camera_t* camera, vec3 world, vec2 screen);

@@ -50,6 +50,14 @@ typedef struct bvr_page_s {
     // all world's colliders (pointers)
     bvr_collider_collection_t colliders;
 
+    // scene's callbacks
+    struct {
+        void(*construct)(struct bvr_page_s* self);
+        void(*load)(struct bvr_page_s* self);
+        void(*update)(struct bvr_page_s* self);
+        void(*destroy)(struct bvr_page_s* self);
+    } events;
+
     bool is_available;
 } bvr_page_t;
 
@@ -82,12 +90,14 @@ typedef struct bvr_book_s {
     struct bvr_predefs predefs;
 
     // time informations
-    struct {
+    struct bvr_chrono_s {
         float delta_timef, frame_timer;
         int average_render_time, frames;
         uint64 prev_time, current_time;
     } timer;
 } bvr_book_t;
+
+typedef void(*bvr_page_event_t)(bvr_page_t* self);
 
 /*
     Create a new game context

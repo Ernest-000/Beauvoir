@@ -67,9 +67,13 @@ void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
 void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd){
     BVR_ASSERT(cmd);
 
+    // if(!cmd->shader->program && bvr_get_instance()->predefs.is_available){
+    //     cmd->shader = &bvr_get_instance()->predefs.c_shaders.c_invalid_shader;
+    //     BVR_PRINT("invalid shader!");
+    // }
+
     if(bvr_get_instance()->pipeline.command_count + 1 < BVR_MAX_DRAW_COMMAND){
-        memcpy(
-            &bvr_get_instance()->pipeline.commands[bvr_get_instance()->pipeline.command_count++], 
+        memcpy(&bvr_get_instance()->pipeline.commands[bvr_get_instance()->pipeline.command_count++], 
             cmd, sizeof(struct bvr_draw_command_s)
         );
     }
@@ -283,7 +287,7 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
     /* invalid shader */
     {
         vertex_shader = "#version 400\n"
-            "layout(location=0) in vec2 in_position;\n"
+            "layout(location=0) in vec3 in_position;\n"
             "layout(location=1) in vec2 in_uvs;\n"
             "uniform mat4 bvr_transform;\n"
             "layout(std140) uniform bvr_camera {"
@@ -294,7 +298,7 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
             "	vec2 uvs;\n"
             "} vertex;\n"
             "void main() {\n"
-            "	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(in_position, 0.0, 1.0);\n"
+            "	gl_Position = bvr_transform * vec4(in_position, 1.0);\n"
             "	vertex.uvs = in_uvs;\n"
             "}";
         
@@ -303,13 +307,13 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
             "vec2 uvs;\n"
             "} vertex;\n"
             "void main() {\n"
-            	"gl_FragColor = vec4(vertex.uvs, 1.0, 1.0);\n"
+            	"gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);\n"
             "}";
 
         shader_array[0] = vertex_shader;
         shader_array[1] = fragment_shader;
 
-        predefs->is_available = bvr_create_shader_raw(&predefs->c_shaders.c_invalid_shader, 
+        predefs->is_available &= bvr_create_shader_raw(&predefs->c_shaders.c_invalid_shader, 
             (const char**)shader_array, 
             BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER
         );
@@ -341,15 +345,15 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
         shader_array[0] = vertex_shader;
         shader_array[1] = fragment_shader;
 
-        predefs->is_available = bvr_create_shader_raw(&predefs->c_shaders.c_framebuffer_shader, 
+        predefs->is_available &= bvr_create_shader_raw(&predefs->c_shaders.c_framebuffer_shader, 
             (const char**)shader_array, 
             BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER
         );
 
-        predefs->is_available = bvr_shader_register_uniform(
+        predefs->is_available &= bvr_shader_register_uniform(
             &predefs->c_shaders.c_framebuffer_shader, 
             BVR_MAT4, 1, BVR_UNIFORM_PROJECTION, "bvr_projection"
-        );
+        ) == NULL;
     }
 
     /* composite shader */
@@ -366,7 +370,7 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
             "	vec2 uvs;\n"
             "} vertex;\n"
             "void main() {\n"
-            "	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(in_position, 0.0, 1.0);\n"
+            "	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(in_position, 1.0, 1.0);\n"
             "	vertex.uvs = in_uvs;\n"
             "}";
         
@@ -382,7 +386,7 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
         shader_array[0] = vertex_shader;
         shader_array[1] = fragment_shader;
 
-        predefs->is_available = bvr_create_shader_raw(&predefs->c_shaders.c_composite_shader, 
+        predefs->is_available &= bvr_create_shader_raw(&predefs->c_shaders.c_composite_shader, 
             (const char**)shader_array, 
             BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER
         );

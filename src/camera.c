@@ -83,6 +83,44 @@ void bvr_screen_to_world(bvr_camera_t* camera, vec2 p_screen, vec3 p_world){
     p_world[2] = 0.0f;
 }
 
+void bvr_world_to_screen(bvr_camera_t* camera, vec3 p_world, vec2 screen){
+    BVR_ASSERT(camera);
+
+    if(!vec3_dot(p_world, p_world)){
+        return;
+    }
+
+    vec4 world;
+    mat4x4 projection, view;
+    
+    bvr_enable_uniform_buffer(camera->buffer);
+
+    mat4x4* buffer_ptr = bvr_uniform_buffer_map(0, 2 * sizeof(mat4x4));
+    if(buffer_ptr){
+        memcpy(projection, &buffer_ptr[0], sizeof(mat4x4));
+        memcpy(view, &buffer_ptr[1], sizeof(mat4x4));
+
+        bvr_uniform_buffer_close();
+
+        world[0] = p_world[0];
+        world[1] = p_world[1];
+        world[2] = p_world[2];
+        world[3] = 0.0f;
+
+        mat4_mul(projection, projection, view);
+        mat4_mul_vec4(world, projection, world);
+
+        screen[0] = (world[0] + 0.5f) * camera->framebuffer->width;
+        screen[1] = (world[1] + 0.5f) * camera->framebuffer->height;
+        return;
+    }
+
+    bvr_uniform_buffer_close();
+
+    screen[0] = 0.0f;
+    screen[1] = 0.0f;
+}
+
 void bvr_create_camera(bvr_camera_t* camera, const bvr_framebuffer_t* target, int mode, float near, float far, float scale){
     BVR_ASSERT(camera);
     BVR_ASSERT(target);

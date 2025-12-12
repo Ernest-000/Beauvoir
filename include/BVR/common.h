@@ -51,6 +51,11 @@
 */
 #define BVR_IS_TEXTURE(t) (t >= BVR_TEXTURE_2D && t <= BVR_TEXTURE_2D_COMPOSITE)
 
+/**
+ * Return the biggest sizeof
+ */
+#define BVR_MAX_SIZEOF(a, b) ((sizeof(a) > sizeof(b)) ? sizeof(a) : sizeof(b))
+
 /*          UTILS               */
 /*                              */
 
@@ -88,7 +93,11 @@ void bvr_copy_uuid(bvr_uuid_t src, bvr_uuid_t dest);
 */
 int bvr_uuid_equals(bvr_uuid_t const a, bvr_uuid_t const b);
 
+// check if a flag is true
 #define BVR_HAS_FLAG(x, f) ((int)((x & f) == f))
+
+// try to call a callback
+#define BVR_CALL(callback, ...) ((callback) ? callback(__VA_ARGS__) : 0)
 
 /*          DEBUG                   */
 /*                                  */

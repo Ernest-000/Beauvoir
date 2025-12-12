@@ -12,9 +12,7 @@ layout(std140) uniform bvr_camera {
 	mat4 bvr_view;
 };
 
-out V_DATA {
-	vec2 uvs;
-} vertex;
+out V_DATA vertex;
 
 void main() {
 	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(in_position, 1.0);
@@ -26,9 +24,7 @@ void main() {
 
 #ifdef _FRAGMENT_
 
-in V_DATA {
-	vec2 uvs;
-} vertex;
+in V_DATA vertex;
 
 uniform vec3 bvr_color;
 

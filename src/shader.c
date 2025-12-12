@@ -181,16 +181,19 @@ static int bvri_register_shader_stage(bvr_shader_t* program, bvr_shader_stage_t*
         }
         else {
             BVR_PRINTF("failed to compile shader '%s'!", name);
+            return BVR_FALSE;
         }
     }
 
     bvr_destroy_string(&shader_str);
+    return BVR_TRUE;
 }
 
 int bvr_create_shaderf(bvr_shader_t* shader, FILE* file, const int flags){
     BVR_ASSERT(shader);
     BVR_ASSERT(file);
 
+    int success = BVR_TRUE;
     int version_offset = 0;
     char version_header_content[BVR_MAX_GLSL_HEADER_SIZE];
     bvr_string_t file_content;
@@ -234,22 +237,22 @@ int bvr_create_shaderf(bvr_shader_t* shader, FILE* file, const int flags){
         Framebuffers shader must jump over vertex and fragment sections
     */
     if(BVR_HAS_FLAG(flags, BVR_FRAMEBUFFER_SHADER)){
-        bvri_register_shader_stage(shader,
+        success &= bvri_register_shader_stage(shader,
             &shader->shaders[shader->shader_count++], &file_content,
             version_header_content, "_VERTEX_", GL_VERTEX_SHADER
         );
         
-        bvri_register_shader_stage(shader,
+        success &= bvri_register_shader_stage(shader,
             &shader->shaders[shader->shader_count++], &file_content,
             version_header_content, "_FRAGMENT_", GL_FRAGMENT_SHADER
         );
 
-        goto shader_cstor_bidings;
+        goto shader_ctr_bindings;
     }
 
     // check if it contains a vertex shader and create vertex shader stage.
     if (BVR_HAS_FLAG(flags, BVR_VERTEX_SHADER)) {
-        bvri_register_shader_stage(shader,
+        success &= bvri_register_shader_stage(shader,
             &shader->shaders[shader->shader_count++], &file_content,
             version_header_content, "_VERTEX_", GL_VERTEX_SHADER
         );
@@ -260,7 +263,7 @@ int bvr_create_shaderf(bvr_shader_t* shader, FILE* file, const int flags){
 
     // check if it contains a fragment shader and create fragment shader stage.
     if (BVR_HAS_FLAG(flags, BVR_FRAGMENT_SHADER)) {
-        bvri_register_shader_stage(shader,
+        success &= bvri_register_shader_stage(shader,
             &shader->shaders[shader->shader_count++], &file_content,
             version_header_content, "_FRAGMENT_", GL_FRAGMENT_SHADER
         );
@@ -269,10 +272,11 @@ int bvr_create_shaderf(bvr_shader_t* shader, FILE* file, const int flags){
         BVR_PRINT("missing fragment shader!");
     }
 
-shader_cstor_bidings:
+shader_ctr_bindings:
     // try to compile shader
     if (!bvri_link_shader(shader->program)) {
-        BVR_PRINT("failed to compile shader!");
+        BVR_PRINT("failed to link the shader!");
+        success = GL_FALSE;
     }
 
     if(BVR_HAS_FLAG(flags, BVR_FRAMEBUFFER_SHADER)){
@@ -323,13 +327,15 @@ shader_cstor_bidings:
         BVR_PRINT("cannot find transform uniform!");
     }
 
-#ifndef BVR_SHADER_NO_EXT
-
-#endif
-
     bvr_destroy_string(&file_content);
 
-    return BVR_TRUE;
+    // if initialization failed, we destroy the shader
+    if(success == BVR_FALSE){
+        BVR_PRINTF("failed to create shader '%i'", shader->program);
+        bvr_destroy_shader(shader);
+    }
+
+    return success;
 }
 
 int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int flags){
@@ -694,4 +700,12 @@ void bvr_destroy_shader(bvr_shader_t* shader){
     }
 
     glDeleteProgram(shader->program);
+
+    // will trigger 'invalid shader' when 
+    // an un-initialized shader will be used to 
+    // draw something on the screen
+    shader->program = 0;
+    shader->uniform_count = 0;
+    shader->block_count = 0;
+    shader->shader_count = 0;
 }

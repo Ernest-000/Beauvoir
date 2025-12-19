@@ -120,9 +120,15 @@ int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int 
  * int bvri_create_shader_vert_frag(bvr_shader_t* shader, const char* vert, const char* frag);
 */
 
-/*
-    Bind a new shader uniform.
-*/
+/**
+ * @brief Bind a new uniform to a shader
+ * @param shader
+ * @param type uniform's type
+ * @param bvr_uniform_tag_e uniform's tag
+ * @param count number of values
+ * @param name uniform's name. Must be the same as in the shader code
+ * @return 
+ */
 bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type, enum bvr_uniform_tag_e tag, int count, const char* name);
 bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type, void* texture, const char* name);
 bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* name, int type, int count, int index);
@@ -153,11 +159,24 @@ BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform(bvr_shader_t* shader, const ch
     return NULL;
 }
 
+/**
+ * @brief Bind a value to an uniform
+ * @param uniform
+ * @param data a pointer to the data that will be referenced as uniform's value
+ * @return 
+ */
 int bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data);
 BVR_H_FUNC int bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, void* texture){
     return bvr_shader_set_uniformi(uniform, texture);
 }
 
+/**
+ * @brief Bind a value to an uniform
+ * @param shader
+ * @param name the name of a previously registered uniform
+ * @param data a pointer to the data that will be referenced as uniform's value
+ * @return 
+ */
 int bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data);
 BVR_H_FUNC int bvr_shader_set_texture(bvr_shader_t* shader, const char* name, void* texture){
     return bvr_shader_set_uniformi(bvr_find_uniform(shader, name), texture);

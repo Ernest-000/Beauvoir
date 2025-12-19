@@ -66,7 +66,7 @@ int main(){
             "player",
             BVR_COLLISION_ENABLE | /* means that we enable collision */
             BVR_DYNACTOR_AGGRESSIVE | /* means that this actor can respond to physics */
-            BVR_DYNACTOR_CREATE_COLLIDER_FROM_BOUNDS, /* means that we automaticly create collision boxes based on mesh's vertices */
+            BVR_DYNACTOR_CREATE_COLLIDER_FROM_BOUNDS, /* means that we automatically create collision boxes based on mesh's vertices */
             NULL /* actor's callback */
         );
 
@@ -144,7 +144,7 @@ int main(){
 ```
 > You can find other demos in the [Demo](/demo/) folder.
 
-> Checkout [DOC.md](DOC.md) for more informations!
+> Checkout [DOC.md](DOC.md) for more information!
 ---
 
 ## Third Party 

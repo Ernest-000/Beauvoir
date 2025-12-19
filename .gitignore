@@ -23,6 +23,7 @@ bin/*.exe
 .vscode/
 .vs/
 .idea/
+.cmake/
 build/
 bin/
 lib/

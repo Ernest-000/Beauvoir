@@ -1782,8 +1782,8 @@ void bvr_composite_enable(bvr_composite_t* composite, bvr_transform_t* const tra
         mat4_mul_vec4(world0, transform->matrix, world0);
         mat4_mul_vec4(world1, transform->matrix, world1);
 
-        bvr_world_to_screen(&bvr_get_instance()->page.camera, world0, src0);
-        bvr_world_to_screen(&bvr_get_instance()->page.camera, world1, src1);
+        bvr_world_to_screen(&bvr_get_instance()->page->camera, world0, src0);
+        bvr_world_to_screen(&bvr_get_instance()->page->camera, world1, src1);
 
         glBlitFramebuffer(
             src0[0], src0[1], src1[0], src1[1], 

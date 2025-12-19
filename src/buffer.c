@@ -151,7 +151,9 @@ void bvr_memstream_clear(bvr_memstream_t* stream){
 
     stream->cursor = stream->data;
     stream->next = stream->data;
-    memset(stream->data, 0, stream->size);
+
+    // disabled for now, data will be overwritten
+    //memset(stream->data, 0, stream->size);
 }
 
 void bvr_destroy_memstream(bvr_memstream_t* stream){

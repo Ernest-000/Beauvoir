@@ -19,7 +19,7 @@ include_directories(${BVR_DEMO_DIRECTORY_INCLUDE})
 message("${BVR_DEMO_DIRECTORY_INCLUDE}")
 add_executable(gestalt ${BVR_MAIN_FILE})
 
-target_link_libraries(gestalt Beauvoir)
+target_link_libraries(gestalt beauvoir)
 target_include_directories(gestalt PRIVATE ${BVR_DEMO_DIRECTORY_INCLUDE})
 
 set_target_properties(gestalt PROPERTIES

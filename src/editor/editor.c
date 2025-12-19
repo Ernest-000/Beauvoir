@@ -359,7 +359,7 @@ void bvr_editor_draw_page_hierarchy(){
     BVR_ASSERT(__editor->state == BVR_EDITOR_STATE_HANDLE);
     __editor->state = BVR_EDITOR_STATE_DRAWING;
 
-    if(nk_begin(__editor->gui.context, BVR_FORMAT("scene '%s'", __editor->book->page.name.string), BVR_RECT(__editor->device.hierarchy_viewport), 
+    if(nk_begin(__editor->gui.context, BVR_FORMAT("scene '%s'", __editor->book->page->name.string), BVR_RECT(__editor->device.hierarchy_viewport), 
         NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE)){
 
         {
@@ -372,15 +372,15 @@ void bvr_editor_draw_page_hierarchy(){
                     nk_layout_row_dynamic(__editor->gui.context, 15, 1);
 
                     if(nk_menu_item_label(__editor->gui.context, "save", NK_TEXT_ALIGN_LEFT)){
-                        bvr_write_book(BVR_FORMAT("%s.bin", __editor->book->page.name.string), __editor->book);
+                        bvr_write_book(BVR_FORMAT("%s.bin", __editor->book->page->name.string), __editor->book);
                     }
 
                     if(nk_menu_item_label(__editor->gui.context, "open", NK_TEXT_ALIGN_LEFT)){
-                        bvr_open_book(BVR_FORMAT("%s.bin", __editor->book->page.name.string), __editor->book);
+                        bvr_open_book(BVR_FORMAT("%s.bin", __editor->book->page->name.string), __editor->book);
                     }
 
                     if(nk_menu_item_label(__editor->gui.context, "clear cache", NK_TEXT_ALIGN_LEFT)){
-                        remove(BVR_FORMAT("%s.bin", __editor->book->page.name.string));
+                        remove(BVR_FORMAT("%s.bin", __editor->book->page->name.string));
                     }
 
                     if(nk_menu_item_label(__editor->gui.context, "exit", NK_TEXT_ALIGN_LEFT)){
@@ -451,7 +451,7 @@ void bvr_editor_draw_page_hierarchy(){
                 bvri_draw_hierarchy_button("assets", BVR_EDITOR_ASSETS, &__editor->book->asset_stream);
             }
 
-            bvri_draw_hierarchy_button("camera", BVR_EDITOR_CAMERA, &__editor->book->page.camera);
+            bvri_draw_hierarchy_button("camera", BVR_EDITOR_CAMERA, &__editor->book->page->camera);
             bvri_draw_hierarchy_button("graphic pipeline", BVR_EDITOR_PIPELINE, &__editor->book->pipeline);
 
             if(__editor->callback){
@@ -459,7 +459,7 @@ void bvr_editor_draw_page_hierarchy(){
             }
             
             struct bvr_light_s* light = NULL;
-            BVR_POOL_FOR_EACH(light, __editor->book->page.lights){
+            BVR_POOL_FOR_EACH(light, __editor->book->page->lights){
                 if(!light) {
                     break;
                 }
@@ -480,13 +480,13 @@ void bvr_editor_draw_page_hierarchy(){
         }
 
         // scene actors
-        nk_layout_row_dynamic(__editor->gui.context, 50 + __editor->book->page.actors.count * 20, 1);
+        nk_layout_row_dynamic(__editor->gui.context, 50 + __editor->book->page->actors.count * 20, 1);
         if(nk_group_begin_titled(__editor->gui.context, BVR_MACRO_STR(__LINE__), "actors", NK_WINDOW_BORDER | NK_WINDOW_TITLE))
         {
             nk_layout_row_dynamic(__editor->gui.context, 15, 1);
             
             struct bvr_actor_s* actor = NULL;
-            BVR_POOL_FOR_EACH(actor, __editor->book->page.actors){
+            BVR_POOL_FOR_EACH(actor, __editor->book->page->actors){
                 if(!actor){
                     break;
                 }
@@ -506,19 +506,19 @@ void bvr_editor_draw_page_hierarchy(){
             nk_group_end(__editor->gui.context);
         }
 
-        nk_layout_row_dynamic(__editor->gui.context, 70 + __editor->book->page.colliders.count * 20, 1);
+        nk_layout_row_dynamic(__editor->gui.context, 70 + __editor->book->page->colliders.count * 20, 1);
         if(nk_group_begin_titled(__editor->gui.context, BVR_MACRO_STR(__LINE__), "colliders", NK_WINDOW_BORDER | NK_WINDOW_TITLE))
         {
             nk_layout_row_dynamic(__editor->gui.context, 15, 1);
             
             struct bvr_collider_s* collider = NULL;
-            BVR_POOL_FOR_EACH(collider, __editor->book->page.colliders){
+            BVR_POOL_FOR_EACH(collider, __editor->book->page->colliders){
                 if(!collider){
                     break;
                 }
 
                 /*bvri_draw_hierarchy_button(
-                    BVR_FORMAT("collider%x", (uint64)blockcollider - (uint64)__editor->book->page.colliders.data),
+                    BVR_FORMAT("collider%x", (uint64)blockcollider - (uint64)__editor->book->page->colliders.data),
                     BVR_EDITOR_COLLIDER, collider
                 );*/
             }
@@ -605,7 +605,7 @@ void bvr_editor_draw_inspector(){
                 
                 nk_layout_row_dynamic(__editor->gui.context, 15, 1);
 
-                nk_label(__editor->gui.context, BVR_FORMAT("render time %f ms", __editor->book->timer.delta_timef), NK_TEXT_ALIGN_LEFT);
+                nk_label(__editor->gui.context, BVR_FORMAT("render time %f ms", __editor->book->timer.delta_time), NK_TEXT_ALIGN_LEFT);
                 nk_label(__editor->gui.context, BVR_FORMAT("fps %i", __editor->book->timer.average_render_time), NK_TEXT_ALIGN_LEFT);
 
                 nk_checkbox_label(__editor->gui.context, "is blending", (int*)&pipeline->rendering_pass.blending);

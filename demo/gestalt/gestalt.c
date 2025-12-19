@@ -84,6 +84,7 @@ int main(){
     
     /* free */
     bvr_destroy_book(&book);
+    bvr_destroy_editor(&editor);
 
     return 0;
 }

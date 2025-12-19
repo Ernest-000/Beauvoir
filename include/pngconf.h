@@ -507,7 +507,7 @@
  * behavior of sizeof and ptrdiff_t are required.
  * The legacy typedefs are provided here for backwards compatibility.
  */
-typedef uint64 png_size_t;
+typedef size_t png_size_t;
 typedef ptrdiff_t png_ptrdiff_t;
 
 /* libpng needs to know the maximum value of 'size_t' and this controls the
@@ -541,7 +541,7 @@ typedef ptrdiff_t png_ptrdiff_t;
 #ifdef PNG_SMALL_SIZE_T
    typedef png_uint_32 png_alloc_size_t;
 #else
-   typedef uint64 png_alloc_size_t;
+   typedef size_t png_alloc_size_t;
 #endif
 
 /* Prior to 1.6.0 libpng offered limited support for Microsoft C compiler
@@ -577,8 +577,8 @@ typedef char                  * png_charp;
 typedef const char            * png_const_charp;
 typedef png_fixed_point       * png_fixed_point_p;
 typedef const png_fixed_point * png_const_fixed_point_p;
-typedef uint64                * png_size_tp;
-typedef const uint64          * png_const_size_tp;
+typedef size_t                * png_size_tp;
+typedef const size_t          * png_const_size_tp;
 
 #ifdef PNG_FLOATING_POINT_SUPPORTED
 typedef double       * png_doublep;

@@ -31,7 +31,7 @@ int bvr_create_book(bvr_book_t *book)
 
     book->timer.frames = 0;
     book->timer.frame_timer = 0.0f;
-    book->timer.delta_timef = 0.0f;
+    book->timer.delta_time = 0.0f;
     book->timer.prev_time = 0.0f;
     book->timer.current_time = 0.0f;
     book->timer.average_render_time = 0.0f;
@@ -53,13 +53,15 @@ int bvr_create_book(bvr_book_t *book)
     memset(&book->pipeline.commands, 0, sizeof(book->pipeline.commands));
 
     book->predefs.is_available = false;
-    book->page.is_available = false;
+
+    book->page = &book->slots[0].page;
+    book->page->is_available = false;
 
     // reset scene's callbacks
-    book->page.events.construct = NULL;
-    book->page.events.load = NULL;
-    book->page.events.update = NULL;
-    book->page.events.destroy = NULL;
+    book->page->events.construct = NULL;
+    book->page->events.load = NULL;
+    book->page->events.update = NULL;
+    book->page->events.destroy = NULL;
 
     bvr_create_memstream(&book->asset_stream, 0);
     bvr_create_memstream(
@@ -98,7 +100,7 @@ void bvr_new_frame(bvr_book_t *book)
     bvr_window_poll_events();
 
     book->timer.current_time = bvr_frames();
-    book->timer.delta_timef = (book->timer.current_time - book->timer.prev_time) / 1000.0f;
+    book->timer.delta_time = (book->timer.current_time - book->timer.prev_time) / 1000.0f;
 
     // reset opengl states
     bvr_framebuffer_enable(&book->window.framebuffer);
@@ -111,20 +113,22 @@ void bvr_new_frame(bvr_book_t *book)
     book->pipeline.state.command = NULL;
 
     /* calculate camera matrices */
-    bvr_update_camera(&book->page.camera);
+    bvr_update_camera(&book->page->camera);
 
-    if (book->page.global_illumination.buffer)
+    if (book->page->global_illumination.buffer)
     {
-        bvr_enable_uniform_buffer(book->page.global_illumination.buffer);
-        bvr_uniform_buffer_set(0, sizeof(vec4), &book->page.global_illumination.light.position[0]);
-        bvr_uniform_buffer_set(sizeof(vec4), sizeof(vec4), &book->page.global_illumination.light.direction[0]);
-        bvr_uniform_buffer_set(sizeof(vec4) * 2, sizeof(vec3), &book->page.global_illumination.light.color[0]);
-        bvr_uniform_buffer_set(sizeof(vec4) * 3 - sizeof(float), sizeof(float), &book->page.global_illumination.light.intensity);
+        bvr_enable_uniform_buffer(book->page->global_illumination.buffer);
+        bvr_uniform_buffer_set(0, sizeof(vec4), &book->page->global_illumination.light.position[0]);
+        bvr_uniform_buffer_set(sizeof(vec4), sizeof(vec4), &book->page->global_illumination.light.direction[0]);
+        bvr_uniform_buffer_set(sizeof(vec4) * 2, sizeof(vec3), &book->page->global_illumination.light.color[0]);
+        bvr_uniform_buffer_set(sizeof(vec4) * 3 - sizeof(float), sizeof(float), &book->page->global_illumination.light.intensity);
     }
 }
 
 void bvr_update(bvr_book_t *book)
 {
+    BVR_CALL(book->page->events.update, book->page);
+
     bvr_collider_t *collider = NULL;
     bvr_collider_t *other = NULL;
 
@@ -133,7 +137,7 @@ void bvr_update(bvr_book_t *book)
         return;
     }
 
-    BVR_POOL_FOR_EACH(collider, book->page.colliders)
+    BVR_POOL_FOR_EACH(collider, book->page->colliders)
     {
 
         if (!collider)
@@ -160,7 +164,7 @@ void bvr_update(bvr_book_t *book)
 
             struct bvr_collision_result_s result;
 
-            BVR_POOL_FOR_EACH(other, book->page.colliders)
+            BVR_POOL_FOR_EACH(other, book->page->colliders)
             {
                 if (!other)
                 {
@@ -235,14 +239,14 @@ void bvr_render(bvr_book_t *book)
 #endif
 
     book->timer.frames++;
-    book->timer.frame_timer += book->timer.delta_timef;
+    book->timer.frame_timer += book->timer.delta_time;
     book->timer.prev_time = book->timer.current_time;
 
     if (book->timer.frames > BVR_TARGET_FRAMERATE)
     {
         book->timer.average_render_time = book->timer.frames / book->timer.frame_timer;
         book->timer.frames = 0;
-        book->timer.frame_timer = book->timer.delta_timef;
+        book->timer.frame_timer = book->timer.delta_time;
     }
 
     // debug
@@ -264,7 +268,7 @@ void bvr_destroy_book(bvr_book_t *book)
     }
 
     // destroy current page
-    bvr_destroy_page(&book->page);
+    bvr_destroy_page(book->page);
 
     // free memory blocks
     bvr_destroy_predefs(&book->predefs);
@@ -298,6 +302,7 @@ int bvr_create_page(bvr_page_t *page, const char *name)
     bvr_create_pool(&page->lights, sizeof(struct bvr_light_s *), BVR_MAX_SCENE_LIGHT_COUNT);
 
     // create global lighting
+    // WARN: might change the way this is stored!!
     bvr_global_illumination_t **gl = (bvr_global_illumination_t **)bvr_pool_alloc(&page->lights);
     *gl = &page->global_illumination;
 
@@ -310,17 +315,21 @@ int bvr_create_page(bvr_page_t *page, const char *name)
 
 void bvr_enable_page(bvr_page_t *page)
 {
-    if (page == &__s_book_instance->page)
+    BVR_ASSERT(page);
+
+    // if page is already used
+    if (page == __s_book_instance->page)
     {
         return;
     }
 
-    if (bvr_is_active(__s_book_instance))
-    {
-        bvr_disable_page(&__s_book_instance->page);
-    }
+    // clear streams and delete previous page data
+    bvr_memstream_clear(&__s_book_instance->garbage_stream);
+    bvr_memstream_clear(&__s_book_instance->asset_stream);
+    bvr_destroy_page(__s_book_instance->page);
 
-    memcpy(&__s_book_instance->page, page, sizeof(bvr_page_t));
+    // set page as the new target
+    __s_book_instance->page = page;
 
 #ifdef BVR_AUTO_SAVE
     // load page's datas
@@ -336,6 +345,8 @@ void bvr_enable_page(bvr_page_t *page)
 
 void bvr_disable_page(bvr_page_t *page)
 {
+    BVR_ASSERT(page);
+
 #ifdef BVR_AUTO_SAVE
     // sage page's data
     if (access(BVR_FORMAT("%s.bin", __book_instance->page.name.string), F_OK))
@@ -344,15 +355,21 @@ void bvr_disable_page(bvr_page_t *page)
     }
 #endif
 
+    // reset targeted page
+    __s_book_instance->page = &__s_book_instance->slots[0].page;
+
+    // reset streams to avoid memleaks & full streams
     bvr_memstream_clear(&__s_book_instance->garbage_stream);
     bvr_memstream_clear(&__s_book_instance->asset_stream);
 
-    bvr_destroy_page(&__s_book_instance->page);
+    // destroy page
+    bvr_destroy_page(page);
 }
 
 struct bvr_actor_s *bvr_alloc_actor(bvr_page_t *page, bvr_actor_type_t type)
 {
     BVR_ASSERT(page);
+    BVR_ASSERT(page->actors.avail);
 
     struct bvr_actor_s** pp_actor;
     const size_t actor_byte_size = bvri_actor_size(type);
@@ -365,6 +382,9 @@ struct bvr_actor_s *bvr_alloc_actor(bvr_page_t *page, bvr_actor_type_t type)
 
     // get actor's pool pointer
     pp_actor = (struct bvr_actor_s **)bvr_pool_alloc(&page->actors);
+
+    // check for errors
+    BVR_ASSERT(pp_actor && __s_book_instance->garbage_stream.cursor);
 
     // define actor's pointer as current memory stream cursor
     *pp_actor = (struct bvr_actor_s *)__s_book_instance->garbage_stream.cursor;
@@ -434,7 +454,7 @@ struct bvr_actor_s *bvr_find_actor(bvr_book_t *book, const char *name)
     BVR_ASSERT(name);
 
     struct bvr_actor_s *actor;
-    BVR_POOL_FOR_EACH(actor, book->page.actors)
+    BVR_POOL_FOR_EACH(actor, book->page->actors)
     {
         if (actor == NULL)
         {
@@ -456,7 +476,7 @@ struct bvr_actor_s *bvr_find_actor_uuid(bvr_book_t *book, bvr_uuid_t uuid)
     BVR_ASSERT(uuid);
 
     struct bvr_actor_s *actor;
-    BVR_POOL_FOR_EACH(actor, book->page.actors)
+    BVR_POOL_FOR_EACH(actor, book->page->actors)
     {
         if (actor == NULL)
         {
@@ -517,6 +537,11 @@ void bvr_destroy_page(bvr_page_t *page)
     bvr_destroy_pool(&page->actors);
     bvr_destroy_pool(&page->colliders);
     bvr_destroy_pool(&page->lights);
+
+    page->events.construct = NULL;
+    page->events.load = NULL;
+    page->events.update = NULL;
+    page->events.destroy = NULL;
 
     page->is_available = false;
 }

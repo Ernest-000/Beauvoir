@@ -567,8 +567,8 @@ typedef struct png_text_struct
    png_charp key;          /* keyword, 1-79 character description of "text" */
    png_charp text;         /* comment, may be an empty string (ie "")
                               or a NULL pointer */
-   uint64 text_length;     /* length of the text string */
-   uint64 itxt_length;     /* length of the itxt string */
+   size_t text_length;     /* length of the text string */
+   size_t itxt_length;     /* length of the itxt string */
    png_charp lang;         /* language code, 0-79 characters
                               or a NULL pointer */
    png_charp lang_key;     /* keyword translated UTF-8 string, 0 or more
@@ -621,7 +621,7 @@ typedef struct png_unknown_chunk_t
 {
    png_byte name[5]; /* Textual chunk name with '\0' terminator */
    png_byte *data;   /* Data, should not be modified on read! */
-   uint64 size;
+   size_t size;
 
    /* On write 'location' must be set using the flag values listed below.
     * Notice that on read it is set by libpng however the values stored have
@@ -767,7 +767,7 @@ typedef png_unknown_chunk * * png_unknown_chunkpp;
 typedef struct png_row_info_struct
 {
    png_uint_32 width;    /* width of row */
-   uint64 rowbytes;      /* number of bytes in row */
+   size_t rowbytes;      /* number of bytes in row */
    png_byte color_type;  /* color type of row */
    png_byte bit_depth;   /* bit depth of row */
    png_byte channels;    /* number of channels (1, 2, 3, or 4) */
@@ -943,7 +943,7 @@ PNG_EXPORTA(5, png_structp, png_create_write_struct,
     png_error_ptr warn_fn),
     PNG_ALLOCATED);
 
-PNG_EXPORT(6, uint64, png_get_compression_buffer_size,
+PNG_EXPORT(6, size_t, png_get_compression_buffer_size,
     (png_const_structrp png_ptr));
 
 PNG_EXPORT(7, void, png_set_compression_buffer_size, (png_structrp png_ptr,
@@ -1707,7 +1707,7 @@ PNG_EXPORT(92, void, png_process_data, (png_structrp png_ptr,
  * 'save' is set to true the routine will first save all the pending data and
  * will always return 0.
  */
-PNG_EXPORT(219, uint64, png_process_data_pause, (png_structrp, int save));
+PNG_EXPORT(219, size_t, png_process_data_pause, (png_structrp, int save));
 
 /* A function which may be called *only* outside (after) a call to
  * png_process_data.  It returns the number of bytes of data to skip in the
@@ -1849,7 +1849,7 @@ PNG_EXPORT(110, png_uint_32, png_get_valid, (png_const_structrp png_ptr,
     png_const_inforp info_ptr, png_uint_32 flag));
 
 /* Returns number of bytes needed to hold a transformed row. */
-PNG_EXPORT(111, uint64, png_get_rowbytes, (png_const_structrp png_ptr,
+PNG_EXPORT(111, size_t, png_get_rowbytes, (png_const_structrp png_ptr,
     png_const_inforp info_ptr));
 
 #ifdef PNG_INFO_IMAGE_SUPPORTED

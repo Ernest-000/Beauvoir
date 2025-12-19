@@ -69,7 +69,7 @@ int main(){
         bvr_shader_register_uniform(&player->shader, BVR_VEC3, BVR_UNIFORM_NONE, 1, "bvr_color");
 
         /*
-            then, we copy 'color' value into our uniform 'bvr_color'.
+            then, we bind 'color' value into our uniform 'bvr_color'.
         */
         vec3 color = {1.0f, 1.0f, 1.0f};
         bvr_shader_set_uniform(&player->shader, "bvr_color", &color[0]);
@@ -129,6 +129,7 @@ int main(){
     
     /* free */
     bvr_destroy_book(&book);
+    bvr_destroy_editor(&editor);
 
     return 0;
 }

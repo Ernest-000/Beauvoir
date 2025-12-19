@@ -226,7 +226,7 @@ void bvr_write_book_dataf(FILE* file, bvr_book_t* book){
 
     // write page informations
     {
-        bvr_page_t* page = &book->page;
+        bvr_page_t* page = book->page;
 
         struct {
             float near, far, scale;
@@ -253,7 +253,7 @@ void bvr_write_book_dataf(FILE* file, bvr_book_t* book){
         uint32 length_offset;
 
         uint32 section_size = 0;
-        uint32 actor_count = book->page.actors.count;
+        uint32 actor_count = book->page->actors.count;
         uint16 actor_flag = BVR_EDITOR_ACTOR;
 
         fwrite(&section_size, sizeof(uint32), 1, file);
@@ -276,7 +276,7 @@ void bvr_write_book_dataf(FILE* file, bvr_book_t* book){
         } target;
 
         struct bvr_actor_s* actor = NULL;
-        BVR_POOL_FOR_EACH(actor, book->page.actors){
+        BVR_POOL_FOR_EACH(actor, book->page->actors){
             if(actor == NULL){
                 break;
             }
@@ -459,7 +459,7 @@ void bvr_open_book_dataf(FILE* file, bvr_book_t* book){
 
     // read page informations
     {
-        bvr_page_t* page = &book->page;
+        bvr_page_t* page = book->page;
         struct bvri_chunk_data_s camera;
 
         bvr_destroy_string(&page->name);
@@ -476,7 +476,7 @@ void bvr_open_book_dataf(FILE* file, bvr_book_t* book){
             float far = bvr_freadf(file);
             float scale = bvr_freadf(file);
 
-            bvr_create_camera(&book->page.camera, &book->window.framebuffer, BVR_CAMERA_ORTHOGRAPHIC, near, far, scale);
+            bvr_create_camera(&book->page->camera, &book->window.framebuffer, BVR_CAMERA_ORTHOGRAPHIC, near, far, scale);
 
             // copy transform
             fread(&page->camera.transform, sizeof(bvr_transform_t), 1, file);            

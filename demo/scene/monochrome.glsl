@@ -29,7 +29,7 @@ in V_DATA vertex;
 uniform vec3 bvr_color;
 
 void main() {
-	gl_FragColor = vec4(bvr_color * gl_FragCoord.z, 1.0);
+	gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
 }
 
 #endif

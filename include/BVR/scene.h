@@ -12,6 +12,10 @@
 
 #include <stdint.h>
 
+#ifndef BVR_MAX_PAGE_COUNT
+    #define BVR_MAX_PAGE_COUNT 1
+#endif
+
 #ifndef BVR_MAX_SCENE_ACTOR_COUNT
     #define BVR_MAX_SCENE_ACTOR_COUNT 64
 #endif
@@ -33,7 +37,7 @@
 #endif
 
 /*
-    Contains all world's informations and data
+    Contains all world's information and data
 */
 typedef struct bvr_page_s {
     bvr_string_t name;
@@ -61,6 +65,14 @@ typedef struct bvr_page_s {
     bool is_available;
 } bvr_page_t;
 
+/**
+ * Represent a scene's slot.
+ */
+struct bvr_page_slot_s {
+    uint32 id;
+    bvr_page_t page;
+};
+
 /*
     Contains all game's related data
 */
@@ -74,24 +86,33 @@ typedef struct bvr_book_s {
     // audio channels and buffers
     bvr_audio_stream_t audio;
 
-    // contains all assets informations
-    // this might be used to store assets informations to export them as bundle
+    // contains all assets information
+    // this might be used to store assets information to export them as bundle
     bvr_memstream_t asset_stream;
 
-    // for now, this is not used, but it aims to store 
-    // all scene-actor heap relative elements
+    /**
+     * @brief Contains all asset relative data.
+     * Every actors data is store there; what a mess!!
+     */
     bvr_memstream_t garbage_stream;
 
-    // current page
-    bvr_page_t page;
+    /**
+     * @brief Current rendered page
+     */
+    bvr_page_t* page;
+
+    /**
+     * @brief Store each of the game's slot.
+     */
+    struct bvr_page_slot_s slots[BVR_MAX_PAGE_COUNT];
 
     // constant object predefitions
     // 
     struct bvr_predefs predefs;
 
-    // time informations
+    // time information
     struct bvr_chrono_s {
-        float delta_timef, frame_timer;
+        float delta_time, frame_timer;
         int average_render_time, frames;
         uint64 prev_time, current_time;
     } timer;
@@ -130,7 +151,7 @@ BVR_H_FUNC int bvr_is_focus(bvr_book_t* book){
     Returns BVR_TRUE is a scene is active.
 */
 BVR_H_FUNC int bvr_is_active(bvr_book_t* book){
-    return book->page.is_available;
+    return book->page->is_available;
 }
 
 /*
@@ -145,17 +166,31 @@ void bvr_update(bvr_book_t* book);
 */
 void bvr_flush(bvr_book_t* book);
 
-/*
-    swap framebuffers and push buffers to the screen
-*/
+/**
+ * Swap render
+ * @param book
+ */
 void bvr_render(bvr_book_t* book);
 
 void bvr_destroy_book(bvr_book_t* book);
 
-/*
-    Create a new scene
-*/
+/**
+ * Create a new scene.
+ * @param page
+ * @param name
+ * @return
+ */
 int bvr_create_page(bvr_page_t* page, const char* name);
+
+/**
+ * @brief Create a new scene. Target current scene slot.
+ * @param book
+ * @param name scene's name
+ * @return 
+ */
+BVR_H_FUNC int bvr_create_main_page(bvr_book_t* book, const char* name){
+    return bvr_create_page(book->page, name);
+}
 
 /**
  * @brief create a new camera that target current page.
@@ -167,7 +202,7 @@ int bvr_create_page(bvr_page_t* page, const char* name);
  * @return 
  */
 BVR_H_FUNC void bvr_create_main_camera(bvr_book_t* book, int mode, int near, int far, int scale){
-    bvr_create_camera(&book->page.camera, &book->window.framebuffer, mode, near, far, scale);
+    bvr_create_camera(&book->page->camera, &book->window.framebuffer, mode, near, far, scale);
 }
 
 /*
@@ -186,10 +221,20 @@ void bvr_disable_page(bvr_page_t* page);
     Return NULL if cannot register actor.
 */
 struct bvr_actor_s* bvr_alloc_actor(bvr_page_t* page, bvr_actor_type_t type);
+
+/**
+ * Free and destory an actor in a scene.
+ */
 void bvr_free_actor(bvr_page_t* page, struct bvr_actor_s* actor);
 
+/**
+ * Find an actor with its name
+ */
 struct bvr_actor_s* bvr_find_actor(bvr_book_t* book, const char* name);
 
+/**
+ * Find an actor with its unique id
+ */
 struct bvr_actor_s* bvr_find_actor_uuid(bvr_book_t* book, bvr_uuid_t uuid);
 
 /*

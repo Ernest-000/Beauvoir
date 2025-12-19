@@ -1,16 +1,20 @@
 cmake_minimum_required(VERSION 3.16.3)
 
-project(Beauvoir C)
+project(beauvoir C)
 
 if(NOT DEFINED BVR_TARGET_SHARED)
     set(BVR_TARGET_SHARED OFF)
+endif()
+
+if(NOT DEFINED BVR_TARGET_STATIC)
+    set(BVR_TARGET_STATIC OFF)
 endif()
 
 if(NOT DEFINED BVR_DEBUG)
     set(BVR_DEBUG OFF)
 endif()
 
-# Setting up Beauvoir paths
+# Setting up beauvoir paths
 if(NOT DEFINED BVR_CURRENT_DIR)
     set(BVR_CURRENT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
@@ -23,9 +27,14 @@ set(BVR_BINARY_DIR ${BVR_CURRENT_DIR}/bin/)
 
 set(BVR_DEMO_DIR ${BVR_CURRENT_DIR}/dev/)
 
+# ----------- DEV VARIABLES
+# set(BVR_TARGET_SHARED TRUE)
+# set(BVR_TARGET_STATIC TRUE)
+# ----------- DEV VARIABLES
+
 # Define main file
 # Development only
-if(NOT ${BVR_TARGET_SHARED})
+if(NOT ${BVR_TARGET_SHARED} OR NOT ${BVR_TARGET_STATIC})
     if (NOT DEFINED BVR_MAIN_FILE)
         set(BVR_DEBUG OFF)
         # set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/landscape.c")
@@ -83,37 +92,40 @@ endif()
 
 ## Create library or executable depends on the compilation mode
 if(${BVR_TARGET_SHARED})
-    add_library(Beauvoir SHARED)
-    message("Successfully create a new library")
+    add_library(beauvoir SHARED)
+    message("Successfully create a new shared library")
+elseif(${BVR_TARGET_STATIC})
+    add_library(beauvoir STATIC)
+    message("Successfully create a new static library")
 else()
-    add_executable(Beauvoir ${BVR_MAIN_FILE})
+    add_executable(beauvoir ${BVR_MAIN_FILE})
     message("Successfully create a new executable")
 endif()
 
 ## Link libs
-target_link_libraries(Beauvoir PUBLIC
+target_link_libraries(beauvoir PUBLIC
     ${OPENGL_LIBRARIES}
     ${BVR_THIRD_PARTY_MODULES}
 )
 
-target_include_directories(Beauvoir PUBLIC ${BVR_SOURCE_DIR})
+target_include_directories(beauvoir PUBLIC ${BVR_SOURCE_DIR})
 
 ## Include engine c files
 file(GLOB_RECURSE SOURCES "${BVR_SOURCE_DIR}/*.c")
-target_sources(Beauvoir PRIVATE ${SOURCES})
+target_sources(beauvoir PRIVATE ${SOURCES})
 
 ## Include editor c files
 file(GLOB_RECURSE SOURCES "${BVR_SOURCE_DIR}/editor/*.c")
-target_sources(Beauvoir PRIVATE ${SOURCES})
+target_sources(beauvoir PRIVATE ${SOURCES})
 
-set_target_properties(Beauvoir PROPERTIES
+set_target_properties(beauvoir PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${BVR_BIN_DIR}"
     ARCHIVE_OUTPUT_DIRECTORY "${BVR_BUILD_DIR}"
     LIBRARY_OUTPUT_DIRECTORY "${BVR_BUILD_DIR}"
 )
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
-    set_target_properties(Beauvoir PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${BVR_BIN_DIR})
-    set_target_properties(Beauvoir PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG ${BVR_BUILD_DIR})
-    set_target_properties(Beauvoir PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE ${BVR_BUILD_DIR})
+    set_target_properties(beauvoir PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${BVR_BIN_DIR})
+    set_target_properties(beauvoir PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG ${BVR_BUILD_DIR})
+    set_target_properties(beauvoir PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE ${BVR_BUILD_DIR})
 endif()

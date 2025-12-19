@@ -13,6 +13,6 @@
 [submodule "extern/Lpng"]
 	path = extern/Lpng
 	url = https://github.com/pnggroup/libpng
-[submodule "json-c"]
+[submodule "extern/json-c"]
 	path = extern/json-c
 	url = https://github.com/json-c/json-c

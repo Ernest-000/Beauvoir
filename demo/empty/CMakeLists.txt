@@ -18,7 +18,7 @@ include_directories(${BVR_DEMO_DIRECTORY_INCLUDE})
 message("${BVR_DEMO_DIRECTORY_INCLUDE}")
 add_executable(bvr_empty ${BVR_MAIN_FILE})
 
-target_link_libraries(bvr_empty Beauvoir)
+target_link_libraries(bvr_empty beauvoir)
 target_include_directories(bvr_empty PRIVATE ${BVR_DEMO_DIRECTORY_INCLUDE})
 
 set_target_properties(bvr_empty PROPERTIES

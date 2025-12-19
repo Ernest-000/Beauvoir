@@ -4,9 +4,12 @@ setlocal enabledelayedexpansion
 :: Configuration
 set "BVR_GENERATOR=MinGW Makefiles"
 set "BVR_CC=gcc"
-set "BVR_CXX=g++"
+set "BVR_CXX=c++"
 set "BVR_BUILD_DIR=%CD%\build"
 set "BVR_EXTERNAL_MODULES=SDL PortAudio Zlib Lpng json-c"
+
+git submodule deinit -f .
+git submodule update --init
 
 :: Clear command
 if "%1"=="-clear" (
@@ -36,7 +39,7 @@ for %%M in (%BVR_EXTERNAL_MODULES%) do (
 
         del /f /q "%BVR_BUILD_DIR%\!MOD!\CMakeCache.txt" 2>nul
 
-        cmake "!MODULE_PATH!\CmakeLists.txt" -G "!BVR_GENERATOR!" -B "%BVR_BUILD_DIR%\!MOD!" -D CMAKE_INSTALL_PREFIX="%CD%" !BVR_MODULE_FLAGS! -DCMAKE_C_COMPILER=!BVR_CC! -DCMAKE_CXX_COMPILER=!BVR_CXX!
+        cmake "!MODULE_PATH!\CmakeLists.txt" -G "!BVR_GENERATOR!" -B "%BVR_BUILD_DIR%\!MOD!" -D CMAKE_INSTALL_PREFIX="%CD%" !BVR_MODULE_FLAGS! -DCMAKE_C_COMPILER=!BVR_CC!
         cmake --build "%BVR_BUILD_DIR%\!MOD!" --target install
     ) else (
         echo !MODULE_PATH! not found!

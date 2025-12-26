@@ -20,7 +20,7 @@ Precompiled Windows x64 binaries can be found inside the [Bin](/bin/) directory.
 *You can define your own CMake build target and compiler by changing "BVR_GENERATOR" and "BVR_CC" (or "BVR_CXX") variables in either of those files.*
 
 ### Install
-In order to install Beauvoir to your project directory, you can Cmake
+In order to install Beauvoir to your project directory, you can use Cmake
 - To create MinGW Makefiles
 ```Sh
 cmake . -G="MinGW Makefiles" -DCMAKE_INSTALL_PREFIX="./build"
@@ -32,6 +32,7 @@ cmake . -G="Visual Studio 17 2022" -DCMAKE_INSTALL_PREFIX="./build"
 make install
 ```
 Then, you can copy ```bin/``` and ```lib/``` folders that you generates with build.sh into your project.
+> You may want to check the [empty demo project](/demo/empty) to get an example :p
 
 ### Example
 In this example, you will get a simple player that move around.
@@ -52,7 +53,7 @@ static bvr_dynamic_actor_t* player;
 int main(){
     /* create initial game's context */
     bvr_create_book(&book);
-    bvr_create_page(&book.page, "scene");
+    bvr_create_page(book.page, "scene");
 
     /* create the window */
     bvr_create_window(&book.window, 800, 800, "Window", 0);
@@ -65,7 +66,7 @@ int main(){
 
     {
         /* link this object to a scene */
-        player = (bvr_dynamic_actor_t*) bvr_alloc_actor(&book.page, BVR_DYNAMIC_ACTOR);
+        player = (bvr_dynamic_actor_t*) bvr_alloc_actor(book.page, BVR_DYNAMIC_ACTOR);
 
         /* create actor components */
         bvr_create_actor(

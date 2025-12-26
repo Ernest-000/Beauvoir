@@ -2,6 +2,8 @@
 #include <BVR/editor/flags.h>
 #include <BVR/editor/landscape.h>
 
+#ifndef BVR_NO_NUKLEAR
+
 #include <BVR/buffer.h>
 #include <BVR/common.h>
 #include <BVR/window.h>
@@ -12,7 +14,7 @@
 
 #include <GLAD/glad.h>
 
-#define NK_INCLUDE_FIXED_TYPES 
+#define NK_INCLUDE_FIXED_TYPES
 #include <nuklear.h>
 
 #include <limits.h>
@@ -1111,3 +1113,5 @@ void bvri_destroy_editor_render_buffers(uint32* array_buffer, uint32* vertex_buf
     glDeleteVertexArrays(1, array_buffer);
     glDeleteBuffers(1, vertex_buffer);
 }
+
+#endif

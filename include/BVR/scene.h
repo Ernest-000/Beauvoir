@@ -106,6 +106,11 @@ typedef struct bvr_book_s {
      */
     struct bvr_page_slot_s slots[BVR_MAX_PAGE_COUNT];
 
+    /**
+     * @brief Number of allocated scenes
+     */
+    uint16 slot_count;
+
     // constant object predefitions
     // 
     struct bvr_predefs predefs;
@@ -190,6 +195,21 @@ int bvr_create_page(bvr_page_t* page, const char* name);
  */
 BVR_H_FUNC int bvr_create_main_page(bvr_book_t* book, const char* name){
     return bvr_create_page(book->page, name);
+}
+
+/**
+ * @brief Create a new scene, choosing the last available slot
+ * @param name page's name
+ * @return
+ */
+BVR_H_FUNC bvr_page_t* bvr_alloc_page_slot(const char* name){
+    BVR_ASSERT(bvr_get_instance()->slot_count <= BVR_MAX_PAGE_COUNT);
+    struct bvr_page_slot_s* avail = &bvr_get_instance()->slots[bvr_get_instance()->slot_count++];
+
+    avail->id = bvr_get_instance()->slot_count - 1;
+    bvr_create_page(&avail->page, name);
+
+    return &avail->page;
 }
 
 /**

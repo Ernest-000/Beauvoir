@@ -1,12 +1,11 @@
 #pragma once
 
+#ifndef BVR_NO_NUKLEAR
+
 #include <BVR/window.h>
 #include <BVR/actors.h>
+
 #include <stdint.h>
-
-#define BVR_INCLUDE_NUKLEAR
-
-#ifdef BVR_INCLUDE_NUKLEAR
 
 typedef struct bvr_nuklear_s {
     void* context;

@@ -29,6 +29,8 @@ int bvr_create_book(bvr_book_t *book)
     memset(&book->window, 0, sizeof(bvr_window_t));
     memset(&book->page, 0, sizeof(bvr_page_t));
 
+    book->slot_count = 0;
+
     book->timer.frames = 0;
     book->timer.frame_timer = 0.0f;
     book->timer.delta_time = 0.0f;
@@ -189,7 +191,7 @@ void bvr_update(bvr_book_t *book)
 
 void bvr_flush(bvr_book_t *book)
 {
-    // WARN: i did that because it work but idk 
+    // WARN: i did that because it works but idk
     // when there is only one element to draw, things get overwritten :<
     //if(book->pipeline.command_count > 1){
     //    // sort draw command by using their 'order'
@@ -211,7 +213,6 @@ void bvr_flush(bvr_book_t *book)
 
 void bvr_render(bvr_book_t *book)
 {
-
     // if there is still draw commands, flush
     if (book->pipeline.command_count)
     {
@@ -276,10 +277,11 @@ void bvr_destroy_book(bvr_book_t *book)
     bvr_destroy_memstream(&book->garbage_stream);
 }
 
-int bvr_create_page(bvr_page_t *page, const char *name)
+int bvr_create_page(bvr_page_t* page, const char *name)
 {
     BVR_ASSERT(page);
 
+    // default camera
     page->camera.mode = 0;
     page->camera.buffer = 0;
     page->camera.far = 0.0f;
@@ -287,6 +289,12 @@ int bvr_create_page(bvr_page_t *page, const char *name)
     page->camera.framebuffer = NULL;
     page->camera.field_of_view.scale = 0;
 
+    page->events.construct = NULL;
+    page->events.load = NULL;
+    page->events.update = NULL;
+    page->events.destroy = NULL;
+
+    // default global illumination
     page->global_illumination.buffer = 0;
     page->global_illumination.light.intensity = 255.0f;
     page->global_illumination.light.type = BVR_LIGHT_GLOBAL_ILLUMINATION;

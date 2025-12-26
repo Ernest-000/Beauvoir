@@ -1,6 +1,8 @@
 #include <BVR/editor/landscape.h>
 #include <BVR/editor/editor.h>
 
+#ifndef BVR_NO_NUKLEAR
+
 #include <BVR/file.h>
 #include <BVR/window.h>
 
@@ -271,3 +273,5 @@ int bvr_landscape_loadf(FILE* file, bvr_landscape_actor_t* actor){
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 }*/
+
+#endif

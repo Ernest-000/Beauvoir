@@ -10,11 +10,11 @@ I'll try to reference everything, but this will take time...
 |BVR_NO_FLIP          |Engine, OpenGL|Disable auto flipping images for OpenGL                                                                    |False          |
 |BVR_ASSERT_FORCE_EXIT|Engine        |ASSERT will exit the app                                                                                   |True         |
 |BVR_INCLUDE_GEOMETRY |Engine        |Include geomtry generation algorythmes                                                                     |False          |
-|BVR_INCLUDE_NUKLEAR  |Engine        |Include Nuklear API                                                                                        |True         |
 |BVR_INCLUDE_DEBUG    |Engine        |Include debugging functions                                                                                |True         |
 |BVR_AUTO_SAVE        |Engine        |Save scene’s content each time the scene is closed                                                         |False          |
 |BVR_NO_FPS_CAP       |Engine        |Disable FPS capping                                                                                        |False          |
 |BVR_SCENE_AUTO_HEAP  |Engine        |Copy actors to scene’s heap                                                                                |True         |
+|BVR_NO_NUKLEAR  |Engine        |Disable Nuklear API                                                                                        |False         |
 |BVR_NO_FBX           |Engine        |Disable FBX loading                                                                                        |False          |
 |BVR_NO_GLTF          |Engine        |Disable GLB loading                                                                                        |False          |
 |BVR_NO_OBJ           |Engine        |Disable OBJ loading                                                                                        |False          |

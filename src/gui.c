@@ -1,7 +1,7 @@
 #include <BVR/gui.h>
 #include <BVR/common.h>
 
-#ifdef BVR_INCLUDE_NUKLEAR
+#ifndef BVR_NO_NUKLEAR
 
 #define NK_SDL_GLES2_IMPLEMENTATION
 #include "nuklear_sdl_gles2.h"

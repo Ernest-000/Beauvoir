@@ -1,10 +1,8 @@
 /* include all Beauvoir's headers */
 #define BVR_INCLUDE_GEOMETRY
+#define BVR_INCLUDE_NUKLEAR
 #include <BVR/bvr.h>
-
 #include <BVR/editor/editor.h>
-
-#include <nuklear.h>
 
 /* game's context */
 static bvr_book_t book;
@@ -17,6 +15,7 @@ static void _dialogue_box_callback(bvr_string_t* string);
 static bvr_layer_actor_t* _load_image(const char* path);
 static bvr_static_actor_t* _load_mesh(const char* path);
 
+static bvr_page_t* page;
 static bool target_image, wait_for_input; 
 static bvr_layer_actor_t* p_image;
 static bvr_static_actor_t* p_mesh;
@@ -24,8 +23,10 @@ static bvr_static_actor_t* p_mesh;
 int main(){
     /* create initial game's context */
     bvr_create_book(&book);
-    bvr_create_page(&book.page, "GESTALT");
-    
+
+    page = bvr_alloc_page_slot("Gestalt");
+    bvr_enable_page(page);
+
     /* create the window */
     bvr_create_window(&book.window, 800, 800, "Window", BVR_WINDOW_DEFAULT);
     
@@ -57,26 +58,26 @@ int main(){
         }
 
         /* update colliders and physics */
-        bvr_update(&book);
+        //bvr_update(&book);
 
         if(target_image){
-            // ;
+
         }
         else {
         }
         
-        bvr_draw_actor(&p_mesh->self, BVR_DRAWMODE_TRIANGLES);
+        /*bvr_draw_actor(&p_mesh->self, BVR_DRAWMODE_TRIANGLES);
         // previous actors need to be flushed to appears on the composite
         bvr_flush(&book);
 
         bvr_draw_actor(&p_image->self, BVR_DRAWMODE_TRIANGLES);
         bvr_flush(&book);
-
+        */
         // draw editor
-        bvr_editor_handle();
-        bvr_editor_draw_page_hierarchy();
-        bvr_editor_draw_inspector();
-        bvr_editor_render();
+        // bvr_editor_handle();
+        // bvr_editor_draw_page_hierarchy();
+        // bvr_editor_draw_inspector();
+        // bvr_editor_render();
 
         /* push Beauvoir's graphics to the window */
         bvr_render(&book);
@@ -122,7 +123,7 @@ static bvr_layer_actor_t* _load_image(const char* path){
     // link actor to the scene
     // WARN: actor dynamic components (eg: textures, layers, transform...) that might
     // change overtime MUST link to the new allocated pointer, not the older object!
-    p_actor = (bvr_layer_actor_t*) bvr_alloc_actor(&book.page, BVR_LAYER_ACTOR);
+    p_actor = (bvr_layer_actor_t*) bvr_alloc_actor(page, BVR_LAYER_ACTOR);
     bvr_create_actor(&p_actor->self, "image", BVR_COLLISION_DISABLE, _actor_callback);
 
     // create shader
@@ -158,7 +159,7 @@ static bvr_static_actor_t* _load_mesh(const char* path){
     // link actor to the scene
     // WARN: actor dynamic components (eg: textures, layers, transform...) that might
     // change overtime MUST link to the new allocated pointer, not the older object!
-    p_actor = (bvr_static_actor_t*) bvr_alloc_actor(&book.page, BVR_STATIC_ACTOR);
+    p_actor = (bvr_static_actor_t*) bvr_alloc_actor(page, BVR_STATIC_ACTOR);
     bvr_create_actor(&p_actor->self, "mesh", BVR_COLLISION_DISABLE, _actor_callback);
 
     // create shader

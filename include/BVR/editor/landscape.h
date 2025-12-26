@@ -1,7 +1,10 @@
+#include <BVR/editor/editor.h>
+
+#ifndef BVR_NO_NUKLEAR
+
 #include <BVR/math.h>
 #include <BVR/actors.h>
 
-#include <BVR/editor/editor.h>
 
 /*
     Return tile's id from vertex id
@@ -35,3 +38,5 @@ BVR_H_FUNC int bvr_landscape_load(const char* path, bvr_landscape_actor_t* actor
 
     return result;
 }
+
+#endif

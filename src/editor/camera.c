@@ -1,4 +1,7 @@
 #include <BVR/editor/camera.h>
+
+#ifndef BVR_NO_NUKLEAR
+
 #include <BVR/window.h>
 
 void bvr_init_free_camera(bvr_book_t* book, struct bvr_free_camera_s* _camera_controller, float movement_speed, float rotation_speed){
@@ -39,3 +42,5 @@ void bvr_update_free_camera(bvr_book_t* book, struct bvr_free_camera_s* _camera_
 
     book->page->camera.field_of_view.scale += book->window.inputs.scroll * _camera_controller->forward_speed * book->timer.delta_time;
 }
+
+#endif

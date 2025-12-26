@@ -1,6 +1,7 @@
 #define BVR_INCLUDE_GEOMETRY
 #define BVR_MAX_PAGE_COUNT 2
 
+#define BVR_INCLUDE_NUKLEAR
 #include <BVR/bvr.h>
 #include <BVR/editor/editor.h>
 

@@ -14,17 +14,24 @@ Beauvoir can be compiled through **CMake** into Makefiles and Visual Studio solu
 
 You can compile Beauvoir as a shared library and use it with your own project (Cmake templates can be find inside the demo folder). However, you can build it as a single project by using Cmake's flag ```-D BVR_MAIN_FILE=``` (e.g. ```-BVR_MAIN_FILE='demo/image_viewer.c'```) to define your own main file.
 
-### Building for Windows
-- To generate Makefiles on Windows, you can run 
-```cmake -G="MinGW Makefiles" -B build -D BVR_MAIN_FILE='demo/empty_game.c'```. 
-
-- To generate Visual Studio solutions, use 
-```cmake -G="Visual Studio 17 2022" -B build -D BVR_MAIN_FILE='demo/empty_game.c'```. Then, open the generated ```.sln``` file or build using ```cmake --build build --config Release```. After that, link the binaries inside Visual Studio.
-
 ### Binaries
 Precompiled Windows x64 binaries can be found inside the [Bin](/bin/) directory. But you can build binaries and libraries on your own by using ```build.sh``` or ```build.bat``` scipts.
 
 *You can define your own CMake build target and compiler by changing "BVR_GENERATOR" and "BVR_CC" (or "BVR_CXX") variables in either of those files.*
+
+### Install
+In order to install Beauvoir to your project directory, you can Cmake
+- To create MinGW Makefiles
+```Sh
+cmake . -G="MinGW Makefiles" -DCMAKE_INSTALL_PREFIX="./build"
+make install
+```
+- To create a new Visual Studio Solution 
+```Sh
+cmake . -G="Visual Studio 17 2022" -DCMAKE_INSTALL_PREFIX="./build"
+make install
+```
+Then, you can copy ```bin/``` and ```lib/``` folders that you generates with build.sh into your project.
 
 ### Example
 In this example, you will get a simple player that move around.

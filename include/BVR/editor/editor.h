@@ -1,6 +1,9 @@
 #pragma once
 
 #include <BVR/gui.h>
+
+#ifndef BVR_NO_NUKLEAR
+
 #include <BVR/scene.h>
 
 #ifndef BVR_EDITOR_HIDDEN_INPUT
@@ -103,3 +106,5 @@ void bvr_editor_draw_inspector();
 void bvr_editor_render();
 
 void bvr_destroy_editor(bvr_editor_t* editor);
+
+#endif

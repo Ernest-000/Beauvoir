@@ -1,131 +1,148 @@
-cmake_minimum_required(VERSION 3.16.3)
+cmake_minimum_required(VERSION 3.16)
+project(beauvoir LANGUAGES C)
 
-project(beauvoir C)
+##
+# Options
+##
+option(BVR_TARGET_SHARED "Build shared library" OFF)
+option(BVR_TARGET_STATIC "Build static library" OFF)
 
-if(NOT DEFINED BVR_TARGET_SHARED)
-    set(BVR_TARGET_SHARED OFF)
+##
+# Paths
+##
+set(BVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(BVR_SOURCE_DIR ${BVR_ROOT_DIR}/src)
+set(BVR_INCLUDE_DIR ${BVR_ROOT_DIR}/include)
+set(BVR_LIB_DIR ${BVR_ROOT_DIR}/lib)
+set(BVR_BUILD_DIR ${BVR_ROOT_DIR}/build)
+set(BVR_BIN_DIR ${BVR_ROOT_DIR}/bin)
+set(BVR_DEMO_DIR ${BVR_ROOT_DIR}/dev)
+
+##
+# Main file (executable only)
+##
+if(NOT BVR_TARGET_SHARED AND NOT BVR_TARGET_STATIC)
+    set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/memory.c")
 endif()
 
-if(NOT DEFINED BVR_TARGET_STATIC)
-    set(BVR_TARGET_STATIC OFF)
+##
+# Third-party libraries
+##
+if(CMAKE_C_COMPILER_ID MATCHES "Clang|MSVC")
+    set(BVR_THIRD_PARTY_LIBS
+        SDL3.lib portaudio.lib zsd.lib libpng16d.lib libjson-c.lib)
+else()
+    set(BVR_THIRD_PARTY_LIBS
+        libSDL3.dll.a libportaudio.dll.a libz.dll.a libpng16.dll.a libjson-c.dll.a)
 endif()
 
-if(NOT DEFINED BVR_DEBUG)
-    set(BVR_DEBUG OFF)
-endif()
-
-# Setting up beauvoir paths
-if(NOT DEFINED BVR_CURRENT_DIR)
-    set(BVR_CURRENT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-endif()
-
-set(BVR_SOURCE_DIR ${BVR_CURRENT_DIR}/src/)
-set(BVR_INCLUDE_DIR ${BVR_CURRENT_DIR}/include/)
-set(BVR_LIB_DIR ${BVR_CURRENT_DIR}/lib/)
-set(BVR_BUILD_DIR ${BVR_CURRENT_DIR}/build/)
-set(BVR_BINARY_DIR ${BVR_CURRENT_DIR}/bin/)
-
-set(BVR_DEMO_DIR ${BVR_CURRENT_DIR}/dev/)
-
-# ----------- DEV VARIABLES
-# set(BVR_TARGET_SHARED TRUE)
-# set(BVR_TARGET_STATIC TRUE)
-# ----------- DEV VARIABLES
-
-# Define main file
-# Development only
-if(NOT ${BVR_TARGET_SHARED} OR NOT ${BVR_TARGET_STATIC})
-    if (NOT DEFINED BVR_MAIN_FILE)
-        set(BVR_DEBUG OFF)
-        # set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/landscape.c")
-        # set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/model_viewer.c")
-        set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/memory.c")
-    endif()
-endif()
-
-## Check for modules
 set(BVR_THIRD_PARTY_MODULES "")
-set(BVR_THIRD_PARTY_MODULES_NAMES "SDL" "PortAudio" "Zlib" "LPng" "json-c")
-
-if(("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang") OR ("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC"))
-    set(BVR_THIRD_PARTY_MODULES_PATH "SDL3.lib" "portaudio.lib" "zsd.lib" "libpng16d.lib" "libjson-c.lib")
-else()
-    set(BVR_THIRD_PARTY_MODULES_PATH "libSDL3.dll.a" "libportaudio.dll.a" "libz.dll.a" "libpng16.dll.a" "libjson-c.dll.a")
-endif()
-
-# Check for submodules
-# foreach(BVR_THIRD_PARTY_MODULES_ITEM ${BVR_THIRD_PARTY_MODULES_NAMES})
-#     set(BVR_THIRD_PARTY_MODULES_ITEM_PATH "${BVR_CURRENT_DIR}/extern/${BVR_THIRD_PARTY_MODULES_ITEM}")
-# 
-#     if(EXISTS ${BVR_THIRD_PARTY_MODULES_ITEM_PATH})
-#         message("found ${BVR_THIRD_PARTY_MODULES_ITEM} (${BVR_THIRD_PARTY_MODULES_ITEM_PATH})")
-#     else()
-#         message(FATAL_ERROR "cannot find ${BVR_THIRD_PARTY_MODULES_ITEM} (${BVR_THIRD_PARTY_MODULES_ITEM_PATH})")
-#     endif()
-# endforeach()
-
-foreach(BVR_THIRD_PARTY_MODULES_ITEM ${BVR_THIRD_PARTY_MODULES_PATH})
-    if(EXISTS ${BVR_LIB_DIR}/${BVR_THIRD_PARTY_MODULES_ITEM})
-        list(APPEND BVR_THIRD_PARTY_MODULES "${BVR_LIB_DIR}/${BVR_THIRD_PARTY_MODULES_ITEM}")
-        message("found ${BVR_THIRD_PARTY_MODULES_ITEM}!")
+foreach(lib ${BVR_THIRD_PARTY_LIBS})
+    if(EXISTS "${BVR_LIB_DIR}/${lib}")
+        list(APPEND BVR_THIRD_PARTY_MODULES "${BVR_LIB_DIR}/${lib}")
+        message("Found ${lib}")
     else()
-        message(FATAL_ERROR "${BVR_THIRD_PARTY_MODULES_ITEM} does not exists")
+        message(FATAL_ERROR "Missing third-party library: ${lib}")
     endif()
 endforeach()
 
+##
+# Packages
+##
+find_package(OpenGL REQUIRED)
 
-## add OpenGL package
-set(BVR_THIRD_PARTY_PACKAGES "OpenGL")
-foreach(BVR_THIRD_PARTY_PACKAGES_ITEM ${BVR_THIRD_PARTY_PACKAGES})
-    find_package(${BVR_THIRD_PARTY_PACKAGES_ITEM} REQUIRED)
-endforeach()
-
-include_directories(${BVR_INCLUDE_DIR})
-
-if(${BVR_DEBUG})
-    message("setup for debugging")
-else()
-    # add_compile_options(-g)
-    add_compile_options(-g  -w)
-    message("setup for release")
-endif()
-
-## Create library or executable depends on the compilation mode
-if(${BVR_TARGET_SHARED})
+##
+# Target creation
+##
+if(BVR_TARGET_SHARED)
     add_library(beauvoir SHARED)
-    message("Successfully create a new shared library")
-elseif(${BVR_TARGET_STATIC})
+elseif(BVR_TARGET_STATIC)
     add_library(beauvoir STATIC)
-    message("Successfully create a new static library")
 else()
     add_executable(beauvoir ${BVR_MAIN_FILE})
-    message("Successfully create a new executable")
 endif()
 
-## Link libs
+##
+# Sources
+##
+file(GLOB_RECURSE BVR_ENGINE_SOURCES "${BVR_SOURCE_DIR}/*.c")
+file(GLOB_RECURSE BVR_EDITOR_SOURCES "${BVR_SOURCE_DIR}/editor/*.c")
+
+target_sources(beauvoir PRIVATE
+    ${BVR_ENGINE_SOURCES}
+    ${BVR_EDITOR_SOURCES}
+)
+
+##
+# Includes (BUILD/INSTALL interface)
+##
+target_include_directories(beauvoir
+    PUBLIC
+        $<BUILD_INTERFACE:${BVR_INCLUDE_DIR}>
+        $<BUILD_INTERFACE:${BVR_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:include>
+)
+
+##
+# Link libraries
+##
 target_link_libraries(beauvoir PUBLIC
-    ${OPENGL_LIBRARIES}
+    OpenGL::GL
     ${BVR_THIRD_PARTY_MODULES}
 )
 
-target_include_directories(beauvoir PUBLIC ${BVR_SOURCE_DIR})
-
-## Include engine c files
-file(GLOB_RECURSE SOURCES "${BVR_SOURCE_DIR}/*.c")
-target_sources(beauvoir PRIVATE ${SOURCES})
-
-## Include editor c files
-file(GLOB_RECURSE SOURCES "${BVR_SOURCE_DIR}/editor/*.c")
-target_sources(beauvoir PRIVATE ${SOURCES})
-
-set_target_properties(beauvoir PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${BVR_BIN_DIR}"
-    ARCHIVE_OUTPUT_DIRECTORY "${BVR_BUILD_DIR}"
-    LIBRARY_OUTPUT_DIRECTORY "${BVR_BUILD_DIR}"
+##
+# Compiler flags (multi-config)
+##
+target_compile_definitions(beauvoir PRIVATE
+    $<$<CONFIG:Debug>:BVR_DEBUG>
+    $<$<CONFIG:Release>:NDEBUG>
 )
 
-if("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
-    set_target_properties(beauvoir PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${BVR_BIN_DIR})
-    set_target_properties(beauvoir PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG ${BVR_BUILD_DIR})
-    set_target_properties(beauvoir PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE ${BVR_BUILD_DIR})
-endif()
+target_compile_options(beauvoir PRIVATE
+    $<$<CONFIG:Debug>:
+        $<$<C_COMPILER_ID:GNU,Clang>:-g -O0 -Wall -Wextra>
+        $<$<C_COMPILER_ID:MSVC>:/Zi /Od /W4>
+    >
+    $<$<CONFIG:Release>:
+        $<$<C_COMPILER_ID:GNU,Clang>:-O3>
+        $<$<C_COMPILER_ID:MSVC>:/O2>
+    >
+)
+
+##
+# C standard
+##
+set_target_properties(beauvoir PROPERTIES
+    C_STANDARD 11
+    C_STANDARD_REQUIRED ON
+)
+
+##
+# Output directories
+##
+set_target_properties(beauvoir PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${BVR_BIN_DIR}
+    ARCHIVE_OUTPUT_DIRECTORY ${BVR_BUILD_DIR}
+    LIBRARY_OUTPUT_DIRECTORY ${BVR_BUILD_DIR}
+)
+
+##
+# Installation & export
+##
+install(TARGETS beauvoir
+    EXPORT beauvoirTargets
+    RUNTIME DESTINATION ${BVR_BIN_DIR}
+    LIBRARY DESTINATION ${BVR_BUILD_DIR}
+    ARCHIVE DESTINATION ${BVR_BUILD_DIR}
+)
+
+install(EXPORT beauvoirTargets
+    FILE beauvoirConfig.cmake
+    NAMESPACE beauvoir::
+    DESTINATION lib/cmake/beauvoir
+)
+
+install(DIRECTORY ${BVR_INCLUDE_DIR}/ DESTINATION include)
+install(DIRECTORY ${BVR_LIB_DIR}/ DESTINATION lib)
+install(DIRECTORY ${BVR_BIN_DIR}/ DESTINATION bin)

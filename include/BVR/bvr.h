@@ -9,10 +9,12 @@
 #include <BVR/assets.h>
 #include <BVR/assets.book.h>
 
-#ifdef BVR_INCLUDE_NUKLEAR
+#ifndef BVR_NO_NUKLEAR
     #define NK_INCLUDE_FIXED_TYPES 
-    #include <BVR/gui.h>
     #include <nuklear.h>
+
+    #include <BVR/gui.h>
+    
 #endif
 
 #endif

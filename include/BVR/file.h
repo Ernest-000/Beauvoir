@@ -14,7 +14,7 @@
 /*
     Return size of a file.
 */
-uint64 bvr_get_file_size(FILE* file);
+uint64 bvr_fsize(FILE* file);
 
 /*
     Read all the file and copy data into a string.

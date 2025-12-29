@@ -1,6 +1,5 @@
 /* include all Beauvoir's headers */
 #define BVR_INCLUDE_GEOMETRY
-#define BVR_INCLUDE_NUKLEAR
 #include <BVR/bvr.h>
 #include <BVR/editor/editor.h>
 
@@ -8,7 +7,7 @@
 static bvr_book_t book;
 static bvr_editor_t editor;
 
-static void _draw_editor(bvr_nuklear_t* gui, bvr_book_t* _);
+static void _draw_editor(bvr_canvas_t* gui, bvr_book_t* _);
 static void _actor_callback(struct bvr_actor_s* self);
 static void _dialogue_box_callback(bvr_string_t* string);
 
@@ -58,26 +57,17 @@ int main(){
         }
 
         /* update colliders and physics */
-        //bvr_update(&book);
-
-        if(target_image){
-
-        }
-        else {
-        }
+        bvr_update(&book);
         
-        /*bvr_draw_actor(&p_mesh->self, BVR_DRAWMODE_TRIANGLES);
-        // previous actors need to be flushed to appears on the composite
+        bvr_draw_actor(&p_mesh->self, BVR_DRAWMODE_TRIANGLES);
+        bvr_draw_actor(&p_image->self, BVR_DRAWMODE_TRIANGLES);
+
         bvr_flush(&book);
 
-        bvr_draw_actor(&p_image->self, BVR_DRAWMODE_TRIANGLES);
-        bvr_flush(&book);
-        */
-        // draw editor
-        // bvr_editor_handle();
-        // bvr_editor_draw_page_hierarchy();
-        // bvr_editor_draw_inspector();
-        // bvr_editor_render();
+        bvr_editor_handle();
+        bvr_editor_draw_page_hierarchy();
+        bvr_editor_draw_inspector();
+        bvr_editor_render();
 
         /* push Beauvoir's graphics to the window */
         bvr_render(&book);
@@ -110,7 +100,7 @@ static void _dialogue_box_callback(bvr_string_t* string){
 }
 
 // nuklear callback
-static void _draw_editor(struct bvr_nuklear_s* gui, bvr_book_t* _){}
+static void _draw_editor(struct bvr_canvas_s* gui, bvr_book_t* _){}
 
 // actor callback
 static void _actor_callback(struct bvr_actor_s* self){}

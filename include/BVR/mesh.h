@@ -119,7 +119,7 @@ void bvr_triangulate(bvr_mesh_buffer_t* src, bvr_mesh_buffer_t* dest, const uint
 
 void bvr_destroy_mesh(bvr_mesh_t* mesh);
 
-#ifdef BVR_INCLUDE_GEOMETRY
+#ifndef BVR_NO_GEOMETRY
 
 BVR_H_FUNC void bvr_create_2d_square_mesh(bvr_mesh_t* mesh, float width, float height){
     float vertices[16] = {

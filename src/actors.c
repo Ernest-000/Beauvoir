@@ -418,7 +418,7 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     bvr_composite_enable(&actor->composite, &actor->self.transform);
 
     // update composite texture reference
-    bvr_shader_set_uniformi(
+    bvr_shader_set_uniform_raw(
         bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_COMPOSITE),
         &actor->composite.tex
     );
@@ -441,10 +441,10 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
         identity[3][1] = (float)layer->anchor_y / actor->texture.image.height;
 
         // update transform's value
-        bvr_shader_set_uniformi(&actor->shader.uniforms[0], identity);
+        bvr_shader_set_uniform_raw(&actor->shader.uniforms[0], identity);
 
         // update layer info
-        bvr_shader_set_uniformi(
+        bvr_shader_set_uniform_raw(
             bvr_find_uniform_tag(&actor->shader, BVR_UNIFORM_LAYER_INDEX),
             &layer_info
         );
@@ -485,7 +485,7 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     }
 
     // update transform
-    bvr_shader_set_uniformi(
+    bvr_shader_set_uniform_raw(
         bvr_find_uniform_tag(cmd.shader, BVR_UNIFORM_TRANSFORM),
         actor->self.transform.matrix
     );
@@ -509,7 +509,7 @@ static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){
     struct bvr_draw_command_s cmd;
 
     // update transform
-    bvr_shader_set_uniformi(&actor->shader.uniforms[0], actor->self.transform.matrix);
+    bvr_shader_set_uniform_raw(&actor->shader.uniforms[0], actor->self.transform.matrix);
     
     cmd.order = actor->self.order_in_layer;
 
@@ -565,7 +565,7 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     bvr_static_actor_t* _actor = (bvr_static_actor_t*)actor;
 
     // update actor's transform
-    bvr_shader_set_uniformi(&_actor->shader.uniforms[0], actor->transform.matrix);
+    bvr_shader_set_uniform_raw(&_actor->shader.uniforms[0], actor->transform.matrix);
 
     // create the draw command
     struct bvr_draw_command_s cmd;

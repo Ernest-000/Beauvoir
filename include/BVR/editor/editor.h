@@ -27,10 +27,10 @@ enum bvr_editor_state_e {
     BVR_EDITOR_STATE_RENDERING
 };
 
-typedef void (*_bvr_editor_callback)(bvr_nuklear_t* context, bvr_book_t* book);
+typedef void (*_bvr_editor_callback)(bvr_canvas_t* context, bvr_book_t* book);
 
 typedef struct bvr_editor_s {
-    bvr_nuklear_t gui;
+    bvr_canvas_t gui;
     bvr_book_t* book;
 
     enum bvr_editor_state_e state;

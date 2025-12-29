@@ -1142,7 +1142,7 @@ static int bvri_load_fbx(bvr_mesh_t* mesh, FILE* file){
     BVR_ASSERT(endian == 0x0 || "big endian fbx not supported");
     
     object.readed_bytes = ftell(file);
-    object.total_bytes = bvr_get_file_size(file);
+    object.total_bytes = bvr_fsize(file);
 
     bool eof = 0;
     while (object.readed_bytes < object.total_bytes - BVR_FBX_FOOTER_LENGTH || eof)

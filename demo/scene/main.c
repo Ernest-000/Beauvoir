@@ -3,7 +3,6 @@
 */
 
 /* include all Beauvoir's headers */
-#define BVR_INCLUDE_GEOMETRY
 #include <BVR/bvr.h>
 #include <BVR/editor/editor.h>
 

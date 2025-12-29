@@ -4,7 +4,7 @@
 #include <malloc.h>
 #include <memory.h>
 
-uint64 bvr_get_file_size(FILE* file){
+uint64 bvr_fsize(FILE* file){
     uint64 cursor = ftell(file);
     
     fseek(file, 0, SEEK_END);
@@ -23,7 +23,7 @@ int bvr_read_file(bvr_string_t* string, FILE* file){
     }
     else {
         // TODO: check if size is correct
-        string->length = bvr_get_file_size(file) - ftell(file);
+        string->length = bvr_fsize(file) - ftell(file);
         string->string = malloc(string->length + 1);
         BVR_ASSERT(string->string);
 

@@ -31,6 +31,9 @@
 #define BVR_DEPTH_FUNC_NOTEQUAL 0x080
 #define BVR_DEPTH_FUNC_EQUAL    0x100
 
+#define BVR_SCISSORS_DISABLE 0x00
+#define BVR_SCISSORS_ENABLE 0x01
+
 #define BVR_MAX_DRAW_COMMAND 258
 
 typedef struct bvr_framebuffer_s {
@@ -72,6 +75,11 @@ typedef struct bvr_pipeline_s {
      */
     struct bvr_pipeline_state_s rendering_pass;
     
+    /**
+     *    State use to render GUI to the screen
+     */
+    struct bvr_pipeline_state_s gui_pass;
+
     /**
      *    State use to push the rendering framebuffer 
      *    to the window framebuffer.
@@ -139,6 +147,13 @@ BVR_H_FUNC int bvr_pipeline_compare_commands(const void* a, const void* b){
     return (((struct bvr_draw_command_s*)a)->order - ((struct bvr_draw_command_s*)b)->order);
 }
 
+/**
+ * @brief Create a new framebuffer object.
+ * @param framebuffer
+ * @param width framebuffer's width
+ * @param height framebuffer's height
+ * @param shader framebuffer's shader path. If NULL, it will use the default framebuffer shader.
+ */
 int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, const uint16 width, const uint16 height, const char* shader);
 
 /**

@@ -42,6 +42,10 @@ int bvr_create_book(bvr_book_t *book)
     book->pipeline.rendering_pass.depth = BVR_DEPTH_FUNC_LESS;
     book->pipeline.rendering_pass.flags = 0;
 
+    book->pipeline.gui_pass.blending = BVR_BLEND_FUNC_ALPHA_ADD;
+    book->pipeline.gui_pass.depth = BVR_DEPTH_TEST_DISABLE;
+    book->pipeline.gui_pass.flags = BVR_SCISSORS_ENABLE;
+
     book->pipeline.swap_pass.blending = BVR_BLEND_DISABLE;
     book->pipeline.swap_pass.depth = BVR_DEPTH_TEST_DISABLE;
     book->pipeline.swap_pass.flags = 0;
@@ -193,14 +197,15 @@ void bvr_flush(bvr_book_t *book)
 {
     // WARN: i did that because it works but idk
     // when there is only one element to draw, things get overwritten :<
-    //if(book->pipeline.command_count > 1){
-    //    // sort draw command by using their 'order'
-    //    qsort(book->pipeline.commands,
-    //        book->pipeline.command_count,
-    //        sizeof(struct bvr_draw_command_s),
-    //        bvr_pipeline_compare_commands
-    //    );
-    //}
+    
+    if(book->pipeline.command_count > 1){
+        // sort draw command by using their 'order'
+        qsort(book->pipeline.commands,
+            book->pipeline.command_count,
+            sizeof(struct bvr_draw_command_s),
+            bvr_pipeline_compare_commands
+        );
+    }
 
     // draw each command
     for (uint64 i = 0; i < book->pipeline.command_count; i++)

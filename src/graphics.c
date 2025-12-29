@@ -15,11 +15,19 @@ static void bvri_pipeline_restore_depth(struct bvr_pipeline_state_s* const state
 void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
     bvri_pipeline_restore_blending(state);
     bvri_pipeline_restore_depth(state);
+
+    // flags
+    glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_CULL_FACE);
+    
+    if(BVR_HAS_FLAG(state->flags, BVR_SCISSORS_ENABLE)){
+        glEnable(GL_SCISSOR_TEST);
+    }
 }
 
 void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
     // try to apply local uniform
-    bvr_shader_set_uniformi(
+    bvr_shader_set_uniform_raw(
         bvr_find_uniform_tag(cmd->shader, BVR_UNIFORM_LOCAL_TRANSFORM), 
         cmd->vertex_group.matrix
     );
@@ -239,7 +247,7 @@ void bvr_framebuffer_blit(bvr_framebuffer_t* framebuffer){
         0.0f, 0.1f
     );
 
-    BVR_ASSERT(bvr_shader_set_uniformi(
+    BVR_ASSERT(bvr_shader_set_uniform_raw(
         &shader->uniforms[0], &ortho[0][0]
     ));
 
@@ -286,7 +294,7 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
 
     /* invalid shader */
     {
-        vertex_shader = "#version 400\n"
+        vertex_shader = BVR_SHADER_VERSION
             "layout(location=0) in vec3 in_position;\n"
             "layout(location=1) in vec2 in_uvs;\n"
             "uniform mat4 bvr_transform;\n"
@@ -321,7 +329,7 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
 
     /* framebuffer shader */
     {
-        vertex_shader = "#version 400\n"
+        vertex_shader = BVR_SHADER_VERSION
             "layout(location=0) in vec2 in_position;\n"
             "layout(location=1) in vec2 in_uvs;\n"
             "uniform mat4 bvr_transform;\n"
@@ -408,17 +416,22 @@ static void bvri_pipeline_restore_blending(struct bvr_pipeline_state_s* const st
 
     if(state->blending){
         glEnable(GL_BLEND);
+        
         switch(state->blending)
         {
         case BVR_BLEND_FUNC_ALPHA_ONE_MINUS:
+            glBlendEquation(GL_FUNC_ADD);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             break;
         case BVR_BLEND_FUNC_ALPHA_ADD:
-            glBlendFunc(GL_ONE, GL_ONE);
+            glBlendEquation(GL_FUNC_ADD);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             break;
         case BVR_BLEND_FUNC_ALPHA_MULT:
-            glBlendFunc(GL_ONE, GL_SRC_COLOR);
+            glBlendEquation(GL_FUNC_ADD);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             break;
+            
         default:
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             break;

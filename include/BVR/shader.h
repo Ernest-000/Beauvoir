@@ -7,6 +7,11 @@
 
 #include <stdint.h>
 
+// Default GLSL's version
+#ifndef BVR_SHADER_VERSION 
+    #define BVR_SHADER_VERSION "#version 400\n"
+#endif
+
 #define BVR_UNIFORM_CAMERA_NAME "bvr_camera"
 #define BVR_UNIFORM_TRANSFORM_NAME "bvr_transform"
 
@@ -165,9 +170,9 @@ BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform(bvr_shader_t* shader, const ch
  * @param data a pointer to the data that will be referenced as uniform's value
  * @return 
  */
-int bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data);
-BVR_H_FUNC int bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, void* texture){
-    return bvr_shader_set_uniformi(uniform, texture);
+int bvr_shader_set_uniform_raw(bvr_shader_uniform_t* uniform, void* data);
+BVR_H_FUNC int bvr_shader_set_texture_raw(bvr_shader_uniform_t* uniform, void* texture){
+    return bvr_shader_set_uniform_raw(uniform, texture);
 }
 
 /**
@@ -179,7 +184,7 @@ BVR_H_FUNC int bvr_shader_set_texturei(bvr_shader_uniform_t* uniform, void* text
  */
 int bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data);
 BVR_H_FUNC int bvr_shader_set_texture(bvr_shader_t* shader, const char* name, void* texture){
-    return bvr_shader_set_uniformi(bvr_find_uniform(shader, name), texture);
+    return bvr_shader_set_uniform_raw(bvr_find_uniform(shader, name), texture);
 }
 
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data);

@@ -413,7 +413,7 @@ int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int 
     }
     else {
         shader->blocks[0].location = 0;
-        shader->block_count--;
+        shader->block_count = 0;
     }
 
     return BVR_TRUE;
@@ -567,7 +567,7 @@ bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* 
     }
 }
 
-int bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data){
+int bvr_shader_set_uniform_raw(bvr_shader_uniform_t* uniform, void* data){
     if(!uniform) {
         return BVR_FALSE;
     }
@@ -587,7 +587,7 @@ int bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data){
     BVR_ASSERT(shader);
     BVR_ASSERT(name);
 
-    return bvr_shader_set_uniformi(bvr_find_uniform(shader, name), data);
+    return bvr_shader_set_uniform_raw(bvr_find_uniform(shader, name), data);
 }
 
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
@@ -597,7 +597,7 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
 
     // if uniform is not initialize
     if(uniform->location == -1){
-        BVR_PRINTF("cannot find uniform %s", uniform->name.string);
+        // BVR_PRINTF("cannot find uniform %s", uniform->name.string);
         return;
     }
 
@@ -673,8 +673,8 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
 
 void bvr_shader_enable(bvr_shader_t* shader){
     glUseProgram(shader->program);
-    
-    // start at one it order to omit transform uniform
+
+    // iterate through each uniforms
     for (uint64 uniform = 0; uniform < shader->uniform_count; uniform++)
     {
         bvr_shader_use_uniform(&shader->uniforms[uniform], NULL);

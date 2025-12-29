@@ -6,8 +6,6 @@
 #include <BVR/physics.h>
 #include <BVR/math.h>
 
-#include <stdio.h>
-
 /*
     Does not destroy the actor when freeing the page
 */

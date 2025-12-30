@@ -162,6 +162,11 @@ typedef struct bvr_window_s {
     void* handle;
     void* context;
 
+    int flags;
+    int events;
+
+    bool awake, focus;
+
     bvr_framebuffer_t framebuffer;
     
     struct {
@@ -185,9 +190,13 @@ typedef struct bvr_window_s {
         } axis;
     } inputs;
 
-    int events;
-    int wflags;
-    bool awake, focus;
+    struct {
+        char version[32];
+        char name[32];
+
+        char gl_version[32];
+        char glsl_version[32];
+    } vendor;
 } bvr_window_t;
 
 int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 height, const char* title, const int flags);

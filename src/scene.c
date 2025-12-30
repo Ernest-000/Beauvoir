@@ -53,7 +53,6 @@ int bvr_create_book(bvr_book_t *book)
     BVR_IDENTITY_VEC3(book->pipeline.clear_color);
 
     book->pipeline.state.framebuffer = NULL;
-    book->pipeline.state.command = NULL;
 
     book->pipeline.command_count = 0;
     memset(&book->pipeline.commands, 0, sizeof(book->pipeline.commands));
@@ -74,7 +73,7 @@ int bvr_create_book(bvr_book_t *book)
         &book->garbage_stream,
         (BVR_MAX_SCENE_ACTOR_COUNT + BVR_MAX_SCENE_LIGHT_COUNT) * BVR_SCENE_PADDING
     );
-
+    
     return BVR_TRUE;
 }
 
@@ -116,7 +115,6 @@ void bvr_new_frame(bvr_book_t *book)
 
     // reset pipeline
     book->pipeline.command_count = 0;
-    book->pipeline.state.command = NULL;
 
     /* calculate camera matrices */
     bvr_update_camera(&book->page->camera);
@@ -262,16 +260,10 @@ void bvr_render(bvr_book_t *book)
 void bvr_destroy_book(bvr_book_t *book)
 {
     // try to destroy the window
-    if (book->window.context)
-    {
-        bvr_destroy_window(&book->window);
-    }
+    bvr_destroy_window(&book->window);
 
     // try to destroy the audio stream
-    if (book->audio.stream)
-    {
-        bvr_destroy_audio_stream(&book->audio);
-    }
+    bvr_destroy_audio_stream(&book->audio);
 
     // destroy current page
     bvr_destroy_page(book->page);

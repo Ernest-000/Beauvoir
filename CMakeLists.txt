@@ -22,7 +22,7 @@ set(BVR_DEMO_DIR ${BVR_ROOT_DIR}/dev)
 # Main file (executable only)
 ##
 if(NOT BVR_TARGET_SHARED AND NOT BVR_TARGET_STATIC)
-    set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/memory.c")
+    # set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/memory.c")
 endif()
 
 ##
@@ -30,10 +30,10 @@ endif()
 ##
 if(CMAKE_C_COMPILER_ID MATCHES "Clang|MSVC")
     set(BVR_THIRD_PARTY_LIBS
-        SDL3.lib portaudio.lib zsd.lib libpng16d.lib libjson-c.lib)
+        SDL3.lib zsd.lib libpng16d.lib libjson-c.lib)
 else()
     set(BVR_THIRD_PARTY_LIBS
-        libSDL3.dll.a libportaudio.dll.a libz.dll.a libpng16.dll.a libjson-c.dll.a)
+        libSDL3.dll.a libz.dll.a libpng16.dll.a libjson-c.dll.a)
 endif()
 
 set(BVR_THIRD_PARTY_MODULES "")

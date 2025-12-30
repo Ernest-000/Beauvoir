@@ -1,77 +1,42 @@
 #include <BVR/audio.h>
-#include <BVR/config.h>
 
-#include <portaudio.h>
+#include <SDL3/SDL_audio.h>
 
-static int bvri_audio_callback(const void* input, void* output,
-        unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo* time, 
-        PaStreamCallbackFlags flags, void* data){
-    
-    bvr_audio_buffer_t* buffer = (bvr_audio_buffer_t*) data;
-    float* outbuffer = (float*)output;
-
-    for(uint32 i = 0; i < framesPerBuffer; i++){
-        *outbuffer++ = buffer->left_phase;
-        *outbuffer++ = buffer->right_phase;
-
-        buffer->left_phase += 0.3f;
-        buffer->right_phase += 0.1f;
-        if(buffer->left_phase >= 1.0f) buffer->left_phase -= 2.0f;
-        if(buffer->right_phase >= 1.0f) buffer->right_phase -= 2.0f;
-    }
-
-    return 0;
+static void bvri_audio_callback(void* stream, SDL_AudioStream* sdl, int additional_amount, int total_amount){
+    const bvr_audio_stream_t* self = (bvr_audio_stream_t*)stream;
 }
 
-void bvr_audio_play(bvr_audio_stream_t* stream){
+int bvr_create_audio_ouput(bvr_audio_stream_t* stream, const int sample_rate, const uint8 channels){
     BVR_ASSERT(stream);
-    if(stream->stream){
-        Pa_StartStream(stream->stream);
-    }
-}
+    BVR_ASSERT(sample_rate > 0);
 
-void bvr_audio_stop(bvr_audio_stream_t* stream){
-    BVR_ASSERT(stream);
-    if(stream->stream){
-        Pa_StopStream(stream->stream);
-    }
-}
+    SDL_AudioSpec config;
+    config.channels = channels;
+    config.format = SDL_AUDIO_F32;
+    config.freq = sample_rate;
 
-int bvr_create_audio_stream(bvr_audio_stream_t* stream, int sampleRate, int bufsize){
-    BVR_ASSERT(stream);
-
-    BVR_ASSERT(Pa_Initialize() == 0);
-
-    int status;
-    PaStreamParameters ouput;
-    
-    ouput.device = Pa_GetDefaultOutputDevice();
-    if(ouput.device == paNoDevice){
-        // there is no device
-        BVR_ASSERT(0);
-    }
-
-    const PaDeviceInfo* info = Pa_GetDeviceInfo(ouput.device);
-    BVR_PRINTF("Audio Interface %s", info->name);
-
-    ouput.channelCount = 2;
-    ouput.sampleFormat = paFloat32;
-    ouput.suggestedLatency = info->defaultLowOutputLatency;
-    ouput.hostApiSpecificStreamInfo = NULL;
-
-    status = Pa_OpenStream(&stream->stream, NULL, 
-        &ouput, sampleRate, bufsize, paNoFlag, bvri_audio_callback, &stream->buffer
+    stream->device_id = BVR_AUDIO_DEFAULT_OUTPUT;
+    stream->context = SDL_OpenAudioDeviceStream(
+        BVR_AUDIO_DEFAULT_OUTPUT, &config, 
+        bvri_audio_callback, stream
     );
-    BVR_ASSERT(status == 0);
 
-    stream->channels = 2;
-    stream->sample_rate = sampleRate;
-    stream->frame_per_buffer = bufsize;
+    BVR_ASSERT(stream->context);
+
+    stream->avail = true;
+    return BVR_TRUE;
 }
 
 void bvr_destroy_audio_stream(bvr_audio_stream_t* stream){
-    Pa_CloseStream(&stream->stream);
-    Pa_Terminate();
+    BVR_ASSERT(stream);
 
-    stream->stream = NULL;
+    SDL_CloseAudioDevice(stream->device_id);
+    stream->context = NULL;
+    stream->avail = false;
+}
+
+void bvr_audio_play(bvr_audio_stream_t* stream){
+}
+
+void bvr_audio_stop(bvr_audio_stream_t* stream){
 }

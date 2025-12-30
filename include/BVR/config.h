@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef BVR_VERSION
+    #define BVR_VERSION "v0.1"
+#endif
+
 #ifdef BVR_NO_INLINE
     #define BVR_H_FUNC static
 #else

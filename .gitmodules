@@ -1,9 +1,6 @@
 [submodule "extern/SDL"]
 	path = extern/SDL
 	url = https://github.com/libsdl-org/SDL
-[submodule "extern/PortAudio"]
-	path = extern/PortAudio
-	url = https://github.com/PortAudio/portaudio
 [submodule "extern/Nuklear"]
 	path = extern/Nuklear
 	url = https://github.com/Immediate-Mode-UI/Nuklear

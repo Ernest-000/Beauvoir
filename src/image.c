@@ -1162,7 +1162,6 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
                         for (uint64 column = 0; column < image_data_section.columns; column++)
                         {
 #ifndef BVR_NO_FLIP
-
                             image->pixels[
                                 (((strip + layer_anchor_y) * image->width + column + layer_anchor_x) * image->channels + image_data_section.channel) +
                                 (image->width * image->height * image->channels * layer)

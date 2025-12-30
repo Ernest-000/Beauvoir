@@ -94,9 +94,14 @@ typedef struct bvr_pipeline_s {
 
     vec3 clear_color;
 
+    /**
+     * Current pipeline state informations
+     */
     struct {
+        /**
+         * Current framebuffer
+         */
         bvr_framebuffer_t* framebuffer;
-        struct bvr_draw_command_s* command;
     } state;
 } bvr_pipeline_t;
 

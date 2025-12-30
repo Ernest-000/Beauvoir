@@ -234,7 +234,7 @@ int bvr_uuid_equals(bvr_uuid_t const a, bvr_uuid_t const b){
     return strncmp(a, b, sizeof(bvr_uuid_t)) == 0;
 }
 
-#ifdef BVR_INCLUDE_DEBUG
+#ifndef BVR_NO_DEBUG
 
 #define BVR_UTILS_BUFFER_SIZE 100
 
@@ -271,13 +271,13 @@ void bvri_wmessage(FILE* __stream, const int __line, const char* __file, const c
 }
 
 void bvri_wassert(const char* __message, const char* __file, unsigned long long __line){
-    bvri_wmessage(stderr, -1, 0, "assertion failed: %s, %s, line %i\n", __message, __file, __line);
+    bvri_wmessage(bvr_stdout, -1, 0, "assertion failed: %s, %s, line %i\n", __message, __file, __line);
 
     exit(0);
 }
 
 void bvri_wassert_break(const char* __message, const char* __file, unsigned long long __line){
-    bvri_wmessage(stderr, -1, 0, "assertion failed: %s, %s, line %i\n", __message, __file, __line);
+    bvri_wmessage(bvr_stdout, -1, 0, "assertion failed: %s, %s, line %i\n", __message, __file, __line);
 
 	bvri_break(__file, __line);
 }
@@ -287,7 +287,7 @@ int bvri_werror(const char* __message, int __code){
 }
 
 void bvri_break(const char* __file, unsigned long long __line){	
-	bvri_wmessage(stderr, __line, __file, "program break!");
+	bvri_wmessage(bvr_stdout, __line, __file, "program break!");
 
 #ifdef _WIN32
 	DebugBreak();

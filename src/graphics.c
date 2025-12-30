@@ -67,9 +67,6 @@ void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cmd->element_buffer);
 
     bvr_shader_disable();
-
-    // update pipeline state
-    bvr_get_instance()->pipeline.state.command = cmd;
 }
 
 void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd){
@@ -378,7 +375,7 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
             "	vec2 uvs;\n"
             "} vertex;\n"
             "void main() {\n"
-            "	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(in_position, 1.0, 1.0);\n"
+            "	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(in_position, 0.0, 1.0);\n"
             "	vertex.uvs = in_uvs;\n"
             "}";
         

@@ -6,7 +6,7 @@ set "BVR_GENERATOR=MinGW Makefiles"
 set "BVR_CC=gcc"
 set "BVR_CXX=c++"
 set "BVR_BUILD_DIR=%CD%\build"
-set "BVR_EXTERNAL_MODULES=SDL PortAudio Zlib Lpng json-c"
+set "BVR_EXTERNAL_MODULES=SDL Zlib Lpng json-c"
 
 git submodule deinit -f .
 git submodule update --init
@@ -32,10 +32,6 @@ for %%M in (%BVR_EXTERNAL_MODULES%) do (
     if exist "!MODULE_PATH!" (
         echo !MODULE_PATH! found!
         set "BVR_MODULE_FLAGS="
-
-        if "!MOD!"=="PortAudio" (
-            set "BVR_MODULE_FLAGS=-DPA_BUILD_SHARED_LIBS=ON -DPA_USE_WASAPI=OFF -DPA_USE_WDMKS=OFF -DPA_USE_WDMKS_DEVICE_INFO=OFF"
-        )
 
         del /f /q "%BVR_BUILD_DIR%\!MOD!\CMakeCache.txt" 2>nul
 

@@ -1,7 +1,7 @@
 #include <BVR/window.h>
 
-#include <BVR/scene.h>
 #include <BVR/common.h>
+#include <BVR/scene.h>
 
 #include <string.h>
 #include <memory.h>
@@ -16,7 +16,7 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     BVR_ASSERT(width > 0 && height > 0);
 
     // doesn't init SDL_INIT_VIDEO, otherwise Nuklear doesn't work :/
-    BVR_ASSERT(SDL_Init(SDL_INIT_EVENTS) == 1);
+    BVR_ASSERT(SDL_Init(SDL_INIT_EVENTS | SDL_INIT_AUDIO) == BVR_TRUE);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -34,14 +34,14 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     window->handle = NULL;
     window->context = NULL;
     
-    window->wflags = SDL_WINDOW_OPENGL;
-    window->wflags |= SDL_WINDOW_RESIZABLE * BVR_HAS_FLAG(flags, BVR_WINDOW_RESIZABLE);
-    window->wflags |= SDL_WINDOW_ALWAYS_ON_TOP * BVR_HAS_FLAG(flags, BVR_WINDOW_ALWAYS_ON_TOP);
-    window->wflags |= SDL_WINDOW_BORDERLESS * BVR_HAS_FLAG(flags, BVR_WINDOW_BORDERLESS);
-    window->wflags |= SDL_WINDOW_FULLSCREEN * BVR_HAS_FLAG(flags, BVR_WINDOW_FULLSCREEN);
+    window->flags = SDL_WINDOW_OPENGL;
+    window->flags |= SDL_WINDOW_RESIZABLE * BVR_HAS_FLAG(flags, BVR_WINDOW_RESIZABLE);
+    window->flags |= SDL_WINDOW_ALWAYS_ON_TOP * BVR_HAS_FLAG(flags, BVR_WINDOW_ALWAYS_ON_TOP);
+    window->flags |= SDL_WINDOW_BORDERLESS * BVR_HAS_FLAG(flags, BVR_WINDOW_BORDERLESS);
+    window->flags |= SDL_WINDOW_FULLSCREEN * BVR_HAS_FLAG(flags, BVR_WINDOW_FULLSCREEN);
 
     // create a new window
-    window->handle = SDL_CreateWindow(title, width, height, window->wflags);
+    window->handle = SDL_CreateWindow(title, width, height, window->flags);
     BVR_ASSERT(window->handle);
 
     // create a new context
@@ -70,7 +70,12 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
 
     // initialize GLAD
     BVR_ASSERT(gladLoadGLES2Loader((GLADloadproc)SDL_GL_GetProcAddress));
-    BVR_PRINT(glGetString(GL_VERSION));
+    
+    // set vendor informations
+    strncpy(window->vendor.version, "Beauvoir " BVR_VERSION, 31);
+    strncpy(window->vendor.name, glGetString(GL_VENDOR), 31);
+    strncpy(window->vendor.gl_version, glGetString(GL_VERSION), 31);
+    strncpy(window->vendor.glsl_version, glGetString(GL_SHADING_LANGUAGE_VERSION), 31);
 
     // check for extensions
     if(!GLAD_GL_EXT_copy_image || !GLAD_GL_EXT_copy_image){
@@ -220,7 +225,7 @@ void bvr_window_resize(bvr_window_t* window, const uint16 width, const uint16 he
         bvr_destroy_framebuffer(&window->framebuffer);
     }
     
-    if(BVR_HAS_FLAG(window->wflags, BVR_WINDOW_USER_FRAMEBUFFER)){
+    if(BVR_HAS_FLAG(window->flags, BVR_WINDOW_USER_FRAMEBUFFER)){
         bvr_create_framebuffer(&window->framebuffer, width, height, BVR_WINDOW_FRAMEBUFFER_PATH);
     }
     else {

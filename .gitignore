@@ -28,6 +28,7 @@ build/
 bin/
 lib/
 share/
+intern/
 CMakeFiles/
 licenses/
 cmake/
@@ -35,7 +36,6 @@ pkgconfig/
 x64/
 Testing/
 *.dir/
-
 
 # Beauvoir in-dev folders and files
 res/

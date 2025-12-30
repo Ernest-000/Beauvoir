@@ -4,7 +4,7 @@ BVR_GENERATOR="MinGW Makefiles"
 BVR_CC="gcc"
 BVR_CXX="g++"
 BVR_BULID_DIR="$PWD/build"
-BVR_EXTERNAL_MODULES="SDL PortAudio Zlib Lpng json-c"
+BVR_EXTERNAL_MODULES="SDL Zlib Lpng json-c"
 
 git submodule deinit -f .
 git submodule update --init
@@ -31,11 +31,7 @@ for MOD in $BVR_EXTERNAL_MODULES; do
         echo "$MODULE_PATH found!"
         BVR_MODULE_FLAGS="" 
 
-        if [ "$MOD" = "PortAudio" ]; then 
-            BVR_MODULE_FLAGS="-DPA_BUILD_SHARED_LIBS=ON -DPA_USE_WASAPI=OFF -DPA_USE_WDMKS=OFF -DPA_USE_WDMKS_DEVICE_INFO=OFF"
-        else 
-            BVR_MODULE_FLAGS=""
-        fi
+        BVR_MODULE_FLAGS=""
 
         rm "$BVR_BULID_DIR/$MOD/CMakeCache.txt"
         cmake "$MODULE_PATH/CmakeLists.txt" -G="$BVR_GENERATOR" -B="$BVR_BULID_DIR/$MOD" -D CMAKE_INSTALL_PREFIX="$PWD" "$BVR_MODULE_FLAGS" -DCMAKE_C_COMPILER="$BVR_CC" -DCMAKE_CXX_COMPILER="$BVR_CXX"

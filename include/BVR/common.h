@@ -11,6 +11,15 @@
     #include <unistd.h>
 #endif
 
+// Unused
+#ifdef RELEASE
+    static FILE* bvri_std_stream;
+
+    #define bvr_stdout bvri_std_stream
+#else   
+    #define bvr_stdout stdout
+#endif
+
 #define BVR_FALSE  0UL
 #define BVR_TRUE   1UL
 
@@ -41,10 +50,6 @@
 #define BVR_TEXTURE_2D_COMPOSITE    0x141D
 
 #define BVR_TEXTURE_2D_LAYER_STRUCT 0x141E
-
-#define BVR_INCLUDE_BUFFER
-#define BVR_INCLUDE_DEBUG
-#define BVR_INCLUDE_IO
 
 /*
     Returns a boolean. Check if 't' (which an int that determine a type) is a texture.
@@ -101,7 +106,7 @@ int bvr_uuid_equals(bvr_uuid_t const a, bvr_uuid_t const b);
 
 /*          DEBUG                   */
 /*                                  */
-#ifdef BVR_INCLUDE_DEBUG
+#ifndef BVR_NO_DEBUG
 
 char* bvri_string_format(const char* __string, ...);
 char* bvri_get_buffer();
@@ -116,19 +121,19 @@ void bvri_break(const char* __file, unsigned long long __line);
 #define BVR_MACRO_STR(macro) (char*)BVR_STR(macro)
 #define BVR_FORMAT(message, ...)(char*)(bvri_string_format(message, __VA_ARGS__))
 
-#define BVR_PRINT(message)(void)(bvri_wmessage(stdout, __LINE__, __FILE__, message))
-#define BVR_PRINTF(message, ...)(void)(bvri_wmessage(stdout, __LINE__, __FILE__, message, __VA_ARGS__))
+#define BVR_PRINT(message)(void)(bvri_wmessage(bvr_stdout, __LINE__, __FILE__, message))
+#define BVR_PRINTF(message, ...)(void)(bvri_wmessage(bvr_stdout, __LINE__, __FILE__, message, __VA_ARGS__))
 
-#define BVR_PRINT_VEC3(message, vec3)(void)(bvri_wmessage(stdout, __LINE__, __FILE__, "%s (%f %f %f)", message, vec3[0], vec3[1], vec3[2]))
+#define BVR_PRINT_VEC3(message, vec3)(void)(bvri_wmessage(bvr_stdout, __LINE__, __FILE__, "%s (%f %f %f)", message, vec3[0], vec3[1], vec3[2]))
 
 #ifndef BVR_ASSERT_FORCE_EXIT
-#define BVR_ASSERT(expression) (void) (                                         \
-    (((expression) == 0) ? bvri_wassert_break(#expression, __FILE__, __LINE__) : 0)  \
-)
+    #define BVR_ASSERT(expression) (void) (                                         \
+        (((expression) == 0) ? bvri_wassert_break(#expression, __FILE__, __LINE__) : 0)  \
+    )
 #elif
-#define BVR_ASSERT(expression) (void) (                                         \
-    (((expression) == 0) ? bvri_wassert(#expression, __FILE__, __LINE__) : 0)  \
-)
+    #define BVR_ASSERT(expression) (void) (                                         \
+        (((expression) == 0) ? bvri_wassert(#expression, __FILE__, __LINE__) : 0)  \
+    )
 #endif
 
 #define BVR_FILE_EXISTS(path) (void)(((access(path, F_OK) == 0) ? 0 : bvri_wassert(path, __FILE__, __LINE__)))

@@ -33,7 +33,7 @@ int main(){
     bvr_create_editor(&editor, &book);
     
     /* create an audio stream */
-    bvr_create_audio_stream(&book.audio, BVR_DEFAULT_SAMPLE_RATE, BVR_DEFAULT_AUDIO_BUFFER_SIZE);
+    bvr_create_audio_ouput(&book.audio, BVR_DEFAULT_SAMPLE_RATE, BVR_DEFAULT_AUDIO_BUFFER_SIZE);
 
     /* create an ortho camera */
     bvr_create_main_camera(&book, BVR_CAMERA_ORTHOGRAPHIC, 0.1f, 1000.0f, 1.0f);

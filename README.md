@@ -159,7 +159,6 @@ int main(){
 You can find submodules in the [Extern](/extern/) folder.
 - [SDL](https://github.com/libsdl-org/SDL)
 - [GLAD](https://glad.dav1d.de/)
-- [PortAudio](https://github.com/PortAudio/portaudio)
 - [Zlib](https://github.com/madler/zlib)
 - [Nuklear](https://github.com/vurtun/nuklear)
 - [Libpng16](https://github.com/pnggroup/libpng)

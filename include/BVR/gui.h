@@ -51,7 +51,8 @@ typedef struct bvr_canvas_s {
         uint32 element_count;
 
         // scaling
-        float scale;
+        float scale, alpha;
+        int segment_count;
 
         // anti aliasing
         bool use_antialiasing;

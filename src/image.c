@@ -1037,9 +1037,13 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
             {
                 int layer_width = layer_section.layers[layer].bounds[3] - layer_section.layers[layer].bounds[1];
                 int layer_height = layer_section.layers[layer].bounds[2] - layer_section.layers[layer].bounds[0];
-                int layer_anchor_x = MIN(layer_section.layers[layer].bounds[1], image->width - layer_width);
-                int layer_anchor_y = MIN(layer_section.layers[layer].bounds[0], image->height - layer_height);
-            
+                
+                //int layer_anchor_x = MIN(layer_section.layers[layer].bounds[1], image->width - layer_width);
+                //int layer_anchor_y = MIN(layer_section.layers[layer].bounds[0], image->height - layer_height);
+
+                int layer_anchor_x = 0;
+                int layer_anchor_y = 0;
+
                 image_data_section.channels = layer_section.layers[layer].channel_count;
                 image_data_section.rle_pack_lengths = calloc(layer_height, sizeof(uint16));
                 BVR_ASSERT(image_data_section.rle_pack_lengths);
@@ -1195,7 +1199,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
             
         }
         else {
-            BVR_ASSERT(0 || "unsupported compression mode");
+            BVR_ASSERT(0 && "unsupported compression mode");
         }
     }
 
@@ -1232,6 +1236,7 @@ static void bvri_create_empty_layer(bvr_image_t* image){
     ((bvr_layer_t*)image->layers.data)[0].height = image->height;
     ((bvr_layer_t*)image->layers.data)[0].anchor_x = 0;
     ((bvr_layer_t*)image->layers.data)[0].anchor_y = 0;
+    ((bvr_layer_t*)image->layers.data)[0].opacity = 255;
     
     bvr_create_string(&((bvr_layer_t*)image->layers.data)[0].name, "layer0");
 }
@@ -1786,8 +1791,8 @@ void bvr_composite_enable(bvr_composite_t* composite, bvr_transform_t* const tra
 
         glBlitFramebuffer(
             src0[0], src0[1], src1[0], src1[1], 
-            0.0f, 0.0f, composite->image->width - 1.0f, composite->image->height - 1.0f,
-            GL_COLOR_BUFFER_BIT, GL_LINEAR
+            0.0f, 0.0f, composite->image->width, composite->image->height,
+            GL_COLOR_BUFFER_BIT, GL_NEAREST
         );
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);

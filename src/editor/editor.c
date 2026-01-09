@@ -21,7 +21,7 @@
 
 #define BVR_RECT(rect) nk_rect(rect.coords[0], rect.coords[1], rect.width, rect.height)
 
-#define BVR_COMBO(value, e, name) int f ## ##e = value == e;\
+#define NK_COMBO(value, e, name) int f ## ##e = value == e;\
     if(nk_checkbox_label(&__editor->gui.context, name, &(f ## ##e))){\
         value = e;\
     }
@@ -145,7 +145,7 @@ static void bvri_draw_editor_layer(bvr_layer_t* layer){
             layer->opacity *= 255;
         }
 
-        nk_property_int(&__editor->gui.context, "#opacity", 0, (int*)&layer->opacity, 255, 1, 1);
+        nk_property_short(&__editor->gui.context, "#opacity", 0, (short*)&layer->opacity, 255, 1, 1);
 
         flag = BVR_HAS_FLAG(layer->flags, BVR_LAYER_Y_SORTED);
         if(nk_checkbox_label(&__editor->gui.context, "y sorted", &flag)){
@@ -155,13 +155,13 @@ static void bvri_draw_editor_layer(bvr_layer_t* layer){
         if(nk_combo_begin_label(&__editor->gui.context, "blend mode", nk_vec2(200, 150))){
             nk_layout_row_dynamic(&__editor->gui.context, 15, 1);
 
-            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_PASSTHROUGH, "passthrough");
-            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_NORMAL, "normal");
-            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_MULTIPLY, "multiply");
-            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_SCREEN, "screen");
-            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_OVERLAY, "overlay");
-            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_DARKEN, "min");
-            BVR_COMBO(layer->blend_mode, BVR_LAYER_BLEND_LIGHTEN, "max");
+            NK_COMBO(layer->blend_mode, BVR_LAYER_BLEND_PASSTHROUGH, "passthrough");
+            NK_COMBO(layer->blend_mode, BVR_LAYER_BLEND_NORMAL, "normal");
+            NK_COMBO(layer->blend_mode, BVR_LAYER_BLEND_MULTIPLY, "multiply");
+            NK_COMBO(layer->blend_mode, BVR_LAYER_BLEND_SCREEN, "screen");
+            NK_COMBO(layer->blend_mode, BVR_LAYER_BLEND_OVERLAY, "overlay");
+            NK_COMBO(layer->blend_mode, BVR_LAYER_BLEND_DARKEN, "min");
+            NK_COMBO(layer->blend_mode, BVR_LAYER_BLEND_LIGHTEN, "max");
 
             nk_combo_end(&__editor->gui.context);
         }

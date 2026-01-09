@@ -23,6 +23,8 @@ int bvr_create_canvas(bvr_canvas_t* context, const bvr_book_t* book){
 
     context->win = &book->window;
 
+    context->device.alpha = 1.0f;
+    context->device.segment_count = 50;
     context->device.vertex_count = BVR_BUFFER_SIZE * BVR_BUFFER_SIZE;
     context->device.element_count = BVR_BUFFER_SIZE * BVR_BUFFER_SIZE;
     context->device.use_antialiasing = NK_ANTI_ALIASING_OFF;
@@ -218,7 +220,7 @@ void bvr_canvas_render(bvr_canvas_t* context){
     uint32 texture_target = 0;
 
     vec2 scale;
-    BVR_CREATE_VEC2(scale, context->device.scale, context->device.scale);
+    BVR_CREATE_VEC2(scale, 1.0f, 1.0f);
 
     mat4x4 view = {
         {  2.0f,  0.0f,  0.0f, 0.0f },
@@ -290,10 +292,10 @@ void bvr_canvas_render(bvr_canvas_t* context){
             config.vertex_size = sizeof(struct bvri_gui_vertex_s);
             config.vertex_alignment = NK_ALIGNOF(struct bvri_gui_vertex_s);
             config.tex_null = context->default_font.null_tex;
-            config.circle_segment_count = 22;
-            config.curve_segment_count = 22;
-            config.arc_segment_count = 22;
-            config.global_alpha = 1.0f;
+            config.circle_segment_count = context->device.segment_count;
+            config.curve_segment_count = context->device.segment_count;
+            config.arc_segment_count = context->device.segment_count;
+            config.global_alpha = context->device.alpha;
             config.shape_AA = context->device.use_antialiasing;
             config.line_AA = context->device.use_antialiasing;
 

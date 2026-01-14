@@ -550,7 +550,10 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     bvri_update_transform(&actor->transform);
 
     // layered actors are drawn differentlty
-    if(actor->type == BVR_LAYER_ACTOR){
+    // to enhance performances, layer actors with only one layer are drawn like any other images :>
+    if(actor->type == BVR_LAYER_ACTOR && 
+        BVR_BUFFER_COUNT(((bvr_layer_actor_t*)actor)->texture.image.layers) > 1){
+            
         bvri_draw_layer_actor((bvr_layer_actor_t*)actor, drawmode);
         return;
     }

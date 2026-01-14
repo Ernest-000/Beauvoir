@@ -117,7 +117,7 @@ int main(){
         bvr_flush(&book);
 
         /* draw editor */
-        bvr_editor_handle();
+        bvr_editor_new_frame();
         bvr_editor_draw_page_hierarchy();
         bvr_editor_draw_inspector();
         bvr_editor_render();

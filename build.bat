@@ -15,13 +15,17 @@ set "BVR_EXTERNAL_MODULES=SDL Zlib Lpng json-c"
 :: FLAGS
 set "BVR_CLEAR=false"
 set "BVR_SKIP_BIN=false"
+set "BVR_SKIP_GIT_SYNC=false"
 for %%A in (%*) do (
     if "%%A"=="--clear" (set "BVR_CLEAR=true")
     if "%%A"=="--skip-binaries" (set "BVR_SKIP_BIN=true")
+    if "%%A"=="--skip-sync" (set "BVR_SKIP_GIT_SYNC=true")
 )
 
-git submodule deinit -f .
-git submodule update --init
+if %BVR_SKIP_GIT_SYNC%=="true" (
+    git submodule deinit -f .
+    git submodule update --init
+)
 
 :: Clear command
 if %BVR_CLEAR%=="true" (

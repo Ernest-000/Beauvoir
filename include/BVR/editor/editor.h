@@ -88,7 +88,7 @@ void bvr_editor_attach_callback(_bvr_editor_callback function);
 /*
     Prepare beauvoir editor for drawing
 */
-void bvr_editor_handle();
+void bvr_editor_new_frame();
 
 /*
     Should be executed before `bvr_editor_draw_inspector()`

@@ -53,11 +53,25 @@ static void bvri_png_error(png_structp sptr, png_const_charp cc){
     BVR_ASSERT(cc || 0);
 }
 
+static void bvri_png_warn(png_structp sptr, png_const_charp cc){
+    BVR_PRINT(cc);
+}
+
 static int bvri_load_png(bvr_image_t* image, FILE* file){
-    png_structp pngldr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, bvri_png_error, NULL);
+    BVR_ASSERT(image);
+    BVR_ASSERT(file);
+
+    png_structp pngldr;
+    png_infop pnginfo;
+    uint32 width, height;
+    uint64 rowbytes;
+    int compression;
+    int depth, color_type, interlace_type;
+
+    pngldr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, bvri_png_error, bvri_png_warn);
     BVR_ASSERT(pngldr);
 
-    png_infop pnginfo = png_create_info_struct(pngldr);
+    pnginfo = png_create_info_struct(pngldr);
     BVR_ASSERT(pnginfo);
 
     if(setjmp(png_jmpbuf(pngldr))){
@@ -71,16 +85,21 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
     png_set_sig_bytes(pngldr, BVR_PNG_HEADER_LENGTH);
     png_read_info(pngldr, pnginfo);
 
-    image->width = png_get_image_width(pngldr, pnginfo);
-    image->height = png_get_image_height(pngldr, pnginfo);
-    image->depth = png_get_bit_depth(pngldr, pnginfo);
-    int color_type = png_get_color_type(pngldr, pnginfo);
+    //image->width = png_get_image_width(pngldr, pnginfo);
+    //image->height = png_get_image_height(pngldr, pnginfo);
+    //image->depth = png_get_bit_depth(pngldr, pnginfo);
+    //color_type = png_get_color_type(pngldr, pnginfo);
+
+    png_get_IHDR(pngldr, pnginfo,
+        &width, &height, &depth, &color_type,
+        &interlace_type, &compression, NULL
+    );
 
     if(color_type == PNG_COLOR_TYPE_PALETTE){
         png_set_palette_to_rgb(pngldr);
     }
     
-    if(color_type == PNG_COLOR_TYPE_GRAY && image->depth < 8){
+    if(color_type == PNG_COLOR_TYPE_GRAY && depth < 8){
         png_set_expand_gray_1_2_4_to_8(pngldr);
     }
 
@@ -88,10 +107,10 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
         png_set_tRNS_to_alpha(pngldr);
     }
 
-    if(image->depth == 16){
+    if(depth == 16){
         png_set_strip_16(pngldr);
     }
-    else if(image->depth < 8){
+    else if(depth < 8){
         png_set_packing(pngldr);
     }
 
@@ -104,7 +123,7 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
         image->format = BVR_RGB;
         image->channels = 3;
         break;
-    case PNG_COLOR_TYPE_RGBA:
+    case PNG_COLOR_TYPE_RGB_ALPHA:
         image->format = BVR_RGBA;
         image->channels = 4;
         break;
@@ -114,13 +133,15 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
         break;
     }
 
+    image->width = (int)width;
+    image->height = (int)height;
+    image->depth = (int)depth;
     image->sformat = bvri_get_sformat(image);
 
-    uint64 rowbytes = png_get_rowbytes(pngldr, pnginfo);
-    image->pixels = malloc(image->width * image->height * image->channels * sizeof(uint8));
-    BVR_ASSERT(image->pixels);
-
+    rowbytes = png_get_rowbytes(pngldr, pnginfo);
+    image->pixels = malloc(image->height * rowbytes * sizeof(uint8));
     uint8** rowp = malloc(image->height * sizeof(uint8*));
+    BVR_ASSERT(image->pixels);
     BVR_ASSERT(rowp);
 
     for (uint64 i = 0; i < image->height; i++)
@@ -139,6 +160,8 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
 #endif
 
 #ifndef BVR_NO_BMP
+
+#define BVR_BMP_PALETTE_LENGTH 256
 
 /*
     https://en.wikipedia.org/wiki/BMP_file_format
@@ -162,7 +185,7 @@ struct bvri_bmpheader_s {
     uint32 color_palette;
     uint32 important_color;
 
-    uint8* palette;
+    uint8 palette[BVR_BMP_PALETTE_LENGTH][3];
 };
 
 /*
@@ -179,13 +202,6 @@ static int bvri_is_bmp(FILE* file){
 
     return (size == 12 || size == 40 || size == 56
         || size == 108 || size == 124);
-}
-
-/*
-    Return the bigger number
-*/
-static uint32 bvri_bmpmax(uint32 max, uint32 i){
-    return i > max ? max : i;
 }
 
 static int bvri_load_bmp(bvr_image_t* image, FILE* file){
@@ -213,7 +229,6 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
     header.vertical_resolution = bvr_freadu32_le(file);
     header.color_palette = bvr_freadu32_le(file);
     header.important_color = bvr_fread32_le(file);
-    header.palette = NULL;
 
     // check for correct color plane
     if(header.color_plane != 1){
@@ -230,16 +245,16 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
     }
 
     // create color palette
-    if(header.bit_per_pixel < 8){
-        header.palette = malloc(header.color_palette * 3);
+    if(header.color_palette){
+        // check for max palette colors
+        BVR_ASSERT(header.color_palette <= BVR_BMP_PALETTE_LENGTH);
+
         for (uint64 color = 0; color < header.color_palette; color++)
         {
-            header.palette[color * 3 + 0] = bvr_freadu8_le(file);
-            header.palette[color * 3 + 1] = bvr_freadu8_le(file);
-            header.palette[color * 3 + 2] = bvr_freadu8_le(file);
-            bvr_freadu8_le(file);
-
-            BVR_PRINTF("palette color %i %i %i", header.palette[color * 3], header.palette[color * 3 + 1], header.palette[color * 3 + 2]);
+            header.palette[color][0] = bvr_freadu8_le(file); // Blue
+            header.palette[color][1] = bvr_freadu8_le(file); // Green
+            header.palette[color][2] = bvr_freadu8_le(file); // Red
+            bvr_freadu8_le(file); // Reserved
         }   
     }
 
@@ -248,21 +263,9 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
 
     image->width = header.width;
     image->height = abs(header.height);
-    image->depth = 8;
-    
-    // define correct channel and format based on bpp
-    if(header.bit_per_pixel < 8){
-        image->channels = 3;
-        image->format = BVR_BGR;
-    }
-    else {
-        image->channels = header.bit_per_pixel / 8;
-        image->format = BVR_BGR;
-
-        if(image->channels == 4){
-            image->format = BVR_BGRA;
-        }
-    }
+    image->depth = header.bit_per_pixel;
+    image->channels = 3; // does not handle alpha 
+    image->format = BVR_BGR;
 
     image->sformat = bvri_get_sformat(image);
     image->pixels = malloc(image->width * image->height * image->channels);
@@ -270,62 +273,51 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
 
     // RAW compression
     if(header.compression_method == 0){
-        uint32 packed_bytes = 0;
         uint32 unpacked_bytes = 0;
-        uint32 stride_length = ((int)ceilf(image->width * header.bit_per_pixel) / 32 * 4 + 3) & ~3;
+        uint32 stride_length = ((int)floorf(image->width * header.bit_per_pixel) / 32 * 4);
 
-        // load image from palette
-        if(header.bit_per_pixel < 8){
-            // because repetitive image might have a shorter stride length
-            // we need to duplicate pixels to copy the correct number of pixels to get the full width.
-            uint32 stride_rle = image->width / stride_length;
-            uint8 buffer[4];
+        // load image in palette mode
+        if(header.color_palette){
 
-            for (uint64 row = 0; row < image->height; row++)
+            uint32 lookup;
+            uint8* pixel = NULL;
+            for (size_t row = 0; row < image->height; row++)
             {
-                packed_bytes = 0;
                 unpacked_bytes = 0;
+             
+                // get the first pixel of the row
+                pixel = &image->pixels[row * image->width * image->channels];
 
-                while (packed_bytes < stride_length)
+                while(unpacked_bytes < stride_length)
                 {
-                    // copy packed data into 
-                    memcpy(
-                        buffer,
-                        header.palette + bvri_bmpmax(header.color_palette - 1, bvr_freadu8_le(file)) * image->channels,
-                        image->channels * sizeof(uint8)
-                    );         
-                           
-                    while (packed_bytes * stride_rle - unpacked_bytes)
-                    {
-                        // copy the buffer 'stride_rle' times
-                        memcpy(
-                            image->pixels + (row * image->width + unpacked_bytes) * image->channels,
-                            buffer, image->channels * sizeof(uint8)
-                        );
+                    // palette index
+                    lookup = bvr_freadu8_le(file);
 
-                        unpacked_bytes++;
-                    }
-                    
-                    packed_bytes++;
+                    *pixel++ = header.palette[lookup][0];
+                    *pixel++ = header.palette[lookup][1];
+                    *pixel++ = header.palette[lookup][2];
+
+                    unpacked_bytes++;
                 }
-            }            
+            }                     
         }
         // load image with raw data
         else {
             // we just copy all data row per row
-            for (uint64 row = 0; row < image->height; row++)
+            for (uint32 row = 0; row < image->height; row++)
             {
-                packed_bytes = fread(image->pixels + row * image->width * image->channels, sizeof(uint8), stride_length, file);
-                BVR_ASSERT(packed_bytes == stride_length);
+                unpacked_bytes = fread(
+                    &image->pixels[row * image->width * image->channels], 
+                    sizeof(uint8), stride_length, file
+                );
+                
+                BVR_ASSERT(unpacked_bytes == stride_length);
             }
         }
     }
     else {
-        BVR_ASSERT(0 || "compression not supported");
+        BVR_ASSERT(0 && "compression not supported");
     }
-
-    // try to free color palette
-    free(header.palette);
 
     return BVR_TRUE;
 }
@@ -605,10 +597,10 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
         else if(frame.planar_configuration == 2) {
             /*
                 Each color layers are stored in a different strip
-                strip 1 -> R 
-                strip 2 -> G 
-                strip 3 -> B 
-                strip 4 -> A
+                stride 1 -> R 
+                stride 2 -> G 
+                stride 3 -> B 
+                stride 4 -> A
             */
             if(image->pixels){
                 // free previous allocated memory
@@ -1315,7 +1307,7 @@ int bvr_create_imagef(bvr_image_t* image, FILE* file){
 #endif
 
 #ifndef BVR_NO_FLIP
-    if(image->pixels && status){
+    if(image->pixels){
         bvr_flip_image_vertically(image);
     }
 #endif

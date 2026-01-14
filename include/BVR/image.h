@@ -190,8 +190,10 @@ BVR_H_FUNC int bvr_create_image(bvr_image_t* image, const char* path){
     return success;
 }
 
+/*
+    Create a new bitmap buffer from a file.
+*/
 int bvr_create_bitmap(bvr_image_t* image, const char* path, int channel);
-
 
 /*
     Flip a pixel buffer vertically

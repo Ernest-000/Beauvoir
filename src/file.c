@@ -55,10 +55,10 @@ int bvr_fread32_le(FILE* file){
 
 uint8 bvr_freadu8_le(FILE* file){
     int v = getc(file);
-    if(v == EOF){
-        BVR_PRINTF("failed to read character %i", errno);
-        return 0;
-    }
+    // if(v == EOF){
+    //     BVR_PRINTF("failed to read character %i", errno);
+    //     return 0;
+    // }
 
     return (uint8)v;
 }

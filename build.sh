@@ -16,6 +16,7 @@ BVR_EXTERNAL_MODULES=("SDL" "Zlib" "Lpng" "json-c")
 # Flags
 BVR_CLEAR=false
 BVR_SKIP_BIN=false
+BVR_SKIP_SYNC=false
 
 for arg in "$@"; do
     case "$arg" in
@@ -25,12 +26,17 @@ for arg in "$@"; do
         --skip-binaries)
             BVR_SKIP_BIN=true
             ;;
+        --skip-git-sync)
+            BVR_SKIP_SYNC=true
+            ;;
     esac
 done
 
 # Git submodules
-git submodule deinit -f .
-git submodule update --init
+if [ "$BVR_SKIP_SYNC" = true]; then
+    git submodule deinit -f .
+    git submodule update --init
+fi
 
 # Clear command
 if [ "$BVR_CLEAR" = true ]; then

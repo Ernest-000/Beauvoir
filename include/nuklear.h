@@ -381,7 +381,7 @@ extern "C" {
       #define NK_SIZE_TYPE unsigned __int32
     #elif defined(__GNUC__) || defined(__clang__)
       #if defined(__x86_64__) || defined(__ppc64__) || defined(__PPC64__) || defined(__aarch64__)
-        #define NK_SIZE_TYPE unsigned long
+        #define NK_SIZE_TYPE unsigned long long
       #else
         #define NK_SIZE_TYPE unsigned int
       #endif
@@ -396,7 +396,7 @@ extern "C" {
       #define NK_POINTER_TYPE unsigned __int32
     #elif defined(__GNUC__) || defined(__clang__)
       #if defined(__x86_64__) || defined(__ppc64__) || defined(__PPC64__) || defined(__aarch64__)
-        #define NK_POINTER_TYPE unsigned long
+        #define NK_POINTER_TYPE unsigned long  long
       #else
         #define NK_POINTER_TYPE unsigned int
       #endif
@@ -3578,6 +3578,29 @@ NK_API nk_bool nk_color_pick(struct nk_context*, struct nk_colorf*, enum nk_colo
  * \param[in] inc_per_pixel   | Value per pixel added or subtracted on dragging
  */
 NK_API void nk_property_int(struct nk_context*, const char *name, int min, int *val, int max, int step, float inc_per_pixel);
+
+/*
+ * # # nk_property_short
+ * Short property directly modifying a passed in value
+ * !!! \warning
+ *     To generate a unique property ID using the same label make sure to insert
+ *     a `#` at the beginning. It will not be shown but guarantees correct behavior.
+ *
+ * ```c
+ * void nk_property_short(struct nk_context *ctx, const char *name, short min, short *val, short max, int step, float inc_per_pixel);
+ * ```
+ *
+ * Parameter           | Description
+ * --------------------|-----------------------------------------------------------
+ * \param[in] ctx             | Must point to an previously initialized `nk_context` struct after calling a layouting function
+ * \param[in] name            | String used both as a label as well as a unique identifier
+ * \param[in] min             | Minimum value not allowed to be underflown
+ * \param[in] val             | Short pointer to be modified
+ * \param[in] max             | Maximum value not allowed to be overflown
+ * \param[in] step            | Increment added and subtracted on increment and decrement button
+ * \param[in] inc_per_pixel   | Value per pixel added or subtracted on dragging
+ */
+NK_API void nk_property_short(struct nk_context*, const char *name, short min, short *val, short max, int step, float inc_per_pixel);
 
 /**
  * # # nk_property_float
@@ -29058,6 +29081,20 @@ nk_property(struct nk_context *ctx, const char *name, struct nk_property_variant
         win->property.select_end = 0;
         win->property.active = 0;
     }
+}
+NK_API void
+nk_property_short(struct nk_context *ctx, const char *name,
+    short min, short *val, short max, int step, float inc_per_pixel)
+{
+    struct nk_property_variant variant;
+    NK_ASSERT(ctx);
+    NK_ASSERT(name);
+    NK_ASSERT(val);
+
+    if (!ctx || !ctx->current || !name || !val) return;
+    variant = nk_property_variant_int(*val, min, max, step);
+    nk_property(ctx, name, &variant, inc_per_pixel, NK_FILTER_INT);
+    *val = (short)variant.value.i;
 }
 NK_API void
 nk_property_int(struct nk_context *ctx, const char *name,

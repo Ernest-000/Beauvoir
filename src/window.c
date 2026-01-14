@@ -276,6 +276,7 @@ int bvr_button_double_pressed(uint16 button){
 
 void bvr_mouse_position(float* x, float* y){
     SDL_GetMouseState(x, y);
+    
     *x = clamp(*x, 0.0f, bvr_get_instance()->window.framebuffer.width);
     *y = clamp(*y, 0.0f, bvr_get_instance()->window.framebuffer.height);
 }

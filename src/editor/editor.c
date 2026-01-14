@@ -133,6 +133,7 @@ static void bvri_draw_editor_image(bvr_image_t* image){
     nk_label_wrap(&__editor->gui.context, BVR_FORMAT("height %i", image->height));
     nk_label_wrap(&__editor->gui.context, BVR_FORMAT("depth %i", image->depth));
     nk_label_wrap(&__editor->gui.context, BVR_FORMAT("format %s", format));
+    nk_label_wrap(&__editor->gui.context, BVR_FORMAT("channels %i", image->channels));
 }
 
 static void bvri_draw_editor_layer(bvr_layer_t* layer){
@@ -331,7 +332,7 @@ void bvr_editor_attach_callback(_bvr_editor_callback function){
     }
 }
 
-void bvr_editor_handle(){
+void bvr_editor_new_frame(){
     BVR_ASSERT(__editor);
 
     bvr_canvas_new_frame(&__editor->gui);

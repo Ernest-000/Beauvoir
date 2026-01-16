@@ -3,9 +3,14 @@
 #include <BVR/buffer.h>
 #include <BVR/image.h>
 
+#if !defined(BVR_INTERPOLATE)
+    #define BVR_LINEAR_INTERPOLATE(_start, _end, t) (_start + ((_end - _start) * t))
+#endif
+
 enum bvr_animation_flags_e {
-    BVR_ANIMATION_DO_ONCE = 0x1,
-    BVR_ANIMATION_LOOP = 0x2
+    BVR_ANIMATION_NONE = 0x0,
+    BVR_ANIMATION_LOOP = 0x2,
+    BVR_ANIMATION_LINEAR_INTERPOLATE = 0x8
 };
 
 /**
@@ -23,6 +28,8 @@ typedef struct bvr_animation_handle_s {
     
     uint32 type;
     uint32 flags;
+
+    void(*interop_func)(void* start, void* end, float t);
 } bvr_animation_handle_t;   
 
 struct bvr_keyframe_s {

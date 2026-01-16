@@ -8,6 +8,37 @@
 #define BVR_DEFAULT_FRAME_COUNT 2
 
 /**
+ * Linear interpolation between two keyframes
+ */
+static void bvri_animation_lerp(void* _start, void* _end, float time){
+    
+    struct bvr_keyframe_s* start = (struct bvr_keyframe_s*)_start;
+    struct bvr_keyframe_s* end = (struct bvr_keyframe_s*)_end;
+    
+    switch (start->target->type)
+    {
+    case BVR_FLOAT:
+        {
+            float lerp = 0.0f;
+            // interpolate default position with current pointer's position
+            lerp = BVR_LINEAR_INTERPOLATE(*(float*)start->target->object.ptr, *(float*)start->buffer, time) * 2.0f;
+            
+            // interpolate with the end position
+            lerp = BVR_LINEAR_INTERPOLATE(lerp, *(float*)end->buffer, time);
+            
+            // copy the value
+            memcpy(start->target->object.ptr, &lerp, sizeof(float));        
+        }    
+    
+        break;
+    
+    default:
+        memcpy(start->target->object.ptr, start->buffer, bvr_sizeof(start->target->type));        
+        break;
+    }
+}
+
+/**
  * Initialize a celframe with default values
  */
 static bvr_celframe_t* bvri_create_celframe(bvr_animation_t* anim, bvr_celframe_t* frame, float time);
@@ -20,7 +51,7 @@ static bvr_celframe_t* bvri_insert_new_celframe(bvr_animation_t* anim, bvr_celfr
 /**
  * Enable and execute a celframe
  */
-static void bvri_use_celframe(bvr_celframe_t* frame);
+static void bvri_do_celframe(bvr_animation_t* anim, bvr_celframe_t* frame);
 
 static void bvri_destroy_celframe(bvr_celframe_t* frame);
 
@@ -70,10 +101,10 @@ void bvr_animation_update(bvr_animation_t* anim, float delta_time){
     anim->cursor += delta_time;
     anim->current_frame += elapsed_time;
 
+    bvri_do_celframe(anim, anim->next_frame);
+
     // activate frame
     if(anim->cursor >= anim->next_frame->time){
-        bvri_use_celframe(anim->next_frame);
-
         anim->next_frame = anim->next_frame->next;
     }
 
@@ -95,6 +126,7 @@ void bvr_animation_update(bvr_animation_t* anim, float delta_time){
 bvr_animation_handle_t* bvr_animation_register_track(bvr_animation_t* anim, const char* name, void* object, const int type, const uint32 flags){
     BVR_ASSERT(anim);
     BVR_ASSERT(BVR_IS_AVAIL_TYPE(type));
+    BVR_ASSERT(bvr_sizeof(type) < sizeof_member(struct bvr_keyframe_s, buffer)); // max keyframe buffer size
 
     if(!object){
         return NULL;
@@ -113,6 +145,11 @@ bvr_animation_handle_t* bvr_animation_register_track(bvr_animation_t* anim, cons
     handle->object.ptr = object;
     handle->type = type;
     handle->flags = flags;
+    handle->interop_func = NULL;
+
+    if(BVR_HAS_FLAG(flags, BVR_ANIMATION_LINEAR_INTERPOLATE)){
+        handle->interop_func = bvri_animation_lerp;
+    }
 
     bvr_create_string(&handle->name, name);
 
@@ -235,12 +272,23 @@ static bvr_celframe_t* bvri_insert_new_celframe(bvr_animation_t* anim, bvr_celfr
     return celframe;
 }
 
-static void bvri_use_celframe(bvr_celframe_t* frame){
+static void bvri_do_celframe(bvr_animation_t* anim, bvr_celframe_t* frame){
     BVR_ASSERT(frame);
 
     for (size_t i = 0; i < frame->keyframes_count; i++)
     {
-        if(frame->keyframes[i].target){
+        if(!frame->keyframes[i].target){
+            continue;
+        }
+
+        if(frame->keyframes[i].target->interop_func){
+            frame->keyframes[i].target->interop_func(
+                &frame->keyframes[i],
+                &(MAX(frame->next, (bvr_celframe_t*)anim->celframes.data))->keyframes[i],
+                0.5f
+            );  
+        }
+        else {
             memcpy(
                 frame->keyframes[i].target->object.ptr, 
                 frame->keyframes[i].buffer,

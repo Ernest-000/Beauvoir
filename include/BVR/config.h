@@ -31,6 +31,14 @@ typedef unsigned long long uint64;
     #define typeof(x) __typeof(x)
 #endif
 
+/**
+ * Original code from:
+ * https://stackoverflow.com/questions/3553296/sizeof-single-struct-member-in-c
+ */
+#if !defined(sizeof_member)
+  #define sizeof_member(_struct, _member) (sizeof(((_struct *)0)->_member))
+#endif
+
 #pragma region bitswap
 
 /* Macros to swap the order of bytes in integer values.

@@ -34,7 +34,9 @@
 #define BVR_SCISSORS_DISABLE 0x00
 #define BVR_SCISSORS_ENABLE 0x01
 
-#define BVR_MAX_DRAW_COMMAND 258
+#if !defined(BVR_MAX_DRAW_COMMAND)
+    #define BVR_MAX_DRAW_COMMAND 258
+#endif
 
 typedef struct bvr_framebuffer_s {
     uint16 width, target_width;

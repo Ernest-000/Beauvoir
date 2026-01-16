@@ -236,7 +236,7 @@ BVR_H_FUNC int bvr_create_texture(bvr_texture_t* texture, const char* path, int 
     Bind a texture. 
 */
 void bvr_texture_enable(bvr_texture_t* texture);
-
+    
 /*
     Unbind textures
 */

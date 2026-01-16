@@ -499,7 +499,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
                                 frame.strip_offsets
                             );
                         }
-                        else {BVR_ASSERT(0 || "failed to allocate strip offset!");}
+                        else {BVR_ASSERT(0 && "failed to allocate strip offset!");}
                     }
                 }
                 break;
@@ -525,7 +525,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
                                 frame.strip_byte_counts
                             );
                         }
-                        else {BVR_ASSERT(0 || "failed to allocate strip byte offset!");}
+                        else {BVR_ASSERT(0 && "failed to allocate strip byte offset!");}
                     }
                 }
                 break;
@@ -561,7 +561,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
                                 frame.photoshop_infos 
                             );
                         }
-                        else {BVR_ASSERT(0 || "failed to allocate photoshop informations!");}
+                        else {BVR_ASSERT(0 && "failed to allocate photoshop informations!");}
                     }
                 }
             */
@@ -592,7 +592,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
                 BVR_PRINTF("start %i end %i", frame.strip_offsets[strip], frame.strip_byte_counts[strip]);    
             }*/
 
-            BVR_ASSERT(0 || "configuration not supported!");
+            BVR_ASSERT(0 && "configuration not supported!");
         }
         else if(frame.planar_configuration == 2) {
             /*
@@ -633,7 +633,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
 
         }
         else {
-            BVR_ASSERT(0 || "configuration is not supported!");
+            BVR_ASSERT(0 && "configuration is not supported!");
         }
 
         switch (image->channels)
@@ -805,7 +805,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
     color_mode_section.data = NULL;
     if(color_mode_section.size){
         BVR_PRINTF("color mode %i, should read full data", color_mode_section.size);
-        BVR_ASSERT(0 || "not supported!");
+        BVR_ASSERT(0 && "not supported!");
     }
 
     // ressource section parsing
@@ -982,7 +982,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
     case 3: image->format = BVR_RGB; break; // rgb
     case 4: image->format = BVR_RGBA; break;
     default:
-        BVR_ASSERT(0 || "image format not supported!");
+        BVR_ASSERT(0 && "image format not supported!");
         break;
     }
 
@@ -1021,7 +1021,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
         if(image_data_section.compression == 0){
             // proceed to RAW uncompression 
 
-            BVR_ASSERT(0 || "unsupported compression mode");
+            BVR_ASSERT(0 && "unsupported compression mode");
         }
         else if(image_data_section.compression == 1){
             // do RLE uncompression

@@ -481,6 +481,7 @@ void bvr_destroy_uniform_buffer(uint32* buffer){
 bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type, enum bvr_uniform_tag_e tag, int count, const char* name){
     BVR_ASSERT(shader);
     BVR_ASSERT(name);
+    BVR_ASSERT(BVR_IS_AVAIL_TYPE(type));
 
     // when you cannot add another uniform
     if (shader->uniform_count + 1 >= BVR_MAX_UNIFORM_COUNT) {
@@ -523,10 +524,7 @@ bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type
     BVR_ASSERT(name);
 
     // TODO: find another test?
-    if(!BVR_IS_TEXTURE(type)){
-        BVR_PRINT("wrong texture type!");
-        return NULL;
-    }
+    BVR_ASSERT(BVR_IS_AVAIL_TYPE(type));
 
     // create a new uniform
     bvr_shader_uniform_t* uniform = bvr_shader_register_uniform(shader, type, BVR_UNIFORM_TEXTURE, 1, name);
@@ -543,6 +541,7 @@ bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type
 bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* name, int type, int count, int index){
     BVR_ASSERT(shader);
     BVR_ASSERT(count > 0);
+    BVR_ASSERT(BVR_IS_AVAIL_TYPE(type));
 
     if(shader->block_count + 1 >= BVR_MAX_SHADER_BLOCK_COUNT){
         BVR_PRINTF("block maximum capacity reached for shader '%i'!", shader->program);

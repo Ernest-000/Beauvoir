@@ -255,7 +255,7 @@ static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
         BVR_ASSERT(object.faces[face].edges == 3 || object.faces[face].edges == 4);
 
         if(object.faces[face].edges == 4){
-            BVR_ASSERT(0 || "4 edges faces are not supported");
+            BVR_ASSERT(0 && "4 edges faces are not supported");
         }
         else {
             BVR_ASSERT(element + 3 <= object.elements.count);
@@ -540,7 +540,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
                 object.vertices.type = json_object_get_int(json_object_object_get(json_accessor, "componentType"));
             }
             else {
-                BVR_ASSERT(0 || "invalid gdb primitive (missing position attribute)!");
+                BVR_ASSERT(0 && "invalid gdb primitive (missing position attribute)!");
             }
 
             // if there is a position attribute
@@ -558,7 +558,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
                 object.vertices.count += (component_size / component_number) * accessor_count;
             }
             else {
-                BVR_ASSERT(0 || "invalid gdb primitive (missing normal attribute)!");
+                BVR_ASSERT(0 && "invalid gdb primitive (missing normal attribute)!");
             }
             
             // if there is a position attribute
@@ -576,7 +576,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
                 object.vertices.count += (component_size / component_number) * accessor_count;
             }
             else {
-                BVR_ASSERT(0 || "invalid gdb primitive (missing texcoords attribute)!");
+                BVR_ASSERT(0 && "invalid gdb primitive (missing texcoords attribute)!");
             }
 
             json_accessor = json_object_array_get_idx(
@@ -968,13 +968,13 @@ static void bvri_copyfbxproperty(FILE* file, char** destination, size_t* length,
         case 'F':
             *length = 4;
             //*destination = (char*)bvr_freadf(file);
-            BVR_ASSERT(0 || "float not supported");
+            BVR_ASSERT(0 && "float not supported");
             break;
         
         case 'D':
             *length = 8;
             //((float*)*destination) = bvr_freadf(file);
-            BVR_ASSERT(0 || "double not supported");
+            BVR_ASSERT(0 && "double not supported");
             break;
 
         case 'L':

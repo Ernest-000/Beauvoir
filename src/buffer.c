@@ -6,7 +6,6 @@
 
 #ifndef BVR_NO_GROWTH
 
-#define BVR_GROWTH_FACTOR 2
 
 static int bvri_grow_buffer(void* ptr, uint64* size);
 
@@ -67,11 +66,11 @@ char* bvr_memstream_write(bvr_memstream_t* stream, const void* data, const uint6
             stream->next += size;
         }
         else {
-            BVR_ASSERT(0 || "out of bounds!");
+            BVR_ASSERT(0 && "out of bounds!");
 
         }
 #else
-        BVR_ASSERT(0 || "out of bounds!");
+        BVR_ASSERT(0 && "out of bounds!");
 #endif
 
     }
@@ -88,7 +87,7 @@ char* bvr_memstream_read(bvr_memstream_t* stream, void* dest, const uint64 size)
         stream->cursor += size;
     }
     else {
-        BVR_ASSERT(0 || "out of bounds!");
+        BVR_ASSERT(0 && "out of bounds!");
     }
 
     return stream->cursor;
@@ -105,7 +104,7 @@ char* bvr_memstream_seek(bvr_memstream_t* stream, uint64 position, int mode){
                 stream->cursor += position;
             } 
             else {
-                BVR_ASSERT(0 || "out of bounds!");
+                BVR_ASSERT(0 && "out of bounds!");
             }
         }
         break;
@@ -116,7 +115,7 @@ char* bvr_memstream_seek(bvr_memstream_t* stream, uint64 position, int mode){
                 stream->cursor = stream->data + position;
             }
             else {
-                BVR_ASSERT(0 || "out of bounds!");
+                BVR_ASSERT(0 && "out of bounds!");
             }
         }
         break;
@@ -127,7 +126,7 @@ char* bvr_memstream_seek(bvr_memstream_t* stream, uint64 position, int mode){
                 stream->cursor = stream->data + (stream->size - position);
             }
             else {
-                BVR_ASSERT(0 || "out of bounds!");
+                BVR_ASSERT(0 && "out of bounds!");
             }
         }
         break;
@@ -139,7 +138,7 @@ char* bvr_memstream_seek(bvr_memstream_t* stream, uint64 position, int mode){
         break;
 
     default:
-        BVR_ASSERT(0 || "invalid seeking mode!");
+        BVR_ASSERT(0 && "invalid seeking mode!");
         break;
     }
 
@@ -324,6 +323,8 @@ void* bvr_pool_alloc(bvr_pool_t* pool){
     // check if a next block is available and if data can be added
     if(pool->next_block == NULL || 
         pool->avail + pool->elemsize >= pool->data + pool->size){
+
+        //TODO pool realloc
         return NULL;
     }
 
@@ -337,15 +338,17 @@ void* bvr_pool_alloc(bvr_pool_t* pool){
     return block->data;
 }
 
-void* bvr_pool_try_get(bvr_pool_t* pool, int index){
-    BVR_ASSERT(pool);
-    
-    if(index < 0 && index >= pool->count){
-        return NULL;
-    }
-    
-    return pool->blocks[index].data;
-}
+//
+// void* bvr_pool_try_get(bvr_pool_t* pool, int index){
+//     BVR_ASSERT(pool);
+//     
+//     if(index < 0 && index >= pool->count){
+//         return NULL;
+//     }
+//     
+//     return pool->blocks[index].data;
+// }
+//
 
 void bvr_pool_free(bvr_pool_t* pool, void* ptr){
     BVR_ASSERT(pool);

@@ -470,7 +470,7 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
         //}
 
         cmd.draw_mode = drawmode;
-        cmd.vertex_group = *(bvr_vertex_group_t*)bvr_pool_try_get(&actor->mesh.vertex_groups, 0);
+        cmd.vertex_group = *(bvr_vertex_group_t*)actor->mesh.vertex_groups.blocks[0].data;
         cmd.vertex_group.texture = actor->texture.id;
 
         bvr_pipeline_draw_cmd(&cmd);
@@ -499,7 +499,7 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
 
     cmd.draw_mode = drawmode;
 
-    cmd.vertex_group = *(bvr_vertex_group_t*)bvr_pool_try_get(&actor->mesh.vertex_groups, 0);
+    cmd.vertex_group = *(bvr_vertex_group_t*)actor->mesh.vertex_groups.blocks[0].data;
     cmd.vertex_group.texture = actor->composite.tex;
 
     bvr_pipeline_add_draw_cmd(&cmd);

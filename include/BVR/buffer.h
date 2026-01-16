@@ -4,8 +4,6 @@
 
 #include <stdio.h>
 
-#define BVR_BUFFER_COUNT(buffer) ((buffer.data != NULL) * ((unsigned long long)(buffer.size / buffer.elemsize)))
-
 #ifndef BVR_BUFFER_SIZE
     #define BVR_BUFFER_SIZE 1024
 #endif
@@ -14,24 +12,72 @@
     #define BVR_POOL_SIZE 2048
 #endif
 
-#define SEEK_NEXT 3
+#if !defined(SEEK_NEXT)
+    /* Seek from beginning of file. */
+    #define SEEK_SET 0
 
-/*
-    This macro creates a for loop that interates through a pool.
-    It will define each `_v` as the current used value.
-*/
+    /* Seek from current position. */
+    #define SEEK_CUR 1
 
-// GCC specific macro
+    /* Set file pointer to EOF plus "offset" */
+    #define SEEK_END 2       
+
+    /* Seek to the next available memory block */
+    #define SEEK_NEXT 3 
+#endif
+
 #ifdef __GNUC__
+    /**
+     *  This macro creates a for loop that interates through a pool.
+     *  It will define each `_v` as the current used value.
+     */
     #define BVR_POOL_FOR_EACH(_v, _pool) for (struct bvr_pool_block_u* b = _pool.blocks; b->next; b++)\
                                             if (b->data && (void*)memcpy(&_v, b->data, _pool.elemsize) != NULL)
     // Clang specific macro
 #elif defined(__clang__) || defined(_MSC_VER)
+    /**
+     *  This macro creates a for loop that interates through a pool.
+     *  It will define each `_v` as the current used value.
+     */
     #define BVR_POOL_FOR_EACH(_v, _pool) for (struct bvr_pool_block_u* b = _pool.blocks; b->next; b++)\
                                             if (b->data && (void*)memcpy(&_v, b->data, _pool.elemsize) != NULL)
 #else
+    /**
+     *  This macro creates a for loop that interates through a pool.
+     *  It will define each `_v` as the current used value.
+     */
     #define BVR_POOL_FOR_EACH(_v, _pool) for (struct bvr_pool_block_u* b = _pool.blocks; b->next; b++)\
                                             if (b->data && (void*)memcpy(&_v, b->data, _pool.elemsize) != NULL)                               
+#endif
+
+/**
+ * Allocate _size bytes of memory for a generic buffer.
+ */
+#define BVR_BUFFER_MALLOC(buffer, _size) buffer.data = malloc(_size);
+
+/**
+ * Reallocates the given buffer and resize it to _size bytes.
+ */
+#define BVR_BUFFER_CONST_REALLOC(buffer, _size) { \
+    buffer.size = _size; \
+    buffer.data = realloc(buffer.data, buffer.size); }
+
+/**
+ * Return the number of element of a generic buffer.
+ */
+#define BVR_BUFFER_COUNT(buffer) (((unsigned long)(buffer.size / buffer.elemsize)))
+
+#ifndef BVR_NO_GROWTH
+    #define BVR_GROWTH_FACTOR 2
+
+    /**
+     * Reallocates the given buffer and add _size bytes by the Growth factor
+     */
+    #define BVR_BUFFER_REALLOC(buffer, _size) { \
+        buffer.size += (_size * BVR_GROWTH_FACTOR); \
+        buffer.data = realloc(buffer.data, buffer.size); }
+#else
+    #define BVR_BUFFER_REALLOC(buffer, _size) BVR_BUFFER_CONST_REALLOC(buffer, _size)
 #endif
 
 /*
@@ -43,6 +89,9 @@ struct __attribute__((packed)) bvr_buffer_s {
     unsigned int elemsize;
 };
 
+/**
+ * Memory stream
+ */
 typedef struct bvr_memstream_s {
     void* data;
     unsigned long long size;
@@ -51,19 +100,26 @@ typedef struct bvr_memstream_s {
     char* next;
 } bvr_memstream_t;
 
-/*
-    pascal typed string
-*/
+/**
+ * Pascal typed string
+ */
 typedef __attribute__ ((packed)) struct bvr_string_s  { 
     unsigned short length;
     char* string;
 } bvr_string_t;
 
+/**
+ * Chunck of memory in a pool
+ */
 __attribute__ ((packed)) struct bvr_pool_block_u {
     void* data;
     struct bvr_pool_block_u* next;
 };
 
+/**
+ * A constant list of equaly-sized generic objects.
+ * Each element is link to another.
+ */
 typedef struct bvr_pool_s {
     char* data;
     char* avail;
@@ -139,11 +195,6 @@ void bvr_create_pool(bvr_pool_t* pool, const uint64 size, const uint64 count);
     Get a pointer to the next writable slot.
 */
 void* bvr_pool_alloc(bvr_pool_t* pool);
-
-/* 
-    Try to get a pointer to a writable slot by using an index .
-*/
-void* bvr_pool_try_get(bvr_pool_t* pool, int index);
 
 /**
     Deallocate a memory block.

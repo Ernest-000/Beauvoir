@@ -19,7 +19,7 @@ int bvr_read_file(bvr_string_t* string, FILE* file){
     BVR_ASSERT(file);
 
     if(string->string){
-        BVR_ASSERT(0 || "cannot copy on a previously allocated string :(");
+        BVR_ASSERT(0 && "cannot copy on a previously allocated string :(");
     }
     else {
         // TODO: check if size is correct

@@ -410,7 +410,7 @@ static void bvri_read_asset_reference(FILE* file, struct bvr_asset_reference_s* 
         break;
     
     case BVR_ASSET_ORIGIN_RAW:
-        BVR_ASSERT(0 || "not supported");
+        BVR_ASSERT(0 && "not supported");
 
     default:
         break;

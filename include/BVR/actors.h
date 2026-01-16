@@ -1,10 +1,13 @@
 #pragma once
 
+#include <BVR/config.h>
+
+#include <BVR/math.h>
 #include <BVR/image.h>
 #include <BVR/shader.h>
 #include <BVR/mesh.h>
+#include <BVR/animation.h>
 #include <BVR/physics.h>
-#include <BVR/math.h>
 
 /*
     Does not destroy the actor when freeing the page

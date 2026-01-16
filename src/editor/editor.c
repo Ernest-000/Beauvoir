@@ -88,9 +88,7 @@ static void bvri_draw_editor_mesh(bvr_mesh_t* mesh){
     nk_layout_row_dynamic(&__editor->gui.context, 15, 2);
     
     bvr_vertex_group_t* group;
-    for(int i = 0; i < mesh->vertex_groups.count; i++){
-        group = bvr_pool_try_get(&mesh->vertex_groups, i);
-
+    BVR_POOL_FOR_EACH(group, mesh->vertex_groups){
         nk_label_wrap(&__editor->gui.context, 
             BVR_FORMAT("%s: %i-%i", group->name.string, group->element_offset, group->element_offset + group->element_count)
         );
@@ -312,12 +310,12 @@ void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book){
         bvr_shader_set_uniform_raw(&editor->device.shader.uniforms[1], &color);
     }
 
-    if(bvri_create_editor_render_buffers(
+    if(!bvri_create_editor_render_buffers(
         &editor->device.array_buffer, 
         &editor->device.vertex_buffer, 
         BVR_EDITOR_VERTEX_BUFFER_SIZE
     )){
-        BVR_ASSERT(0 || "failed to create editor buffers");
+        BVR_ASSERT(0 && "failed to create editor buffers");
     }
     
     bvr_create_string(&editor->inspector_cmd.name, NULL);

@@ -25,14 +25,14 @@
 
 /*   based on OpenGLES   */  
 #define BVR_NULL                    0x00
-#define BVR_FLOAT                   0x1406
 #define BVR_BOOL                    0x1399
 #define BVR_INT8                    0x1400
-#define BVR_INT16                   0x1402
-#define BVR_INT32                   0x1404
 #define BVR_UNSIGNED_INT8           0x1401
+#define BVR_INT16                   0x1402
 #define BVR_UNSIGNED_INT16          0x1403
+#define BVR_INT32                   0x1404
 #define BVR_UNSIGNED_INT32          0x1405
+#define BVR_FLOAT                   0x1406
 #define BVR_VEC2                    0x1407
 #define BVR_VEC3                    0x1408
 #define BVR_VEC4                    0x140A
@@ -51,10 +51,15 @@
 
 #define BVR_TEXTURE_2D_LAYER_STRUCT 0x141E
 
+/**
+ * Returns a boolean. Check if 't' (which is an int that enumarate a type) is a correct type.
+ */
+#define BVR_IS_AVAIL_TYPE(t) (t >= BVR_BOOL && t <= BVR_TEXTURE_2D_LAYER_STRUCT)
+
 /*
-    Returns a boolean. Check if 't' (which an int that determine a type) is a texture.
+    Returns a boolean. Check if 't' (which is an int that enumerate a type) is a texture.
 */
-#define BVR_IS_TEXTURE(t) (t >= BVR_TEXTURE_2D && t <= BVR_TEXTURE_2D_COMPOSITE)
+#define BVR_IS_AVAIL_TEXTURE(t) (t >= BVR_TEXTURE_2D && t <= BVR_TEXTURE_2D_COMPOSITE)
 
 /**
  * Return the biggest sizeof

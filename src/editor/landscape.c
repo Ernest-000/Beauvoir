@@ -159,12 +159,12 @@ static int bvri_landscapejson(FILE* file, bvr_landscape_actor_t* actor){
                 );
             }
             else {
-                BVR_ASSERT(0 || "unsupported landscape encoding");
+                BVR_ASSERT(0 && "unsupported landscape encoding");
             }
 
         }
         else {
-            BVR_ASSERT(0 || "unsupported landscape compression");
+            BVR_ASSERT(0 && "unsupported landscape compression");
         }
 
         // copy data

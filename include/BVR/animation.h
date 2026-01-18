@@ -83,6 +83,32 @@ void bvr_animation_update(bvr_animation_t* anim, float delta_time);
  */
 bvr_animation_handle_t* bvr_animation_register_track(bvr_animation_t* anim, const char* name, void* object, const int type, const uint32 flags);
 
+/**
+ * Add a new keyframe to a track.
+ */
 int bvr_animation_add_keyframe_raw(bvr_animation_t* anim, bvr_animation_handle_t* handle, float time, void* value);
+
+/**
+ * Add a new keyframe to a track.
+ */
+BVR_H_FUNC int bvr_animation_add_keyframe(bvr_animation_t* anim, const char* track, float time, void* value){
+    BVR_ASSERT(anim);
+    BVR_ASSERT(track);
+
+    bvr_animation_handle_t handle;
+    BVR_POOL_FOR_EACH(handle, anim->tracks)
+    {
+        if(!handle.name.length){
+            continue;
+        }
+        
+        if (strcmp(handle.name.string, track) == 0) {
+            BVR_PRINT(handle.name.string);
+            return bvr_animation_add_keyframe_raw(anim, &handle, time, value);
+        }
+    }
+    
+    return BVR_FALSE;
+}
 
 void bvr_destroy_animation(bvr_animation_t* anim);

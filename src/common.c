@@ -10,7 +10,7 @@
 
 #ifdef _WIN32
 	#include <Windows.h>
-#elif
+#else
 	#include <signal.h>
 #endif
 
@@ -291,7 +291,7 @@ void bvri_break(const char* __file, unsigned long long __line){
 
 #ifdef _WIN32
 	DebugBreak();
-#elif
+#else
 	raise(SIGINT);
 #endif
 }

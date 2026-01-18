@@ -31,6 +31,69 @@ static void bvri_animation_lerp(void* _start, void* _end, float time){
         }    
     
         break;
+
+    case BVR_VEC2:
+        {
+            vec2 lerp;
+            BVR_CREATE_VEC2(lerp, 0.0f, 0.0f);
+
+            // interpolate default position with current pointer's position
+            lerp[0] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[0], ((float*)start->buffer)[0], time) * 2.0f;
+            lerp[1] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[1], ((float*)start->buffer)[1], time) * 2.0f;
+            
+            // interpolate with the end position
+            lerp[0] = BVR_LINEAR_INTERPOLATE(lerp[0], ((float*)end->buffer)[0], time);
+            lerp[1] = BVR_LINEAR_INTERPOLATE(lerp[1], ((float*)end->buffer)[1], time);
+            
+            // copy the value
+            memcpy(start->target->object.ptr, &lerp, sizeof(vec2));        
+        }    
+    
+        break;
+
+    case BVR_VEC3:
+        {
+            vec3 lerp;
+            BVR_CREATE_VEC3(lerp, 0.0f, 0.0f, 0.0f);
+
+            // interpolate default position with current pointer's position
+            lerp[0] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[0], ((float*)start->buffer)[0], time) * 2.0f;
+            lerp[1] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[1], ((float*)start->buffer)[1], time) * 2.0f;
+            lerp[2] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[2], ((float*)start->buffer)[2], time) * 2.0f;
+            
+            // interpolate with the end position
+            lerp[0] = BVR_LINEAR_INTERPOLATE(lerp[0], ((float*)end->buffer)[0], time);
+            lerp[1] = BVR_LINEAR_INTERPOLATE(lerp[1], ((float*)end->buffer)[1], time);
+            lerp[2] = BVR_LINEAR_INTERPOLATE(lerp[2], ((float*)end->buffer)[2], time);
+            
+            // copy the value
+            memcpy(start->target->object.ptr, &lerp, sizeof(vec3));        
+        }    
+    
+        break;
+
+    case BVR_VEC4:
+        {
+            vec4 lerp;
+            BVR_CREATE_VEC4(lerp, 0.0f, 0.0f, 0.0f, 0.0f);
+
+            // interpolate default position with current pointer's position
+            lerp[0] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[0], ((float*)start->buffer)[0], time) * 2.0f;
+            lerp[1] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[1], ((float*)start->buffer)[1], time) * 2.0f;
+            lerp[2] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[2], ((float*)start->buffer)[2], time) * 2.0f;
+            lerp[3] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[3], ((float*)start->buffer)[3], time) * 2.0f;
+            
+            // interpolate with the end position
+            lerp[0] = BVR_LINEAR_INTERPOLATE(lerp[0], ((float*)end->buffer)[0], time);
+            lerp[1] = BVR_LINEAR_INTERPOLATE(lerp[1], ((float*)end->buffer)[1], time);
+            lerp[2] = BVR_LINEAR_INTERPOLATE(lerp[2], ((float*)end->buffer)[2], time);
+            lerp[3] = BVR_LINEAR_INTERPOLATE(lerp[3], ((float*)end->buffer)[3], time);
+            
+            // copy the value
+            memcpy(start->target->object.ptr, &lerp, sizeof(vec4));        
+        }    
+    
+        break;
     
     default:
         memcpy(start->target->object.ptr, start->buffer, bvr_sizeof(start->target->type));        

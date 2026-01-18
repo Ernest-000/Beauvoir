@@ -28,12 +28,17 @@ endif()
 ##
 # Third-party libraries
 ##
-if(CMAKE_C_COMPILER_ID MATCHES "Clang|MSVC")
+if(WIN32)
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang|MSVC")
+        set(BVR_THIRD_PARTY_LIBS
+            SDL3.lib zsd.lib libpng16d.lib libjson-c.lib)
+    else()
+        set(BVR_THIRD_PARTY_LIBS
+            libSDL3.dll.a libz.dll.a libpng16.dll.a libjson-c.dll.a)
+    endif()
+elseif(UNIX)
     set(BVR_THIRD_PARTY_LIBS
-        SDL3.lib zsd.lib libpng16d.lib libjson-c.lib)
-else()
-    set(BVR_THIRD_PARTY_LIBS
-        libSDL3.dll.a libz.dll.a libpng16.dll.a libjson-c.dll.a)
+            libSDL3.so libz.so libpng16.so libjson-c.so)
 endif()
 
 set(BVR_THIRD_PARTY_MODULES "")
@@ -114,7 +119,7 @@ target_compile_options(beauvoir PRIVATE
 # C standard
 ##
 set_target_properties(beauvoir PROPERTIES
-    C_STANDARD 11
+    C_STANDARD 99
     C_STANDARD_REQUIRED ON
 )
 

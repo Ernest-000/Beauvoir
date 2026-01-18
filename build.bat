@@ -25,6 +25,7 @@ for %%A in (%*) do (
 if %BVR_SKIP_GIT_SYNC%=="true" (
     git submodule deinit -f .
     git submodule update --init
+    git submodule update --remote --merge
 )
 
 :: Clear command

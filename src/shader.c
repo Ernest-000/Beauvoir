@@ -1,13 +1,13 @@
-#include <BVR/shader.h>
-#include <BVR/math.h>
-#include <BVR/file.h>
-#include <BVR/image.h>
+#include <bvr/shader.h>
+#include <bvr/math.h>
+#include <bvr/file.h>
+#include <bvr/image.h>
 
 #include <string.h>
 #include <memory.h>
 #include <malloc.h>
 
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 
 #define BVR_MAX_GLSL_HEADER_SIZE 100
 

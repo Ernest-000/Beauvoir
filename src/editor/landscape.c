@@ -1,12 +1,12 @@
-#include <BVR/editor/landscape.h>
-#include <BVR/editor/editor.h>
+#include <bvr/editor/landscape.h>
+#include <bvr/editor/editor.h>
 
 #ifndef BVR_NO_NUKLEAR
 
-#include <BVR/file.h>
-#include <BVR/window.h>
+#include <bvr/file.h>
+#include <bvr/window.h>
 
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 #include <json-c/json.h>
 
 int bvri_landscape_process_selection(struct bvr_editor_s *editor, bvr_landscape_actor_t *actor)

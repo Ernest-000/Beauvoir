@@ -1,8 +1,8 @@
-#include <BVR/gui.h>
-#include <BVR/file.h>
+#include <bvr/gui.h>
+#include <bvr/file.h>
 
 #include <SDL3/SDL.h>
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 
 #include <malloc.h>
 

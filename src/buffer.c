@@ -1,5 +1,5 @@
-#include <BVR/buffer.h>
-#include <BVR/common.h>
+#include <bvr/buffer.h>
+#include <bvr/common.h>
 
 #include <malloc.h>
 #include <string.h>
@@ -20,7 +20,7 @@ static int bvri_grow_buffer(void* ptr, uint64* size){
 
 #endif
 
-void bvr_create_memstream(bvr_memstream_t* stream, unsigned long long const size){
+void bvr_create_memstream(bvr_memstream_t* stream, const uint64 size){
     BVR_ASSERT(stream);
 
     if(stream->data){
@@ -300,7 +300,7 @@ void bvr_create_pool(bvr_pool_t* pool, const uint64 size, const uint64 count){
     pool->count = 0;
 
     // allocate enough space for the linked list and raw memory space
-    pool->data = malloc(pool->size);
+    pool->data = calloc(pool->size, 1);
     BVR_ASSERT(pool->data);
 
     pool->next_block = (void*)pool->data;

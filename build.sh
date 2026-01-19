@@ -14,9 +14,9 @@ BVR_NUKLEAR_DIR="$BVR_ROOT_DIR/extern/Nuklear/src"
 BVR_EXTERNAL_MODULES=("SDL" "Zlib" "Lpng" "json-c")
 
 # Flags
-BVR_CLEAR=true
-BVR_SKIP_BIN=true
-BVR_SKIP_SYNC=true
+BVR_CLEAR=false
+BVR_SKIP_BIN=false
+BVR_SKIP_SYNC=false
 
 for arg in "$@"; do
     case "$arg" in

@@ -39,7 +39,7 @@ In this example, you will get a simple player that move around.
 ```C
 /* include all Beauvoir's headers */
 #define BVR_INCLUDE_GEOMETRY
-#include <BVR/bvr.h>
+#include <bvr/bvr.h>
 
 /* game's context */
 static bvr_book_t book;

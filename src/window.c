@@ -1,7 +1,7 @@
-#include <BVR/window.h>
+#include <bvr/window.h>
 
-#include <BVR/common.h>
-#include <BVR/scene.h>
+#include <bvr/common.h>
+#include <bvr/scene.h>
 
 #include <string.h>
 #include <memory.h>

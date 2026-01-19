@@ -1,7 +1,7 @@
 /* include all Beauvoir's headers */
 #define BVR_INCLUDE_GEOMETRY
-#include <BVR/bvr.h>
-#include <BVR/editor/editor.h>
+#include <bvr/bvr.h>
+#include <bvr/editor/editor.h>
 
 /* game's context */
 static bvr_book_t book;

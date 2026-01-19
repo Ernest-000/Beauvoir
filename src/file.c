@@ -1,5 +1,5 @@
-#include <BVR/file.h>
-#include <BVR/common.h>
+#include <bvr/file.h>
+#include <bvr/common.h>
 
 #include <malloc.h>
 #include <memory.h>

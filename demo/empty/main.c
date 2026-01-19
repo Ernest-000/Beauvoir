@@ -4,7 +4,7 @@
 
 /* include all Beauvoir's headers */
 #define BVR_INCLUDE_GEOMETRY
-#include <BVR/bvr.h>
+#include <bvr/bvr.h>
 
 /* game's context */
 static bvr_book_t book;

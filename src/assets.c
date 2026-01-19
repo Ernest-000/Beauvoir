@@ -1,15 +1,15 @@
-#include <BVR/assets.book.h>
-#include <BVR/assets.h>
+#include <bvr/assets.book.h>
+#include <bvr/assets.h>
 
-#include <BVR/editor/flags.h>
+#include <bvr/editor/flags.h>
 
-#include <BVR/file.h>
+#include <bvr/file.h>
 
 #include <string.h>
 #include <malloc.h>
 #include <unistd.h>
 
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 
 #define BVR_FILE_SIG "BVRB"
 #define BVR_PAGE_SIG "PAJ"
@@ -276,7 +276,9 @@ void bvr_write_book_dataf(FILE* file, bvr_book_t* book){
         } target;
 
         struct bvr_actor_s* actor = NULL;
-        BVR_POOL_FOR_EACH(actor, book->page->actors){
+        struct bvr_actor_s** p_actor = NULL;
+        BVR_POOL_FOR_EACH(p_actor, book->page->actors){
+            actor = *p_actor;
             if(actor == NULL){
                 break;
             }

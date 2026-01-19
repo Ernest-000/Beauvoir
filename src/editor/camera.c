@@ -1,8 +1,8 @@
-#include <BVR/editor/camera.h>
+#include <bvr/editor/camera.h>
 
 #ifndef BVR_NO_NUKLEAR
 
-#include <BVR/window.h>
+#include <bvr/window.h>
 
 void bvr_init_free_camera(bvr_book_t* book, struct bvr_free_camera_s* _camera_controller, float movement_speed, float rotation_speed){
     _camera_controller->forward_speed = movement_speed;

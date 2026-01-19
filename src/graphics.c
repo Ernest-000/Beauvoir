@@ -1,10 +1,10 @@
-#include <BVR/graphics.h>
+#include <bvr/graphics.h>
 
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 
-#include <BVR/math.h>
-#include <BVR/common.h>
-#include <BVR/scene.h>
+#include <bvr/math.h>
+#include <bvr/common.h>
+#include <bvr/scene.h>
 
 #include <memory.h>
 #include <malloc.h>

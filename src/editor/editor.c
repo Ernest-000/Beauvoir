@@ -1,18 +1,18 @@
-#include <BVR/editor/editor.h>
-#include <BVR/editor/flags.h>
-#include <BVR/editor/landscape.h>
+#include <bvr/editor/editor.h>
+#include <bvr/editor/flags.h>
+#include <bvr/editor/landscape.h>
 
 #ifndef BVR_NO_NUKLEAR
 
-#include <BVR/buffer.h>
-#include <BVR/common.h>
-#include <BVR/window.h>
-#include <BVR/actors.h>
+#include <bvr/buffer.h>
+#include <bvr/common.h>
+#include <bvr/window.h>
+#include <bvr/actors.h>
 
-#include <BVR/assets.h>
-#include <BVR/assets.book.h>
+#include <bvr/assets.h>
+#include <bvr/assets.book.h>
 
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 
 #include <limits.h>
 #include <float.h>
@@ -87,15 +87,15 @@ static void bvri_draw_editor_mesh(bvr_mesh_t* mesh){
     
     nk_layout_row_dynamic(&__editor->gui.context, 15, 2);
     
-    bvr_vertex_group_t* group;
+    bvr_vertex_group_t** group;
     BVR_POOL_FOR_EACH(group, mesh->vertex_groups){
         nk_label_wrap(&__editor->gui.context, 
-            BVR_FORMAT("%s: %i-%i", group->name.string, group->element_offset, group->element_offset + group->element_count)
+            BVR_FORMAT("%s: %i-%i", (*group)->name.string, (*group)->element_offset, (*group)->element_offset + (*group)->element_count)
         );
 
-        int flag = BVR_HAS_FLAG(group->flags, BVR_VERTEX_GROUP_FLAG_INVISIBLE);
+        int flag = BVR_HAS_FLAG((*group)->flags, BVR_VERTEX_GROUP_FLAG_INVISIBLE);
         if(nk_checkbox_label(&__editor->gui.context, "visible", &flag)){
-            group->flags ^= BVR_VERTEX_GROUP_FLAG_INVISIBLE;
+            (*group)->flags ^= BVR_VERTEX_GROUP_FLAG_INVISIBLE;
         }
     }
 
@@ -456,17 +456,17 @@ void bvr_editor_draw_page_hierarchy(){
                 bvri_draw_hierarchy_button("user", BVR_EDITOR_USER, __editor->callback);
             }
             
-            struct bvr_light_s* light = NULL;
+            struct bvr_light_s** light = NULL;
             BVR_POOL_FOR_EACH(light, __editor->book->page->lights){
-                if(!light) {
+                if(!(*light)) {
                     break;
                 }
 
-                switch (light->type)
+                switch ((*light)->type)
                 {
                 case BVR_LIGHT_NONE: break;
                 case BVR_LIGHT_GLOBAL_ILLUMINATION:
-                    bvri_draw_hierarchy_button("global illumination", BVR_EDITOR_GLOBAL_ILL, light);
+                    bvri_draw_hierarchy_button("global illumination", BVR_EDITOR_GLOBAL_ILL, (*light));
                     break;
 
                 default:
@@ -483,20 +483,20 @@ void bvr_editor_draw_page_hierarchy(){
         {
             nk_layout_row_dynamic(&__editor->gui.context, 15, 1);
             
-            struct bvr_actor_s* actor = NULL;
+            struct bvr_actor_s** actor = NULL;
             BVR_POOL_FOR_EACH(actor, __editor->book->page->actors){
-                if(!actor){
+                if(!(*actor)){
                     break;
                 }
 
-                switch (actor->type)
+                switch ((*actor)->type)
                 {
                 case BVR_LANDSCAPE_ACTOR:
-                    bvri_draw_hierarchy_button(actor->name.string, BVR_EDITOR_LANDSCAPE, actor);
+                    bvri_draw_hierarchy_button((*actor)->name.string, BVR_EDITOR_LANDSCAPE, actor);
                     break;
                 
                 default:
-                    bvri_draw_hierarchy_button(actor->name.string, BVR_EDITOR_ACTOR, actor);
+                    bvri_draw_hierarchy_button((*actor)->name.string, BVR_EDITOR_ACTOR, actor);
                     break;
                 }
             }
@@ -509,9 +509,9 @@ void bvr_editor_draw_page_hierarchy(){
         {
             nk_layout_row_dynamic(&__editor->gui.context, 15, 1);
             
-            struct bvr_collider_s* collider = NULL;
+            struct bvr_collider_s** collider = NULL;
             BVR_POOL_FOR_EACH(collider, __editor->book->page->colliders){
-                if(!collider){
+                if(!(*collider)){
                     break;
                 }
 

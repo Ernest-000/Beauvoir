@@ -1,6 +1,6 @@
-#include <BVR/common.h>
+#include <bvr/common.h>
 
-#include <BVR/config.h>
+#include <bvr/config.h>
 
 #include <stdlib.h>
 #include <stdint.h>

@@ -1,10 +1,11 @@
 #include <bvr/image.h>
-#include <BVR/common.h>
-#include <BVR/file.h>
+#include <bvr/common.h>
+#include <bvr/file.h>
 
 #include <bvr/shader.h>
 #include <bvr/scene.h>
 
+#include <stdlib.h>
 #include <malloc.h>
 #include <memory.h>
 #include <string.h>
@@ -1030,9 +1031,6 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
                 int layer_width = layer_section.layers[layer].bounds[3] - layer_section.layers[layer].bounds[1];
                 int layer_height = layer_section.layers[layer].bounds[2] - layer_section.layers[layer].bounds[0];
                 
-                //int layer_anchor_x = MIN(layer_section.layers[layer].bounds[1], image->width - layer_width);
-                //int layer_anchor_y = MIN(layer_section.layers[layer].bounds[0], image->height - layer_height);
-
                 int layer_anchor_x = 0;
                 int layer_anchor_y = 0;
 
@@ -1494,7 +1492,10 @@ int bvr_create_texture_from_image(bvr_texture_t* texture, bvr_image_t* image, in
         // TODO: compress images into one layer
     }
 
-    bvri_create_texture_base(texture);
+    if(!bvri_create_texture_base(texture)){
+        bvr_destroy_texture(texture);
+        return BVR_FALSE;
+    }
 
     glTexStorage2D(
         texture->target, 1, 
@@ -1580,7 +1581,11 @@ int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file,
 
     atlas->tiles.count = tile_cx * tile_cy;
 
-    bvri_create_texture_base(&atlas->texture);
+
+    if(!bvri_create_texture_base((bvr_texture_t*)atlas)){
+        bvr_destroy_texture((bvr_texture_t*)atlas);
+        return BVR_FALSE;
+    }
 
     glTexStorage3D(
         atlas->texture.target, 1, 
@@ -1654,7 +1659,11 @@ int bvr_create_layered_texturef(bvr_texture_t* texture, FILE* file, int filter, 
         bvri_create_empty_layer(&texture->image);
     }
 
-    bvri_create_texture_base(texture);
+
+    if(!bvri_create_texture_base(texture)){
+        bvr_destroy_texture(texture);
+        return BVR_FALSE;
+    }
 
     glTexStorage3D(
         texture->target, 1, 

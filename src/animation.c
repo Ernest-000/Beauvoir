@@ -1,6 +1,6 @@
-#include <BVR/animation.h>
+#include <bvr/animation.h>
 
-#include <BVR/scene.h>
+#include <bvr/scene.h>
 
 #include <memory.h>
 #include <malloc.h>
@@ -264,9 +264,9 @@ void bvr_destroy_animation(bvr_animation_t* anim){
         bvri_destroy_celframe(&((bvr_celframe_t*)anim->celframes.data)[i]);
     }
     
-    bvr_animation_handle_t handle;
+    bvr_animation_handle_t* handle;
     BVR_POOL_FOR_EACH(handle, anim->tracks){
-        bvr_destroy_string(&handle.name);
+        bvr_destroy_string(&handle->name);
     }
 
     bvr_destroy_pool(&anim->tracks);

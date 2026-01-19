@@ -1,7 +1,7 @@
-#include <BVR/camera.h>
+#include <bvr/camera.h>
 
-#include <BVR/shader.h>
-#include <BVR/scene.h>
+#include <bvr/shader.h>
+#include <bvr/scene.h>
 
 static void bvri_update_view(bvr_camera_t* camera, mat4x4 matrix);
 

@@ -1,14 +1,14 @@
-#include <BVR/mesh.h>
-#include <BVR/math.h>
-#include <BVR/buffer.h>
-#include <BVR/file.h>
-#include <BVR/physics.h>
+#include <bvr/mesh.h>
+#include <bvr/math.h>
+#include <bvr/buffer.h>
+#include <bvr/file.h>
+#include <bvr/physics.h>
 
 #include <malloc.h>
 #include <string.h>
 #include <memory.h>
 
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 
 #ifndef BVR_NO_OBJ
     #include <ctype.h>
@@ -919,7 +919,7 @@ static int bvri_is_fbx(FILE* file){
             (endian == 0x0 || endian == 0x1);
 }
 
-static void bvri_copyfbxproperty(FILE* file, char** destination, size_t* length, uint32* dtype){
+static void bvri_copyfbxproperty(FILE* file, char** destination, uint64* length, uint32* dtype){
     if(destination == NULL || length == NULL){
         return;
     }
@@ -1534,10 +1534,10 @@ void bvr_triangulate(bvr_mesh_buffer_t* src, bvr_mesh_buffer_t* dest, const uint
 void bvr_destroy_mesh(bvr_mesh_t* mesh){
     BVR_ASSERT(mesh);
 
-    bvr_vertex_group_t group;
+    bvr_vertex_group_t* group;
     BVR_POOL_FOR_EACH(group, mesh->vertex_groups){
         //TODO: find why this fucking vertex group mess up string's pointer
-        //bvr_destroy_string(&group.name);
+        bvr_destroy_string(&group->name);
     }
 
     //free(mesh->vertex_groups.data);

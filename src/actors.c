@@ -1,14 +1,14 @@
-#include <BVR/actors.h>
+#include <bvr/actors.h>
 
-#include <BVR/file.h>
-#include <BVR/scene.h>
-#include <BVR/graphics.h>
+#include <bvr/file.h>
+#include <bvr/scene.h>
+#include <bvr/graphics.h>
 
 #include <stdlib.h>
 #include <math.h>
 #include <memory.h>
 
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 
 /*
     calculate actor's transformation matrix
@@ -524,9 +524,9 @@ static void bvri_draw_landscape_actor(bvr_landscape_actor_t* actor){
     // draw mode is forced to be 'triangle strip'
     cmd.draw_mode = BVR_DRAWMODE_TRIANGLES_STRIP;
 
-    bvr_vertex_group_t group;
+    bvr_vertex_group_t* group;
     BVR_POOL_FOR_EACH(group, actor->mesh.vertex_groups){
-        cmd.vertex_group = group;
+        cmd.vertex_group = *group;
         
         bvr_pipeline_add_draw_cmd(&cmd);
     }
@@ -585,12 +585,12 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
     cmd.draw_mode = drawmode;
 
     // iterate through each vertex group to create individual draw commands
-    bvr_vertex_group_t group;
+    bvr_vertex_group_t* group;
     BVR_POOL_FOR_EACH(group, _actor->mesh.vertex_groups){
-        cmd.vertex_group = group;
+        cmd.vertex_group = *group;
         
         // if it's not invisible the command is added to the queue
-        if(!BVR_HAS_FLAG(group.flags, BVR_VERTEX_GROUP_FLAG_INVISIBLE)){
+        if(!BVR_HAS_FLAG(group->flags, BVR_VERTEX_GROUP_FLAG_INVISIBLE)){
             bvr_pipeline_add_draw_cmd(&cmd);
         }
     }

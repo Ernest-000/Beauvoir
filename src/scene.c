@@ -1,9 +1,10 @@
-#include <BVR/scene.h>
-#include <BVR/math.h>
+#include <bvr/scene.h>
+#include <bvr/math.h>
 
-#include <BVR/lights.h>
-#include <BVR/assets.book.h>
+#include <bvr/lights.h>
+#include <bvr/assets.book.h>
 
+#include <stdlib.h>
 #include <string.h>
 #include <memory.h>
 
@@ -51,7 +52,6 @@ int bvr_create_book(bvr_book_t *book)
     book->pipeline.swap_pass.flags = 0;
 
     BVR_IDENTITY_VEC3(book->pipeline.clear_color);
-
     book->pipeline.state.framebuffer = NULL;
 
     book->pipeline.command_count = 0;
@@ -133,8 +133,8 @@ void bvr_update(bvr_book_t *book)
 {
     BVR_CALL(book->page->events.update, book->page);
 
-    bvr_collider_t *collider = NULL;
-    bvr_collider_t *other = NULL;
+    bvr_collider_t** collider = NULL;
+    bvr_collider_t** other = NULL;
 
     if (!bvr_is_active(book))
     {
@@ -144,50 +144,50 @@ void bvr_update(bvr_book_t *book)
     BVR_POOL_FOR_EACH(collider, book->page->colliders)
     {
 
-        if (!collider)
+        if (!(*collider))
         {
             break;
         }
 
         // update collider infos
-        if (collider->shape == BVR_COLLIDER_BOX)
+        if ((*collider)->shape == BVR_COLLIDER_BOX)
         {
-            vec2_copy(((struct bvr_bounds_s *)collider->geometry.data)->coords, collider->transform->position);
+            vec2_copy(((struct bvr_bounds_s *)(*collider)->geometry.data)->coords, (*collider)->transform->position);
         }
 
         // collision are disabled
-        if (!BVR_HAS_FLAG(collider->body.mode, BVR_COLLISION_ENABLE))
+        if (!BVR_HAS_FLAG((*collider)->body.mode, BVR_COLLISION_ENABLE))
         {
 
             continue;
         }
 
         // if this actor is aggressive
-        if (BVR_HAS_FLAG(collider->body.mode, BVR_COLLISION_AGRESSIVE))
+        if (BVR_HAS_FLAG((*collider)->body.mode, BVR_COLLISION_AGRESSIVE))
         {
 
             struct bvr_collision_result_s result;
 
-            BVR_POOL_FOR_EACH(other, book->page->colliders)
+            BVR_POOL_FOR_EACH((*other), book->page->colliders)
             {
-                if (!other)
+                if (!(*other))
                 {
                     break;
                 }
 
-                bvr_compare_colliders(collider, other, &result);
+                bvr_compare_colliders(*collider, *other, &result);
 
                 if (result.collide == 1)
                 {
-                    bvr_invert_direction(&collider->body);
-                    BVR_IDENTITY_VEC3(collider->body.direction);
+                    bvr_invert_direction(&(*collider)->body);
+                    BVR_IDENTITY_VEC3((*collider)->body.direction);
 
                     break;
                 }
             }
         }
 
-        bvr_body_apply_motion(&collider->body, collider->transform);
+        bvr_body_apply_motion(&(*collider)->body, (*collider)->transform);
     }
 }
 
@@ -229,7 +229,6 @@ void bvr_render(bvr_book_t *book)
     bvr_pipeline_state_enable(&book->pipeline.swap_pass);
     bvr_framebuffer_clear(NULL, book->pipeline.clear_color);
 
-    // push rendered scene to the screen
     bvr_framebuffer_blit(&book->window.framebuffer);
     bvr_window_push_buffers();
 
@@ -458,17 +457,17 @@ struct bvr_actor_s *bvr_find_actor(bvr_book_t *book, const char *name)
     BVR_ASSERT(book);
     BVR_ASSERT(name);
 
-    struct bvr_actor_s *actor;
+    struct bvr_actor_s** actor;
     BVR_POOL_FOR_EACH(actor, book->page->actors)
     {
-        if (actor == NULL)
+        if ((*actor) == NULL)
         {
             break;
         }
 
-        if (strncmp(actor->name.string, name, actor->name.length) == 0)
+        if (strncmp((*actor)->name.string, name, (*actor)->name.length) == 0)
         {
-            return actor;
+            return *actor;
         }
     }
 
@@ -480,17 +479,17 @@ struct bvr_actor_s *bvr_find_actor_uuid(bvr_book_t *book, bvr_uuid_t uuid)
     BVR_ASSERT(book);
     BVR_ASSERT(uuid);
 
-    struct bvr_actor_s *actor;
+    struct bvr_actor_s** actor;
     BVR_POOL_FOR_EACH(actor, book->page->actors)
     {
-        if (actor == NULL)
+        if ((*actor) == NULL)
         {
             break;
         }
 
-        if (bvr_uuid_equals(actor->id, uuid))
+        if (bvr_uuid_equals((*actor)->id, uuid))
         {
-            return actor;
+            return (*actor);
         }
     }
 
@@ -502,32 +501,32 @@ void bvr_destroy_page(bvr_page_t *page)
     BVR_ASSERT(page);
     BVR_CALL(page->events.destroy, page);
 
-    struct bvr_actor_s *actor = NULL;
+    struct bvr_actor_s** actor = NULL;
     BVR_POOL_FOR_EACH(actor, page->actors)
     {
-        if (!actor) {
+        if (!(*actor)) {
             break;
         }
 
         // destroy actor
-        bvr_destroy_actor(actor);
+        bvr_destroy_actor(*actor);
     }
 
-    bvr_collider_t *collider = NULL;
+    bvr_collider_t** collider = NULL;
     BVR_POOL_FOR_EACH(collider, page->colliders)
     {
-        if (!collider){
+        if (!(*collider)){
             break;
         }
 
         // remove collider
-        collider = NULL;
+        *collider = NULL;
     }
 
-    struct bvr_light_s *light = NULL;
+    struct bvr_light_s** light = NULL;
     BVR_POOL_FOR_EACH(light, page->lights)
     {
-        if (!light){
+        if (!(*light)){
             break;
         }
 

@@ -28,6 +28,7 @@ enum bvr_editor_state_e {
 };
 
 typedef void (*_bvr_editor_callback)(bvr_canvas_t* context, bvr_book_t* book);
+typedef void (*_bvr_editor_component_draw_callback)(bvr_canvas_t* context, void* user);
 
 typedef struct bvr_editor_s {
     bvr_canvas_t gui;
@@ -53,8 +54,10 @@ typedef struct bvr_editor_s {
     struct {
         bvr_string_t name;
 
+        void* object;
         uint32 type;
-        void* pointer;
+
+        _bvr_editor_component_draw_callback component;
     } inspector_cmd;
 
     /*
@@ -74,11 +77,21 @@ typedef struct bvr_editor_s {
 
         uint32 element_offset;
         uint32 element_count;
+
+        // view texture
+        // use to create sub view of an image
+        bvr_texture_t view_texture;
+        bvr_composite_t view_fbo;
     } draw_cmd;
 
 } bvr_editor_t;
 
 void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book);
+
+/**
+ * Returns a pointer to the current editor instance
+ */
+bvr_editor_t* bvr_get_editor_instance();
 
 /*
     Attach a callback function called when drawing a user-specific UI section

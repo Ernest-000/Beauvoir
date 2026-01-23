@@ -11,6 +11,72 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_dialog.h>
 
+#define BVR_LOAD_GL_EXT(_ext) if(!GLAD_ ##_ext) BVR_PRINT("failed to load extention '" #_ext "'");
+
+void static bvr_error_callback(GLenum source, GLenum type, GLuint id,
+   GLenum severity, GLsizei length, const GLchar* message, const void* userParam){
+    
+    if(severity == GL_DEBUG_SEVERITY_NOTIFICATION){
+        return;
+    }
+
+    char src[25];
+    char error[25];
+
+    switch (source)
+    {
+        case GL_DEBUG_SOURCE_API:
+            BVR_STRCPY(src, "API", 4);
+            break;
+
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+            BVR_STRCPY(src, "WINDOW SYSTEM", 14);
+            break;
+
+        case GL_DEBUG_SOURCE_SHADER_COMPILER:
+            BVR_STRCPY(src, "SHADERS", 8);
+            break;
+        
+        case GL_DEBUG_SOURCE_THIRD_PARTY:
+            BVR_STRCPY(src, "THIRD PARTY", 12);
+            break;
+        
+        case GL_DEBUG_SOURCE_APPLICATION:
+            BVR_STRCPY(src, "APPLICATION", 12);
+            break;
+        
+        case GL_DEBUG_SOURCE_OTHER:
+            BVR_STRCPY(src, "OTHER", 6);
+            break;
+    };
+    
+    switch (severity)
+    {
+        case GL_DEBUG_SEVERITY_HIGH:
+            BVR_STRCPY(error, "fatal error", 12);
+            break;
+
+        case GL_DEBUG_SEVERITY_MEDIUM:
+            BVR_STRCPY(error, "medium error", 13);
+            break;
+        
+        case GL_DEBUG_SEVERITY_LOW:
+            BVR_STRCPY(error, "warning", 8);
+            break;
+        
+        // case GL_DEBUG_SEVERITY_NOTIFICATION:
+        //     BVR_STRCPY(error, "notification", 13);
+        //     break;
+        
+        default:
+            BVR_STRCPY(error, "other", 6);
+            break;
+        
+    };
+
+    BVR_PRINTF("catch a new %s(%i) from %s! '%s'", error, id, src, message);
+}
+
 int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 height, const char* title, const int flags){
     BVR_ASSERT(window);
     BVR_ASSERT(width > 0 && height > 0);
@@ -72,16 +138,21 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     BVR_ASSERT(gladLoadGLES2Loader((GLADloadproc)SDL_GL_GetProcAddress));
     
     // set vendor informations
-    strncpy(window->vendor.version, "Beauvoir " BVR_VERSION, 31);
-    strncpy(window->vendor.name, glGetString(GL_VENDOR), 31);
-    strncpy(window->vendor.gl_version, glGetString(GL_VERSION), 31);
-    strncpy(window->vendor.glsl_version, glGetString(GL_SHADING_LANGUAGE_VERSION), 31);
+    BVR_STRCPY(window->vendor.version, "Beauvoir " BVR_VERSION, 31);
+    BVR_STRCPY(window->vendor.name, glGetString(GL_VENDOR), 31);
+    BVR_STRCPY(window->vendor.gl_version, glGetString(GL_VERSION), 31);
+    BVR_STRCPY(window->vendor.glsl_version, glGetString(GL_SHADING_LANGUAGE_VERSION), 31);
 
-    // check for extensions
-    if(!GLAD_GL_EXT_copy_image || !GLAD_GL_EXT_copy_image){
-        BVR_PRINT("failed to load extentensions! some implementations might not work properly :(");
+    BVR_LOAD_GL_EXT(GL_EXT_copy_image);
+    BVR_LOAD_GL_EXT(GL_EXT_texture_view);
+    BVR_LOAD_GL_EXT(GL_KHR_debug);
+
+    // enable debugging
+    if(GLAD_GL_KHR_debug){
+        glEnable(GL_DEBUG_OUTPUT);
+        glDebugMessageCallback(bvr_error_callback, NULL);
     }
-    
+
     // create framebuffer
     bvr_window_resize(window, width, height);
 
@@ -129,22 +200,22 @@ void bvr_window_poll_events(){
                 if(event.key.mod){
                     switch (event.key.mod)
                     {
-                    case SDLK_LSHIFT:
+                    case SDL_KMOD_LSHIFT:
                         window->inputs.keys[BVR_KEY_LEFT_SHIFT] = down;
                         break;
-                    case SDLK_RSHIFT:
+                    case SDL_KMOD_RSHIFT:
                         window->inputs.keys[BVR_KEY_RIGHT_SHIFT] = down;
                         break;
-                    case SDLK_LCTRL:
+                    case SDL_KMOD_LCTRL:
                         window->inputs.keys[BVR_KEY_LEFT_CONTROL] = down;
                         break;
-                    case SDLK_RCTRL:
+                    case SDL_KMOD_RCTRL:
                         window->inputs.keys[BVR_KEY_RIGHT_CONTROL] = down;
                         break;
-                    case SDLK_LALT:
+                    case SDL_KMOD_LALT:
                         window->inputs.keys[BVR_KEY_LEFT_ALT] = down;
                         break;
-                    case SDLK_RALT:
+                    case SDL_KMOD_RALT:
                         window->inputs.keys[BVR_KEY_RIGHT_ALT] = down;
                         break;
                     default: break;

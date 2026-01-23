@@ -165,44 +165,44 @@ static void bvri_create_bitmap_layer(bvr_texture_actor_t* layer, int flags){
         Here, we're trying to bind collision boxes by using a bit map
     */
     if(BVR_HAS_FLAG(flags, BVR_BITMAP_CREATE_COLLIDER)){
-        BVR_ASSERT(layer->bitmap.image.pixels);
+        BVR_ASSERT(layer->texture.image.pixels);
 
         struct bvr_bounds_s rects[BVR_BUFFER_SIZE / 2];
-        uint8* pixels = malloc(layer->bitmap.image.width * layer->bitmap.image.height);
-        memcpy(pixels, layer->bitmap.image.pixels, layer->bitmap.image.width * layer->bitmap.image.height);
+        uint8* pixels = malloc(layer->texture.image.width * layer->texture.image.height);
+        memcpy(pixels, layer->texture.image.pixels, layer->texture.image.width * layer->texture.image.height);
 
         int x, y;
         int rect_width, rect_height, rc;
         int rect_count = 0;
 
-        for (uint64 i = 0; i < layer->bitmap.image.width * layer->bitmap.image.height; i++)
+        for (uint64 i = 0; i < layer->texture.image.width * layer->texture.image.height; i++)
         {
             // skip null pixels
             if(pixels[i] == 0){
                 continue;
             }
 
-            y = i / layer->bitmap.image.width;
-            x = i % layer->bitmap.image.width;
+            y = i / layer->texture.image.width;
+            x = i % layer->texture.image.width;
             rc = 1;
             rect_width = 0;
             rect_height = 0;
 
             // scan horizontal line until there is a non-null pixel 
-            while (x + rect_width < layer->bitmap.image.width && 
-                pixels[y * layer->bitmap.image.width + x + rect_width] > 0)
+            while (x + rect_width < layer->texture.image.width && 
+                pixels[y * layer->texture.image.width + x + rect_width] > 0)
             {
                 rect_width++;
             }
             
             // then, scan vertical line from the end of the rectangle until it reaches a non-null pixel
-            while (y + rect_height < layer->bitmap.image.height && rc)
+            while (y + rect_height < layer->texture.image.height && rc)
             {
                 // for each vertical line check if the width is still correct 
                 for (uint64 dx = 0; dx < rect_width; dx++)
                 {
                     // if not, it's the end of the rectangle
-                    if(pixels[(y + rect_height) * layer->bitmap.image.width + x + dx] == 0){
+                    if(pixels[(y + rect_height) * layer->texture.image.width + x + dx] == 0){
                         rc = 0;
                         break;
                     }
@@ -216,7 +216,7 @@ static void bvri_create_bitmap_layer(bvr_texture_actor_t* layer, int flags){
             {
                 for (uint64 dx = 0; dx < rect_width; dx++)
                 {
-                    pixels[(y + dy) * layer->bitmap.image.width + x + dx] = 0;
+                    pixels[(y + dy) * layer->texture.image.width + x + dx] = 0;
                 }
                 
             }
@@ -361,7 +361,7 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
             bvr_destroy_mesh(&((bvr_texture_actor_t*)actor)->mesh);
             bvr_destroy_shader(&((bvr_texture_actor_t*)actor)->shader);
             bvr_destroy_collider(&((bvr_texture_actor_t*)actor)->collider);
-            bvr_destroy_texture(&((bvr_texture_actor_t*)actor)->bitmap);
+            bvr_destroy_texture(&((bvr_texture_actor_t*)actor)->texture);
         }
         break;
     case BVR_LAYER_ACTOR:
@@ -388,7 +388,7 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
         {
             bvr_destroy_mesh(&((bvr_landscape_actor_t*)actor)->mesh);
             bvr_destroy_shader(&((bvr_landscape_actor_t*)actor)->shader);
-            bvr_destroy_texture(&((bvr_landscape_actor_t*)actor)->atlas.texture);
+            bvr_destroy_texture(&((bvr_landscape_actor_t*)actor)->atlas);
         }
         break;
     default:
@@ -435,6 +435,7 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
         layer_info.layer = i;
         layer_info.blend_mode = layer->blend_mode;
         layer_info.opacity = layer->opacity;
+        layer_info.reserved = 0;
         
         // reset transform matrice
         identity[3][0] = (float)layer->anchor_x / actor->texture.image.width;
@@ -551,15 +552,13 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
 
     // layered actors are drawn differentlty
     // to enhance performances, layer actors with only one layer are drawn like any other images :>
-    if(actor->type == BVR_LAYER_ACTOR && 
-        BVR_BUFFER_COUNT(((bvr_layer_actor_t*)actor)->texture.image.layers) > 1){
-            
+    if(actor->type == BVR_LAYER_ACTOR){
         bvri_draw_layer_actor((bvr_layer_actor_t*)actor, drawmode);
         return;
     }
 
     // landscape actors are drawn differentlty
-    if(actor->type == BVR_LANDSCAPE_ACTOR){
+    if(actor->type == BVR_LANDSCAPE_ACTOR && ((bvr_layer_actor_t*)actor)->composite.image){
         bvri_draw_landscape_actor((bvr_landscape_actor_t*)actor);
         return;
     }

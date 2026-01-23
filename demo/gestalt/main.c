@@ -120,7 +120,7 @@ static bvr_layer_actor_t* _load_image(const char* path){
     bvr_create_shader(&p_actor->shader, "texture_unlit.glsl", BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER | BVR_SHADER_EXT_SHARE_LAYERS);
     
     // create texture
-    bvr_create_layered_texture(&p_actor->texture, path, BVR_TEXTURE_FILTER_LINEAR, BVR_TEXTURE_WRAP_CLAMP_TO_EDGE);
+    bvr_create_texture(&p_actor->texture, path, BVR_TEXTURE_FILTER_LINEAR, BVR_TEXTURE_WRAP_CLAMP_TO_EDGE);
     
     // create mesh
     bvr_create_2d_square_mesh(&p_actor->mesh, p_actor->texture.image.width, p_actor->texture.image.height);

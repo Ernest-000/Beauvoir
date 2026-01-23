@@ -130,20 +130,44 @@ struct bvr_layer_info_s {
     uint8 layer;
     uint8 blend_mode;
     uint8 opacity;
+    uint8 reserved;
 } __attribute__((packed));
 
 /*
     Contains informations and data of an image
 */
 typedef struct bvr_image_s {
-    int width, height, depth;
+    int width, height;
     int format, sformat;
-    uint8 channels;
+
+    uint8 channels, depth;
     uint8* pixels;
 
     struct bvr_buffer_s layers;
     struct bvr_asset_reference_s asset;
 } bvr_image_t;
+
+/**
+ * Contains atlas informations
+ */
+struct bvr_atlas_s {
+    uint16 width, height, tile;
+    uint16 padding[4];
+    uint32 count;
+};
+
+typedef struct bvr_atlas_desc_s {
+    uint32 tile_width;
+    uint32 tile_height;
+
+    uint16 padding_bottom;
+    uint16 padding_left;
+    uint16 padding_right;
+    uint16 padding_top;
+
+    // returns the number of tile on x and y
+    uint16 tile_count[2];
+} bvr_atlas_desc_t;
 
 /*
     2D texture.
@@ -155,24 +179,14 @@ typedef struct bvr_texture_s {
     uint8 unit;
 
     int filter, wrap;
+
+    struct bvr_atlas_s tiles;
 } bvr_texture_t;
 
 typedef struct bvr_composite_s {
     bvr_image_t* image;
     uint32 framebuffer, tex;
 } bvr_composite_t;
-
-/*
-    Represent an array of 2D textures
-*/
-typedef struct bvr_texture_atlas_s
-{
-    struct bvr_texture_s texture;
-    struct {
-        uint16 width, height;
-        uint16 count;
-    } tiles;
-} bvr_texture_atlas_t;
 
 int bvr_create_imagef(bvr_image_t* image, FILE* file);
 BVR_H_FUNC int bvr_create_image(bvr_image_t* image, const char* path){
@@ -210,13 +224,32 @@ int bvr_image_copy_channel(bvr_image_t* image, int channel, uint8* buffer);
     Create a raw OpenGL texture from another texture.
     This function returns the new texture's id.
 */
-int bvr_create_view_texture(bvr_texture_t* origin, bvr_texture_t* dest, int width, int height, int layer);
+int bvr_create_view_texture(const bvr_composite_t* compose, bvr_texture_t* origin, bvr_texture_t* dest, const uint32 layer);
 
 void bvr_destroy_image(bvr_image_t* image);
 
-/* 2D TEXTURE */
-int bvr_create_texture_from_image(bvr_texture_t* texture, bvr_image_t* image, int filter, int wrap);
+/**
+ * Create a new 2 dimensional texture from an image.
+ * This 2D texture can only handle single-layered rendering. 
+ */
+int bvr_create_texture_2d(bvr_texture_t* texture, bvr_image_t* image, int filter, int wrap);
+
+/**
+ * Create a new 3 dimensional texture from an image.
+ * This 3D texture will support layering.
+ */
+int bvr_create_texture_3d(bvr_texture_t* texture, bvr_image_t* image, int filter, int wrap);
+
+/**
+ * Create a new texture from a file. 
+ * This will either create 2D or 3D texture depending on layer count.
+ */
 int bvr_create_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap);
+
+/**
+ * Create a new texture from a file's path. 
+ * This will either create 2D or 3D texture depending on layer count.
+ */
 BVR_H_FUNC int bvr_create_texture(bvr_texture_t* texture, const char* path, int filter, int wrap){
     BVR_FILE_EXISTS(path);
 
@@ -238,31 +271,15 @@ BVR_H_FUNC int bvr_create_texture(bvr_texture_t* texture, const char* path, int 
 void bvr_texture_enable(bvr_texture_t* texture);
     
 /*
-    Unbind textures
+    Unbind unsed texture.
 */
 void bvr_texture_disable(bvr_texture_t* texture);
 void bvr_destroy_texture(bvr_texture_t* texture);
 
 /* ATLAS TEXTURE */
-int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file, uint32 tile_width, uint32 tile_height, int filter, int wrap);
-BVR_H_FUNC int bvr_create_texture_atlas(bvr_texture_atlas_t* atlas, const char* path, uint32 tile_width, uint32 tile_height, int filter, int wrap){
-    BVR_FILE_EXISTS(path);
-    
-    bvr_uuid_t* id = bvr_register_asset(path, BVR_OPEN_READ);
-    if(id){
-        atlas->texture.image.asset.origin = BVR_ASSET_ORIGIN_PATH;
-        bvr_copy_uuid(*id, atlas->texture.image.asset.pointer.asset_id);
-    }
+int bvr_create_texture_atlasf(bvr_texture_t* texture, FILE* file, bvr_atlas_desc_t* desc, int filter, int wrap);
 
-    FILE* file = fopen(path, "rb");
-    int success = bvr_create_texture_atlasf(atlas, file, tile_width, tile_height, filter, wrap);
-    fclose(file);
-    return success;
-}
-
-/* LAYERED TEXTURE */
-int bvr_create_layered_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap);
-BVR_H_FUNC int bvr_create_layered_texture(bvr_texture_t* texture, const char* path, int filter, int wrap){
+BVR_H_FUNC int bvr_create_texture_atlas(bvr_texture_t* texture, const char* path, bvr_atlas_desc_t* desc, int filter, int wrap){
     BVR_FILE_EXISTS(path);
     
     bvr_uuid_t* id = bvr_register_asset(path, BVR_OPEN_READ);
@@ -272,10 +289,29 @@ BVR_H_FUNC int bvr_create_layered_texture(bvr_texture_t* texture, const char* pa
     }
 
     FILE* file = fopen(path, "rb");
-    int success = bvr_create_layered_texturef(texture, file, filter, wrap);
+    int success = bvr_create_texture_atlasf(texture, file, desc, filter, wrap);
     fclose(file);
     return success;
 }
+
+/* LAYERED TEXTURE 
+ *int bvr_create_texture_3d(bvr_texture_t* texture, FILE* file, int filter, int wrap);
+ *
+ *BVR_H_FUNC int bvr_create_layered_texture(bvr_texture_t* texture, const char* path, int filter, int wrap){
+ *    BVR_FILE_EXISTS(path);
+ *    
+ *    bvr_uuid_t* id = bvr_register_asset(path, BVR_OPEN_READ);
+ *    if(id){
+ *        texture->image.asset.origin = BVR_ASSET_ORIGIN_PATH;
+ *        bvr_copy_uuid(*id, texture->image.asset.pointer.asset_id);
+ *    }
+ *
+ *    FILE* file = fopen(path, "rb");
+ *    int success = bvr_create_layered_texturef(texture, file, filter, wrap);
+ *    fclose(file);
+ *    return success;
+ *}
+ */
 
 /*
     Create a new composite. A composite is a buffer that will store an image's result before rendering it to the screen.

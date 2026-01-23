@@ -1,7 +1,7 @@
 #include <bvr/assets.book.h>
 #include <bvr/assets.h>
 
-#include <bvr/editor/flags.h>
+#include <bvr/editor/editor_flags.h>
 
 #include <bvr/file.h>
 

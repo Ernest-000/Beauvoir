@@ -4,10 +4,9 @@
 #include <malloc.h>
 #include <string.h>
 
-#ifndef BVR_NO_GROWTH
-
-
 static int bvri_grow_buffer(void* ptr, uint64* size);
+
+#ifndef BVR_NO_GROWTH
 
 static int bvri_grow_buffer(void* ptr, uint64* size){
     if(ptr && size){
@@ -16,6 +15,12 @@ static int bvri_grow_buffer(void* ptr, uint64* size){
     }
 
     return 0;
+}
+
+#else 
+
+static int bvri_grow_buffer(void* ptr, uint64* size){
+    return BVR_TRUE;
 }
 
 #endif
@@ -181,8 +186,7 @@ void bvr_create_string(bvr_string_t* string, const char* value){
         string->string = malloc(string->length);
         BVR_ASSERT(string->string);
 
-        memcpy(string->string, value, string->length - 1);
-        string->string[string->length - 1] = '\0';
+        BVR_STRCPY(string->string, value, string->length);
     }
 }
 
@@ -195,7 +199,7 @@ int bvr_overwrite_string(bvr_string_t* string, const char* value, uint32 length)
     }
 
     if(length == 0){
-        length = strlen(value);
+        length = strlen(value) + 1;
     }
 
     if(value){
@@ -206,8 +210,7 @@ int bvr_overwrite_string(bvr_string_t* string, const char* value, uint32 length)
         }
 
         string->length = length;
-        memcpy(string->string, value, string->length - 1);
-        string->string[string->length - 1] = '\0';
+        BVR_STRCPY(string->string, value, string->length);
     }
 
     return BVR_TRUE;
@@ -234,8 +237,7 @@ void bvr_string_concat(bvr_string_t* string, const char* other){
             string->length = strlen(other) + 1;
             string->string = malloc(string->length);
             
-            memcpy(string->string, other, string->length - 1);
-            string->string[string->length - 1] = '\0';
+            BVR_STRCPY(string->string, other, string->length);
         }
     }
 }
@@ -262,8 +264,7 @@ void bvr_string_insert(bvr_string_t* string, const uint64 offset, const char* va
     bvr_string_create_and_copy(&prev, string);
 
     if(value) {
-        const uint64 vlen = strlen(value);
-        //BVR_PRINTF("string %x ; string size %i", string->data, string->length);
+        const uint64 vlen = strlen(value) + 1;
 
         string->length += vlen;
         string->string = realloc(string->string, string->length);

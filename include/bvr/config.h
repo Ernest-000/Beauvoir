@@ -28,6 +28,26 @@ typedef long int64;
 typedef unsigned long uint64;
 #endif
 
+#define BVR_INT8_MIN   (-0x80)
+#define BVR_INT8_MAX   (0x7F)
+#define BVR_UINT8_MIN  (0x00)
+#define BVR_UINT8_MAX  (0xFF)
+
+#define BVR_INT16_MIN  (-0x8000)
+#define BVR_INT16_MAX  (0x7FFF)
+#define BVR_UINT16_MIN (0x0000)
+#define BVR_UINT16_MAX (0xFFFF)
+
+#define BVR_INT32_MIN  (-0x80000000)
+#define BVR_INT32_MAX  (0x7FFFFFFF)
+#define BVR_UINT32_MIN (0x00000000U)
+#define BVR_UINT32_MAX (0xFFFFFFFFU)
+
+#define BVR_INT64_MIN  (-0x8000000000000000LL)
+#define BVR_INT64_MAX  (0x7FFFFFFFFFFFFFFFLL)
+#define BVR_UINT64_MIN (0x0000000000000000ULL)
+#define BVR_UINT64_MAX (0xFFFFFFFFFFFFFFFFULL)
+
 #if defined(__clang__)
     #define typeof(x) __typeof__(x)
 #elif defined(_MSC_VER)

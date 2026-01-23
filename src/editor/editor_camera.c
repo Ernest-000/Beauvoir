@@ -1,4 +1,4 @@
-#include <bvr/editor/camera.h>
+#include <bvr/editor/editor_camera.h>
 
 #ifndef BVR_NO_NUKLEAR
 

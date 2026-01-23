@@ -44,8 +44,9 @@
 #define BVR_UNSIGNED_INT64          0x140F
 
 /*   custom   */  
-#define BVR_TEXTURE_2D              0x141A
-#define BVR_TEXTURE_2D_ARRAY        0x141B
+#define BVR_TEXTURE_2D              0x0DE1
+#define BVR_TEXTURE_3D              0x806F
+#define BVR_TEXTURE_2D_ARRAY        0x8C1A
 #define BVR_TEXTURE_2D_LAYER        0x141C
 #define BVR_TEXTURE_2D_COMPOSITE    0x141D
 

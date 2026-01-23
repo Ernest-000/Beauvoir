@@ -1,6 +1,7 @@
 #include <bvr/common.h>
 
 #include <bvr/config.h>
+#include <bvr/buffer.h>
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -36,96 +37,113 @@ int bvr_sizeof(const int type){
     }
 }
 
+/**
+ * This function really sucks!
+ * Like, a big switch like that is really awefull ;-;
+ */
 void bvr_nameof(const int type, char* name){
     switch (type)
     {
         case BVR_INT8: 
-            strcpy(name, "INT8");
+            BVR_STRCPY(name, "INT8", 5);
             return;
 
         case BVR_UNSIGNED_INT8:
-            strcpy(name, "UNSIGNED_INT8");
+            BVR_STRCPY(name, "UNSIGNED_INT8", 14);
             return;
 
         case BVR_INT16: 
-            strcpy(name, "INT16");
+            BVR_STRCPY(name, "INT16", 6);
             return;
 
         case BVR_UNSIGNED_INT16:
-            strcpy(name, "UNSIGNED_INT16");
+            BVR_STRCPY(name, "UNSIGNED_INT16", 15);
             return;
  
         case BVR_FLOAT:
-            strcpy(name, "FLOAT");
+            BVR_STRCPY(name, "FLOAT", 6);
             return;
  
         case BVR_INT32:
-            strcpy(name, "INT32");
+            BVR_STRCPY(name, "INT32", 6);
             return;
 
         case BVR_UNSIGNED_INT32: 
-            strcpy(name, "UNSIGNED_INT32");
+            BVR_STRCPY(name, "UNSIGNED_INT32", 15);
             return;
 
         case BVR_VEC2: 
-            strcpy(name, "VEC2");
+            BVR_STRCPY(name, "VEC2", 5);
             return;
 
         case BVR_VEC3: 
-            strcpy(name, "VEC3");
+            BVR_STRCPY(name, "VEC3", 5);
             return;
 
         case BVR_VEC4: 
-            strcpy(name, "VEC4");
+            BVR_STRCPY(name, "VEC4", 5);
             return;
 
         case BVR_MAT3: 
-            strcpy(name, "MAT3");
+            BVR_STRCPY(name, "MAT3", 5);
             return;
 
         case BVR_MAT4: 
-            strcpy(name, "MAT4");
+            BVR_STRCPY(name, "MAT4", 5);
             return;
+            
         case BVR_TEXTURE_2D:
-            strcpy(name, "TEXTURE_2D");
+            BVR_STRCPY(name, "TEXTURE_2D", 11);
             return;
         
         case BVR_TEXTURE_2D_ARRAY:
-            strcpy(name, "TEXTURE_2D_ARRAY");
+            BVR_STRCPY(name, "TEXTURE_2D_ARRAY", 17);
             return;
         
         case BVR_TEXTURE_2D_LAYER:
-            strcpy(name, "TEXTURE_2D_LAYER");
+            BVR_STRCPY(name, "TEXTURE_2D_LAYER", 17);
             return;
 
         case BVR_TEXTURE_2D_COMPOSITE:
-            strcpy(name, "COMPOSITE_2D");
+            BVR_STRCPY(name, "COMPOSITE_2D", 13);
             return;
 
         case BVR_TEXTURE_2D_LAYER_STRUCT:
-            strcpy(name, "LAYER_STRUCT");
+            BVR_STRCPY(name, "LAYER_STRUCT", 13);
             return;
 
         case 0x1903: // BVR_R
-            strcpy(name, "RED");
+            BVR_STRCPY(name, "RED", 4);
             return;
 
         case 0x8227: // BVR_RG
-            strcpy(name, "RG");
-            return;
-        case 0x1907: // BVR_RGB
-            strcpy(name, "RGB");
-            return;
-        case 0x80E0: // BVR_BGR
-            strcpy(name, "BGR");
-            return;
-        case 0x1908: // BVR_RGBA
-            strcpy(name, "RGBA");
-            return;
-        case 0x80E1: // BVR_BGRA
-            strcpy(name, "BGRA");
+            BVR_STRCPY(name, "RG", 3);
             return;
 
+        case 0x1907: // BVR_RGB
+            BVR_STRCPY(name, "RGB", 4);
+            return;
+
+        case 0x80E0: // BVR_BGR
+            BVR_STRCPY(name, "BGR", 4);
+            return;
+
+        case 0x1908: // BVR_RGBA
+            BVR_STRCPY(name, "RGBA", 5);
+            return;
+
+        case 0x80E1: // BVR_BGRA
+            BVR_STRCPY(name, "BGRA", 5);
+            return;
+            
+        case 0x8B31:
+            BVR_STRCPY(name, "VERTEX", 7);
+            return;
+
+        case 0x8B30:
+            BVR_STRCPY(name, "FRAGMENT", 9);
+            return;
+        
         default:
             return;
     }

@@ -118,7 +118,7 @@ typedef struct bvr_texture_actor_s {
     bvr_shader_t shader;
     bvr_collider_t collider;
 
-    bvr_texture_t bitmap;
+    bvr_texture_t texture;
 } bvr_texture_actor_t;
 
 typedef struct bvr_landscape_actor_s {
@@ -127,7 +127,7 @@ typedef struct bvr_landscape_actor_s {
     bvr_mesh_t mesh;
     bvr_shader_t shader;
     
-    bvr_texture_atlas_t atlas;
+    bvr_texture_t atlas;
 
     struct {
         vec2 count;
@@ -136,6 +136,14 @@ typedef struct bvr_landscape_actor_s {
         uint8 layers;
     } dimension;
 } bvr_landscape_actor_t;
+
+typedef union bvr_generic_actor_u {
+    bvr_layer_actor_t layer_actor;
+    bvr_static_actor_t static_actor;
+    bvr_dynamic_actor_t dynamic_actor;
+    bvr_texture_actor_t texture_actor;
+    bvr_landscape_actor_t landscape_actor;
+} bvr_generic_actor_t;
 
 /*
     landscape tile's informations

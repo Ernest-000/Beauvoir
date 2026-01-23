@@ -72,19 +72,22 @@ void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
 void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd){
     BVR_ASSERT(cmd);
 
+    // old invalid shader implementation
     // if(!cmd->shader->program && bvr_get_instance()->predefs.is_available){
     //     cmd->shader = &bvr_get_instance()->predefs.c_shaders.c_invalid_shader;
     //     BVR_PRINT("invalid shader!");
     // }
 
     if(bvr_get_instance()->pipeline.command_count + 1 < BVR_MAX_DRAW_COMMAND){
-        memcpy(&bvr_get_instance()->pipeline.commands[bvr_get_instance()->pipeline.command_count++], 
+        memcpy(
+            &bvr_get_instance()->pipeline.commands[bvr_get_instance()->pipeline.command_count++], 
             cmd, sizeof(struct bvr_draw_command_s)
         );
     }
 }
 
 void bvr_poll_errors(void){
+#if 0
     char found_error = 0;
     uint32 err;
 
@@ -135,6 +138,7 @@ void bvr_poll_errors(void){
     if(found_error){
         BVR_BREAK();
     }
+#endif
 }
 
 int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, const uint16 width, const uint16 height, const char* shader){

@@ -71,9 +71,9 @@ typedef struct bvr_shader_block_s {
 typedef struct bvr_shader_s {
     uint32 program;
 
-    bvr_shader_stage_t shaders[BVR_MAX_SHADER_COUNT] __attribute__ ((packed));
-    bvr_shader_uniform_t uniforms[BVR_MAX_UNIFORM_COUNT] __attribute__ ((packed));
-    bvr_shader_block_t blocks[BVR_MAX_SHADER_BLOCK_COUNT] __attribute__ ((packed));
+    bvr_shader_stage_t shaders[BVR_MAX_SHADER_COUNT];
+    bvr_shader_uniform_t uniforms[BVR_MAX_UNIFORM_COUNT];
+    bvr_shader_block_t blocks[BVR_MAX_SHADER_BLOCK_COUNT];
 
     uint8 shader_count;
     uint8 uniform_count, block_count;

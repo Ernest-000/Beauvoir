@@ -10,9 +10,7 @@
 
 #include <malloc.h>
 
-#define BVR_SCENE_PADDING (BVR_MAX_SIZEOF(bvr_layer_actor_t, \
-    BVR_MAX_SIZEOF(bvr_dynamic_actor_t, BVR_MAX_SIZEOF(bvr_texture_actor_t, \
-    bvr_landscape_actor_t))) + 2)
+#define BVR_SCENE_PADDING ((sizeof(bvr_generic_actor_t)) & ~4)
 
 static bvr_book_t *__s_book_instance = NULL;
 bvr_book_t *bvr_get_instance() { return __s_book_instance; }
@@ -379,7 +377,7 @@ struct bvr_actor_s *bvr_alloc_actor(bvr_page_t *page, bvr_actor_type_t type)
     const size_t actor_byte_size = bvri_actor_size(type);
 
     // check if this actor can be added
-    if(actor_byte_size <= 0 || actor_byte_size >= BVR_SCENE_PADDING){
+    if(actor_byte_size <= 0 || actor_byte_size > BVR_SCENE_PADDING){
         BVR_PRINT("failed to allocate a new actor :<");
         return NULL;
     }
@@ -402,8 +400,11 @@ struct bvr_actor_s *bvr_alloc_actor(bvr_page_t *page, bvr_actor_type_t type)
         BVR_SCENE_PADDING
     );
 
-    BVR_PRINTF("alloacted a new actor (%x) remains %i bytes", 
-        *pp_actor, __s_book_instance->garbage_stream.size - (size_t)(__s_book_instance->garbage_stream.cursor - (char*)__s_book_instance->garbage_stream.data)
+    BVR_PRINTF("allocated a new actor (0x%x). page's memstream usage %i bytes over %i bytes", 
+        *pp_actor, 
+        (size_t)__s_book_instance->garbage_stream.cursor - 
+            (size_t)__s_book_instance->garbage_stream.data,
+        __s_book_instance->garbage_stream.size
     );
 
     (*pp_actor)->type = type;
@@ -445,7 +446,7 @@ bvr_collider_t *bvr_register_collider(bvr_page_t *page, bvr_collider_t *collider
         bvr_collider_t **cptr = (bvr_collider_t **)bvr_pool_alloc(&page->colliders);
         *cptr = collider;
 
-        BVR_PRINTF("linked collider %x to the page!", *cptr);
+        BVR_PRINTF("linked collider 0x%x to the page!", *cptr);
         return *cptr;
     }
 
@@ -569,7 +570,7 @@ static size_t bvri_actor_size(bvr_actor_type_t type)
     case BVR_LANDSCAPE_ACTOR:
         return sizeof(bvr_landscape_actor_t);
     default:
-        return 0;
+        return BVR_SCENE_PADDING - 1;
     }
 
     return 0;

@@ -596,7 +596,6 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
 
     // if uniform is not initialize
     if(uniform->location == -1){
-        // BVR_PRINTF("cannot find uniform %s", uniform->name.string);
         return;
     }
 
@@ -610,31 +609,32 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
         switch (uniform->type)
         {
         case BVR_FLOAT: 
-            glUniform1fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (float*)data); 
+            glUniform1fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data); 
             break;
 
         case BVR_INT32: 
-            glUniform1iv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (int*)data); 
+            glUniform1iv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (int*)data); 
             break;
         
         case BVR_VEC2:
-            glUniform2fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (float*)data);
+            glUniform2fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data);
             break;
 
         case BVR_VEC3:
-            glUniform3fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (float*)data);
+            glUniform3fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data);
             break;
 
         case BVR_VEC4:
-            glUniform4fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (float*)data);
+            glUniform4fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data);
             break;
 
         case BVR_MAT4: 
-            glUniformMatrix4fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, GL_FALSE, (float*)data); 
+            glUniformMatrix4fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), GL_FALSE, (float*)data); 
             break;
         
         case BVR_TEXTURE_2D:
         case BVR_TEXTURE_2D_LAYER:
+        case BVR_TEXTURE_2D_ARRAY:            
             {
                 bvr_texture_t* texture = (bvr_texture_t*)data;
 
@@ -642,18 +642,9 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
                 glUniform1i(uniform->location, (int)texture->unit);
             }
             break;
-        
-        case BVR_TEXTURE_2D_ARRAY:            
-            {
-                bvr_texture_atlas_t* texture = (bvr_texture_atlas_t*)data;
-
-                bvr_texture_enable(&texture->texture);
-                glUniform1i(uniform->location, (int)texture->texture.unit);
-            }
-            break;
 
         case BVR_TEXTURE_2D_LAYER_STRUCT:
-            glUniform1iv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (int*)data);
+            glUniform1iv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (int*)data);
             break;
 
         case BVR_TEXTURE_2D_COMPOSITE:

@@ -60,7 +60,8 @@
  */
 #define BVR_BUFFER_CONST_REALLOC(buffer, _size) { \
     buffer.size = _size; \
-    buffer.data = realloc(buffer.data, buffer.size); }
+    buffer.data = realloc(buffer.data, buffer.size); \
+}
 
 /**
  * Return the number of element of a generic buffer.
@@ -80,10 +81,24 @@
     #define BVR_BUFFER_REALLOC(buffer, _size) BVR_BUFFER_CONST_REALLOC(buffer, _size)
 #endif
 
+/**
+ * Safer way to copy a raw C string. 
+ * This macro will add a null terminated char at the end of the string
+ */
+#define BVR_STRCPY(_dst, _src, _length) { \
+    *_dst = '\0'; \
+    strlcat(_dst, _src, _length + 1); \
+}
+
+/**
+ * return 1 if two strings are equals
+ */
+#define BVR_STRCMP(_a, _b) (strcmp(_a, _b) == 0)
+
 /*
     Generic data pointer
 */
-struct __attribute__((packed)) bvr_buffer_s {
+struct bvr_buffer_s {
     void* data;
     uint64 size;
     uint32 elemsize;
@@ -103,15 +118,15 @@ typedef struct bvr_memstream_s {
 /**
  * Pascal typed string
  */
-typedef __attribute__ ((packed)) struct bvr_string_s  { 
-    unsigned short length;
+typedef struct bvr_string_s  { 
+    uint16 length;
     char* string;
 } bvr_string_t;
 
 /**
  * Chunck of memory in a pool
  */
-__attribute__ ((packed)) struct bvr_pool_block_u {
+struct bvr_pool_block_u {
     void* data;
     struct bvr_pool_block_u* next;
 };

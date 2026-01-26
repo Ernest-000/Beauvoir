@@ -164,6 +164,9 @@ void bvr_window_poll_events(){
     bvr_window_t* window = &bvr_get_instance()->window;
     SDL_Event event;
 
+    memset(window->inputs.keys, 0, BVR_KEYBOARD_SIZE * sizeof(char));
+    memset(window->inputs.buttons, 0, BVR_MOUSE_SIZE * sizeof(char));
+
     SDL_StartTextInput(window->handle);
 
     window->inputs.scroll = 0.0f;
@@ -222,7 +225,7 @@ void bvr_window_poll_events(){
                     }
                 }
                 
-                window->inputs.keys[event.key.scancode] = kevent * BVR_INPUT_DOWN;
+                window->inputs.keys[event.key.scancode] = kevent;
             }
             break;
 

@@ -8,10 +8,37 @@
 #define BVR_DEFAULT_FRAME_COUNT 2
 
 /**
+ * Initialize a celframe with default values
+ * If frame is NULL, it will allocate a new one!
+ */
+static bvr_celframe_t* bvri_create_celframe(bvr_animation_t* anim, bvr_celframe_t* frame, float time);
+
+/**
+ * Insert a new celframe before another
+ */
+static bvr_celframe_t* bvri_insert_new_celframe(bvr_animation_t* anim, bvr_celframe_t* head, float time);
+
+/**
+ * Enable and execute a celframe
+ */
+static void bvri_do_celframe(bvr_animation_t* anim, bvr_celframe_t* frame);
+
+static void bvri_destroy_celframe(bvr_celframe_t* frame);
+
+/**
+ * harch transition between two states.
+ */
+static void bvri_animation_nearest(void* _start, void* _end, float time){
+    struct bvr_keyframe_s* start = (struct bvr_keyframe_s*)_start;
+    struct bvr_keyframe_s* end = (struct bvr_keyframe_s*)_end;
+    
+    memcpy(start->target->object.ptr, start->buffer, bvr_sizeof(start->target->type));        
+}
+
+/**
  * Linear interpolation between two keyframes
  */
 static void bvri_animation_lerp(void* _start, void* _end, float time){
-    
     struct bvr_keyframe_s* start = (struct bvr_keyframe_s*)_start;
     struct bvr_keyframe_s* end = (struct bvr_keyframe_s*)_end;
     
@@ -96,27 +123,12 @@ static void bvri_animation_lerp(void* _start, void* _end, float time){
         break;
     
     default:
+        // when we cannot interplate between two numbers, we just copy raw data 
+        // just like BVR_ANIMATION_LINEAR_NEAREST
         memcpy(start->target->object.ptr, start->buffer, bvr_sizeof(start->target->type));        
         break;
     }
 }
-
-/**
- * Initialize a celframe with default values
- */
-static bvr_celframe_t* bvri_create_celframe(bvr_animation_t* anim, bvr_celframe_t* frame, float time);
-
-/**
- * Insert a new celframe before another
- */
-static bvr_celframe_t* bvri_insert_new_celframe(bvr_animation_t* anim, bvr_celframe_t* head, float time);
-
-/**
- * Enable and execute a celframe
- */
-static void bvri_do_celframe(bvr_animation_t* anim, bvr_celframe_t* frame);
-
-static void bvri_destroy_celframe(bvr_celframe_t* frame);
 
 int bvr_create_animation(bvr_animation_t* anim, float duration, const uint32 max_target, enum bvr_animation_flags_e flags){
     BVR_ASSERT(anim);
@@ -132,7 +144,7 @@ int bvr_create_animation(bvr_animation_t* anim, float duration, const uint32 max
     anim->total_frame = duration / BVR_TARGET_FRAMERATE;
 
     anim->celframes.elemsize = sizeof(bvr_celframe_t);
-    anim->celframes.size = BVR_DEFAULT_FRAME_COUNT * sizeof(bvr_celframe_t);
+    anim->celframes.size = sizeof(bvr_celframe_t);
     anim->celframes.data = malloc(anim->celframes.size);
     BVR_ASSERT(anim->celframes.data);
 
@@ -143,7 +155,7 @@ int bvr_create_animation(bvr_animation_t* anim, float duration, const uint32 max
     {
         // create default frames
         bvr_celframe_t* start = bvri_create_celframe(anim, (bvr_celframe_t*)anim->celframes.data, anim->start);
-        bvr_celframe_t* end = bvri_create_celframe(anim, &((bvr_celframe_t*)anim->celframes.data)[1], anim->end);
+        bvr_celframe_t* end = bvri_create_celframe(anim, NULL, anim->end);
         
         // init default values for the start and end keyframes
         memset(&start->keyframes[0], 0, sizeof(struct bvr_keyframe_s));
@@ -210,6 +222,12 @@ bvr_animation_handle_t* bvr_animation_register_track(bvr_animation_t* anim, cons
     handle->flags = flags;
     handle->interop_func = NULL;
 
+    // without animation smoothing
+    if(BVR_HAS_FLAG(flags, BVR_ANIMATION_LINEAR_NEAREST)){
+        handle->interop_func = bvri_animation_nearest;
+    }
+
+    // default linear interpolation between two frames
     if(BVR_HAS_FLAG(flags, BVR_ANIMATION_LINEAR_INTERPOLATE)){
         handle->interop_func = bvri_animation_lerp;
     }
@@ -276,7 +294,12 @@ void bvr_destroy_animation(bvr_animation_t* anim){
 }
 
 static bvr_celframe_t* bvri_create_celframe(bvr_animation_t* anim, bvr_celframe_t* frame, float time){
-    BVR_ASSERT(frame);
+    BVR_ASSERT(anim);
+    BVR_ASSERT(time >= 0.0f);
+    
+    if(!frame){
+        frame = (bvr_celframe_t*)malloc(sizeof(bvr_celframe_t));
+    }
     
     frame->next = NULL;
     frame->time = time;
@@ -302,34 +325,31 @@ static bvr_celframe_t* bvri_insert_new_celframe(bvr_animation_t* anim, bvr_celfr
 
     bvr_celframe_t* celframe = NULL;
 
-    bvr_celframe_t* next_cel = head;
-    bvr_celframe_t* prev_cel = NULL;
+    bvr_celframe_t* next = head;
+    bvr_celframe_t* prev = NULL;
 
-    while (next_cel && next_cel->time <= time)
+    while (next && next->time <= time)
     {
-        prev_cel = next_cel;
-        next_cel = next_cel->next;
+        prev = next;
+        next = next->next;
     }
     
-    if(next_cel){
-        // save element indices --> might use offset more than raw pointer when finding it?
-        uint64 prev_index = ((char*)prev_cel - (char*)anim->celframes.data) / anim->celframes.elemsize;
-        uint64 next_index = ((char*)next_cel - (char*)anim->celframes.data) / anim->celframes.elemsize;
+    if(next){
+        celframe = bvri_create_celframe(anim, NULL, time);
 
-        BVR_BUFFER_CONST_REALLOC(anim->celframes, anim->celframes.size + anim->celframes.elemsize);
-        BVR_ASSERT(anim->celframes.data);
-
-        // update after realloc
-        anim->next_frame = (bvr_celframe_t*)anim->celframes.data;
-
-        prev_cel = &((bvr_celframe_t*)anim->celframes.data)[prev_index];
-        next_cel = &((bvr_celframe_t*)anim->celframes.data)[next_index];
-        celframe = &((bvr_celframe_t*)anim->celframes.data)[BVR_BUFFER_COUNT(anim->celframes) - 1];
         BVR_ASSERT(celframe);
+        BVR_ASSERT(prev);
+        BVR_ASSERT(next);
 
-        bvri_create_celframe(anim, celframe, time);
-        prev_cel->next = celframe;
-        celframe->next = next_cel;
+        // check if theses nodes are linked
+        // if they're not it means that we are trying to insert the node
+        // in the wrong place :<
+        BVR_ASSERT(prev->next == next);
+
+        prev->next = celframe;
+        celframe->next = next;
+
+        BVR_PRINTF("added a new key frame! %f-%f-%f", prev->time, prev->next->time, celframe->next->time);
     }
 
     return celframe;
@@ -344,18 +364,21 @@ static void bvri_do_celframe(bvr_animation_t* anim, bvr_celframe_t* frame){
             continue;
         }
 
+        // try to use the blending callback function
         if(frame->keyframes[i].target->interop_func){
             frame->keyframes[i].target->interop_func(
                 &frame->keyframes[i],
                 &(MAX(frame->next, (bvr_celframe_t*)anim->celframes.data))->keyframes[i],
                 0.5f
             );  
+            
         }
         else {
-            memcpy(
-                frame->keyframes[i].target->object.ptr, 
-                frame->keyframes[i].buffer,
-                bvr_sizeof(frame->keyframes[i].target->type)
+            // otherwise, we use nearest as the default one
+            bvri_animation_nearest(
+                &frame->keyframes[i], 
+                &(MAX(frame->next, (bvr_celframe_t*)anim->celframes.data))->keyframes[i],
+                0.5f
             );
         }
     }
@@ -363,9 +386,85 @@ static void bvri_do_celframe(bvr_animation_t* anim, bvr_celframe_t* frame){
 
 static void bvri_destroy_celframe(bvr_celframe_t* frame){
     BVR_ASSERT(frame);
-
+    
+    frame->time = -1.0f;
+    frame->keyframes_count = 0;
+    
     free(frame->keyframes);
     frame->keyframes = NULL;
-    frame->keyframes_count = 0;
-    frame->time = -1.0f;
+
+    if(frame->next){
+        free(frame->next);
+        frame->next = NULL;
+    }
+}
+
+void bvr_create_state_machine(bvr_state_machine_t* machine, const uint16 default_state){
+    BVR_ASSERT(machine);
+    BVR_ASSERT(default_state < BVR_MAX_STATE_COUNT);
+
+    machine->state_count = 0;
+    machine->next_state = &machine->states[default_state];
+    machine->default_state = &machine->states[default_state];
+
+    for (size_t i = 0; i < BVR_MAX_STATE_COUNT; i++)
+    {
+        machine->states[i].name.length = 0;
+        machine->states[i].name.string = NULL;
+        
+        for (size_t y = 0; y < BVR_MAX_STATE_LINK_COUNT; y++)
+        {
+            machine->states[i].childs[y] = NULL;
+        }
+        
+        machine->states[i].animation = NULL;
+        machine->states[i].child_count = 0;
+        machine->states[i].next = 0;
+    }
+}
+
+struct bvr_state_machine_state_s* bvr_state_machine_add_state_raw(bvr_state_machine_t* machine, 
+    struct bvr_state_machine_state_s* const parent, const char* name, bvr_animation_t* anim){
+
+    BVR_ASSERT(machine);
+    BVR_ASSERT(parent);
+    
+    struct bvr_state_machine_state_s* state = NULL;
+    
+    // try to seek an existing state with the same name
+    state = bvr_state_machine_get_state(machine, name);
+    
+    // if there is no existing state we create it!
+    if(!state){
+        state = &machine->states[machine->state_count++];
+        
+        state->child_count = 0;
+        state->next = 0;
+
+        bvr_create_string(&state->name, name);
+    }
+
+    parent->childs[parent->child_count++] = state;
+    state->animation = anim;
+}
+
+void bvr_destroy_state_machine(bvr_state_machine_t* machine){
+    BVR_ASSERT(machine);
+
+    machine->default_state = NULL;
+    machine->next_state = NULL;
+
+    for (size_t i = 0; i < machine->state_count; i++)
+    {
+        for (size_t y = 0; y < BVR_MAX_STATE_LINK_COUNT; y++)
+        {
+            machine->states[i].childs[y] = NULL;
+        }
+        
+        machine->states[i].animation = NULL;
+        machine->states[i].child_count = 0;
+        machine->states[i].next = 0;
+        
+        bvr_destroy_string(&machine->states[i].name);
+    }
 }

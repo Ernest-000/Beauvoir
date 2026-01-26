@@ -5,6 +5,8 @@
 
 #include <bvr/common.h>
 
+#ifndef BVR_NO_NUKLEAR
+
 #define BVR_NK_WINDOW_DEFAULT (NK_WINDOW_BORDER | NK_WINDOW_TITLE)
 #define BVR_ROW_HEIGHT (15)
 
@@ -134,7 +136,7 @@ BVR_H_FUNC void bvr_nk_view_image(bvr_canvas_t* context, bvr_texture_t* texture)
     rect.h = texture->image.height;
 
     // if texture has tiles
-    if(texture->tiles.count > 1){
+    if(texture->tiles.tile_per_column > 1 || texture->tiles.tile_per_row > 1){
         rect.w = texture->tiles.width;
         rect.h = texture->tiles.height;
     }
@@ -224,7 +226,7 @@ static void bvr_nk_draw_image_component(bvr_canvas_t* context, void* user){
         }
     
         // if is a texture atlas
-        if(texture->tiles.count > 1){
+        if(texture->tiles.tile_per_column > 1 || texture->tiles.tile_per_row > 1){
             nk_label(&context->context, BVR_FORMAT("tile width %i", texture->tiles.width), NK_TEXT_ALIGN_LEFT);
             nk_label(&context->context, BVR_FORMAT("tile height %i", texture->tiles.height), NK_TEXT_ALIGN_LEFT);
         }
@@ -428,3 +430,5 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
     BVR_NK_SEPARATOR(&context->context);
     nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));
 }
+
+#endif

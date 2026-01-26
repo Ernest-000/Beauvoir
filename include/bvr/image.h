@@ -151,9 +151,16 @@ typedef struct bvr_image_s {
  * Contains atlas informations
  */
 struct bvr_atlas_s {
-    uint16 width, height, tile;
+    /**
+     * Currently rendered tile's id
+     */
+    uint32 target_id;
+
+    uint16 width, height;
+    uint16 tile_per_row;
+    uint16 tile_per_column;
+
     uint16 padding[4];
-    uint32 count;
 };
 
 typedef struct bvr_atlas_desc_s {
@@ -165,12 +172,12 @@ typedef struct bvr_atlas_desc_s {
     uint16 padding_right;
     uint16 padding_top;
 
-    // returns the number of tile on x and y
-    uint16 tile_count[2];
+    uint16 tile_per_row;
+    uint16 tile_per_column;
 } bvr_atlas_desc_t;
 
 /*
-    2D texture.
+    Global texture object.
 */
 typedef struct bvr_texture_s {
     bvr_image_t image;
@@ -180,6 +187,11 @@ typedef struct bvr_texture_s {
 
     int filter, wrap;
 
+    /**
+     * This works as an appentice.
+     * This will not be used for non-atlas textures
+     * But it stores informations about tiling for atlas textures.
+     */
     struct bvr_atlas_s tiles;
 } bvr_texture_t;
 

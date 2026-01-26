@@ -1446,7 +1446,7 @@ int bvr_create_view_texture(const bvr_composite_t* composite, bvr_texture_t* ori
     dest->image.layers.size = 0;
     dest->image.layers.elemsize = sizeof(bvr_layer_t);
 
-    if(origin->tiles.count > 1){
+    if(origin->tiles.tile_per_row > 1 || origin->tiles.tile_per_column > 1){
         dest->image.width = origin->tiles.width;
         dest->image.height = origin->tiles.height;
     }
@@ -1498,8 +1498,9 @@ int bvr_create_texture_2d(bvr_texture_t* texture, bvr_image_t* image, int filter
 
     texture->tiles.width = texture->image.width;
     texture->tiles.height = texture->image.height;
-    texture->tiles.tile = 0;
-    texture->tiles.count = 1;
+    texture->tiles.target_id = 0;
+    texture->tiles.tile_per_column = 1;
+    texture->tiles.tile_per_row = 1;
     texture->tiles.padding[0] = 0;
     texture->tiles.padding[1] = 0;
     texture->tiles.padding[2] = 0;
@@ -1543,8 +1544,9 @@ int bvr_create_texture_3d(bvr_texture_t* texture, bvr_image_t* image, int filter
 
     texture->tiles.width = texture->image.width;
     texture->tiles.height = texture->image.height;
-    texture->tiles.tile = 0;
-    texture->tiles.count = 1;
+    texture->tiles.target_id = 0;
+    texture->tiles.tile_per_column = 1;
+    texture->tiles.tile_per_row = 1;
     texture->tiles.padding[0] = 0;
     texture->tiles.padding[1] = 0;
     texture->tiles.padding[2] = 0;
@@ -1643,13 +1645,22 @@ int bvr_create_texture_atlasf(bvr_texture_t* texture, FILE* file,
     texture->id = 0;
     texture->unit = 0;
 
-    desc->tile_count[0] = texture->image.width / desc->tile_width;
-    desc->tile_count[1] = texture->image.height / desc->tile_height;
+    if(desc->tile_per_row && desc->tile_per_column){
+        // when tiling is calculated based on tile's count
+        texture->tiles.tile_per_row = desc->tile_per_row;
+        texture->tiles.tile_per_column = desc->tile_per_column;
+        texture->tiles.width = texture->image.width / desc->tile_per_column;
+        texture->tiles.height = texture->image.height / desc->tile_per_row;
+    }
+    else {
+        // when tiling is calculated based on tile's sizes
+        texture->tiles.tile_per_row = texture->image.width / desc->tile_width;
+        texture->tiles.tile_per_column = texture->image.height / desc->tile_height;
+        texture->tiles.width = desc->tile_width;
+        texture->tiles.height = desc->tile_height;    
+    }
 
-    texture->tiles.width = desc->tile_width;
-    texture->tiles.height = desc->tile_width;
-    texture->tiles.tile = 0;
-    texture->tiles.count = desc->tile_count[0] * desc->tile_count[1];
+    texture->tiles.target_id = 0;
     texture->tiles.padding[0] = desc->padding_bottom;
     texture->tiles.padding[1] = desc->padding_left;
     texture->tiles.padding[2] = desc->padding_right;
@@ -1664,44 +1675,48 @@ int bvr_create_texture_atlasf(bvr_texture_t* texture, FILE* file,
         texture->target, 1, 
         texture->image.sformat,
         texture->tiles.width, texture->tiles.height, 
-        texture->tiles.count + 1
+        texture->tiles.tile_per_column * texture->tiles.tile_per_row
     );
 
-    int tile_id = 0;
-    char* pixel = NULL;
-
-    for (uint64 y = 0; y < texture->image.height; y += texture->tiles.height)
-    {
-        for (uint64 x = 0; x < texture->image.width; x += texture->tiles.width)
-        {
-            tile_id = (y / desc->tile_height) * desc->tile_count[0] + (x / desc->tile_width);
-
+    uint32 offset_x;
+    uint32 offset_y;
 #ifndef BVR_NO_FLIP
+    for (size_t y = 0; y < texture->tiles.tile_per_column; y++)
+    {
+        for (size_t x = 0; x < texture->tiles.tile_per_row; x++)
+        {
+            offset_x = x * texture->tiles.width;
+            offset_y = y * texture->tiles.height;
+
             glTexSubImage3D(
-                GL_TEXTURE_2D_ARRAY, 0, 
-                0, 
-                0,
-                texture->tiles.count - tile_id,
-                texture->tiles.width, 
-                texture->tiles.height, 
+                texture->target, 0, 0, 0, 
+                (texture->tiles.tile_per_column - y - 1) * texture->tiles.tile_per_row + x,
+                texture->tiles.width,
+                texture->tiles.height,
                 1, texture->image.format, GL_UNSIGNED_BYTE,
-                texture->image.pixels + (y * texture->image.width + x) * texture->image.channels
+                &texture->image.pixels[(offset_y * texture->image.width + offset_x) * texture->image.channels]
             );
-#else
-            glTexSubImage3D(
-                GL_TEXTURE_2D_ARRAY, 0, 
-                0, 
-                0,
-                tile_id,
-                texture->tiles.width, 
-                texture->tiles.height, 
-                1, texture->image.format, GL_UNSIGNED_BYTE,
-                texture->image.pixels + (y * texture->image.width + x) * texture->image.channels
-            );
-#endif
-        }
-        
+        }        
     }
+#else
+    for (size_t y = 0; y < texture->tiles.tile_per_column; y++)
+    {
+        for (size_t x = 0; x < texture->tiles.tile_per_row; x++)
+        {
+            offset_x = x * texture->tiles.width;
+            offset_y = y * texture->tiles.height;
+
+            glTexSubImage3D(
+                texture->target, 0, 0, 0, 
+                y * texture->tiles.tile_per_row + x,
+                texture->tiles.width,
+                texture->tiles.height,
+                1, texture->image.format, GL_UNSIGNED_BYTE,
+                &texture->image.pixels[(offset_y * texture->image.width + offset_x) * texture->image.channels]
+            );
+        }        
+    }
+#endif
     
     glGenerateMipmap(texture->target);
 

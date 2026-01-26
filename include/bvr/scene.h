@@ -12,24 +12,24 @@
 
 #include <stdint.h>
 
-#ifndef BVR_MAX_PAGE_COUNT
+#if !defined(BVR_MAX_PAGE_COUNT)
     #define BVR_MAX_PAGE_COUNT 1
 #endif
 
-#ifndef BVR_MAX_SCENE_ACTOR_COUNT
+#if !defined(BVR_MAX_SCENE_ACTOR_COUNT)
     #define BVR_MAX_SCENE_ACTOR_COUNT 64
 #endif
 
-#ifndef BVR_MAX_SCENE_LIGHT_COUNT
+#if !defined(BVR_MAX_SCENE_LIGHT_COUNT)
     #define BVR_MAX_SCENE_LIGHT_COUNT 16
 #endif
 
-#ifndef BVR_NO_SCENE_AUTO_HEAP
+#if !defined(BVR_SCENE_AUTO_HEAP)
     #define BVR_SCENE_AUTO_HEAP
 #endif
 
-#ifndef BVR_NO_FPS_CAP
-    #ifndef BVR_TARGET_FRAMERATE
+#if !defined(BVR_FRAMERATE)
+    #if !defined(BVR_TARGET_FRAMERATE)
         #define BVR_TARGET_FRAMERATE 60
     #endif
 

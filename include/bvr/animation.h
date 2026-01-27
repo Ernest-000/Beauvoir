@@ -7,6 +7,10 @@
     #define BVR_LINEAR_INTERPOLATE(_start, _end, t) (_start + ((_end - _start) * t))
 #endif
 
+#if !defined(BVR_ANIMATION_TIME_LEFT)
+    #define BVR_ANIMATION_TIME_LEFT(_anim) (MIN((_anim).end, (_anim).duration) - (_anim).cursor)
+#endif
+
 #if !defined(BVR_MAX_STATE_COUNT)
     #define BVR_MAX_STATE_COUNT 10
 #endif
@@ -21,6 +25,22 @@ enum bvr_animation_flags_e {
     BVR_ANIMATION_LINEAR_NEAREST = 0x4,
     BVR_ANIMATION_LINEAR_INTERPOLATE = 0x8
 };
+
+enum bvr_behaviour_tree_state_e {
+    BVR_BEHAVIOUR_TREE_STATE_IDLE,
+    BVR_BEHAVIOUR_TREE_STATE_RETURN,
+    BVR_BEHAVIOUR_TREE_STATE_DEFAULT,
+    BVR_BEHAVIOUR_TREE_STATE_GOTO_0,
+    BVR_BEHAVIOUR_TREE_STATE_GOTO_1,
+    BVR_BEHAVIOUR_TREE_STATE_GOTO_2,
+    BVR_BEHAVIOUR_TREE_STATE_GOTO_3,
+    BVR_BEHAVIOUR_TREE_STATE_GOTO_4,
+};  
+
+enum bvr_behaviour_tree_flags_e {
+    BVR_BEHAVIOUR_TREE_RETURNS,
+    BVR_BEHAVIOUR_TREE_KEEP_ON_STATE
+};  
 
 /**
  * This is an animation track. It will target a pointer that 
@@ -89,28 +109,41 @@ typedef struct bvr_animation_s {
     uint32 total_frame;
 } bvr_animation_t; 
 
-typedef struct bvr_state_machine_s {
-    struct bvr_state_machine_state_s {
-        bvr_string_t name;
+struct bvr_behaviour_tree_state_s {
+    bvr_string_t name;
+    bvr_animation_t* animation;
 
-        struct bvr_state_machine_state_s* childs[BVR_MAX_STATE_LINK_COUNT];
-        bvr_animation_t* animation;
-        
-        uint8 child_count;
-        uint8 next;
-    } states[BVR_MAX_STATE_COUNT];
+    struct bvr_behaviour_tree_state_s* childs[BVR_MAX_STATE_LINK_COUNT];
+    uint8 child_count;
 
-    struct bvr_state_machine_state_s* next_state;
-    struct bvr_state_machine_state_s* default_state;
+    enum bvr_behaviour_tree_state_e next;
+    enum bvr_behaviour_tree_flags_e flag;
+};
+
+/**
+ * Animation state machine system.
+ * This state machine is aimed to work more like a tree than like a graph.
+ */
+typedef struct bvr_behaviour_tree_s {
+    struct bvr_behaviour_tree_state_s states[BVR_MAX_STATE_COUNT];
+
+    // current animated state
+    struct bvr_behaviour_tree_state_s* state;
+    
+    // state use as a default state
+    struct bvr_behaviour_tree_state_s* default_state;
     
     uint32 state_count;
-} bvr_state_machine_t;
+} bvr_behaviour_tree_t;
  
 /**
  * Create a new animation object.
  */
 int bvr_create_animation(bvr_animation_t* anim, float duration, const uint32 max_tracks, enum bvr_animation_flags_e flags);
 
+/**
+ * 
+ */
 void bvr_animation_update(bvr_animation_t* anim, float delta_time);
 
 /**
@@ -125,10 +158,15 @@ int bvr_animation_add_keyframe_raw(bvr_animation_t* anim, bvr_animation_handle_t
 
 /**
  * Add a new keyframe to a track. Copy value's data to keyframe's value.
- * Use this function for theses types : 
+ * This function aim to be generic. But you shall use it with does types: 
  * ```BVR_VEC2```,
  * ```BVR_VEC3```, 
  * ```BVR_VEC4```
+ * 
+ * @param anim 
+ * @param track the name of the bvr_animation_handle_t that will be changed overtime
+ * @param time when does this keyframe will be set
+ * @param value keyframe's value
  */
 BVR_H_FUNC int bvr_animation_add_keyframe(bvr_animation_t* anim, const char* track, float time, void* value){
     BVR_ASSERT(anim);
@@ -157,35 +195,91 @@ BVR_H_FUNC int bvr_animation_add_keyframe_f(bvr_animation_t* anim, const char* t
     bvr_animation_add_keyframe(anim, track, time, &value);
 }
 
+/**
+ * Restart animation to its first frame.
+ */
+BVR_H_FUNC void bvr_animation_restart(bvr_animation_t* anim){
+    anim->current_frame = 0;
+    anim->cursor = 0.0f;
+    anim->next_frame = (bvr_celframe_t*)anim->celframes.data;
+}
+
 void bvr_destroy_animation(bvr_animation_t* anim);
 
-void bvr_create_state_machine(bvr_state_machine_t* machine, const uint16 default_state);
+void bvr_create_behaviour_tree(bvr_behaviour_tree_t* tree, const uint16 default_state);
 
-BVR_H_FUNC struct bvr_state_machine_state_s* bvr_state_machine_get_state(bvr_state_machine_t* machine, const char* name){
-    for (size_t i = 0; i < machine->state_count; i++)
+/**
+ * 
+ */
+void bvr_behaviour_tree_update(bvr_behaviour_tree_t* tree, float delta_time);
+
+/**
+ * Returns an existing state machine's name by using its name.
+ */
+BVR_H_FUNC struct bvr_behaviour_tree_state_s* bvr_behaviour_tree_get_state(bvr_behaviour_tree_t* tree, const char* name){
+    
+    for (size_t i = 0; i < tree->state_count; i++)
     {
-        if(!machine->states[i].name.length){
+        if(!tree->states[i].name.length){
             continue;
         }
 
-        if(BVR_STRCMP(machine->states[i].name.string, name)){
-            return &machine->states[i];
+        if(BVR_STRCMP(tree->states[i].name.string, name)){
+            return &tree->states[i];
         }
     }
     
     return NULL;
 }
 
-struct bvr_state_machine_state_s* bvr_state_machine_add_state_raw(bvr_state_machine_t* machine, 
-    struct bvr_state_machine_state_s* const parent, const char* name, bvr_animation_t* anim);
+/**
+ * Add a new state to a state machine.
+ * @param machine
+ * @param parent new state's parent. If NULL, the new state will not be linked.
+ * @param state state's pre-allocated object. You can use that to overwrite a previously created state.
+ * If NULL, a new state will be allocated.
+ * @param name new state's name.
+ * @param anim the animation that will be triggered by the state.
+ */
+struct bvr_behaviour_tree_state_s* bvr_behaviour_tree_add_state_raw(bvr_behaviour_tree_t* tree, 
+    struct bvr_behaviour_tree_state_s* const parent, struct bvr_behaviour_tree_state_s* state,
+    const char* name, bvr_animation_t* anim, enum bvr_behaviour_tree_flags_e flag);
 
-BVR_H_FUNC struct bvr_state_machine_state_s* bvr_state_machine_add_state(bvr_state_machine_t* machine, 
-    const char* parent, const char* name, bvr_animation_t* anim){
+/**
+ * Create a state machine's default state.
+ * @param machine
+ * @param name new state's name.
+ * @param anim the animation that will be triggered by the state.
+ */
+BVR_H_FUNC struct bvr_behaviour_tree_state_s* bvr_behaviour_tree_add_default_state(bvr_behaviour_tree_t* tree, 
+    const char* name, bvr_animation_t* anim, enum bvr_behaviour_tree_flags_e flag){
     
-    return bvr_state_machine_add_state_raw(
-        machine, bvr_state_machine_get_state(machine, parent),
-        name, anim
+    return bvr_behaviour_tree_add_state_raw(tree, NULL, NULL, name, anim, flag);
+}
+
+/**
+ * Create a state machine's default state.
+ * @param machine
+ * @param parent new state's parent. If NULL, the new state will not be linked.
+ * @param name new state's name.
+ * @param anim the animation that will be triggered by the state.
+ */
+BVR_H_FUNC struct bvr_behaviour_tree_state_s* bvr_behaviour_tree_add_state(bvr_behaviour_tree_t* tree, 
+    const char* parent, const char* name, bvr_animation_t* anim, enum bvr_behaviour_tree_flags_e flag){
+    
+    return bvr_behaviour_tree_add_state_raw(
+        tree, bvr_behaviour_tree_get_state(tree, parent),
+        NULL, name, anim, flag
     );
 }
 
-void bvr_destroy_state_machine(bvr_state_machine_t* machine);
+void bvr_behaviour_tree_change_state_raw(bvr_behaviour_tree_t* tree, 
+    struct bvr_behaviour_tree_state_s* state, enum bvr_behaviour_tree_state_e value);
+
+BVR_H_FUNC void bvr_behaviour_tree_change_state(bvr_behaviour_tree_t* tree, const char* name, enum bvr_behaviour_tree_state_e value){
+    BVR_ASSERT(tree);
+
+    bvr_behaviour_tree_change_state_raw(tree, bvr_behaviour_tree_get_state(tree, name), value);
+}
+
+void bvr_destroy_behaviour_tree(bvr_behaviour_tree_t* machine);

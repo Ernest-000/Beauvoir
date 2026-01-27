@@ -7,6 +7,8 @@
 
 #define BVR_DEFAULT_FRAME_COUNT 2
 
+#define BVR_ANIMATION_FINISH_TRESHHOLD 0.1f
+
 /**
  * Initialize a celframe with default values
  * If frame is NULL, it will allocate a new one!
@@ -179,13 +181,14 @@ void bvr_animation_update(bvr_animation_t* anim, float delta_time){
     bvri_do_celframe(anim, anim->next_frame);
 
     // activate frame
-    if(anim->cursor >= anim->next_frame->time){
+    // if has an available frame after && can go to the next one
+    if(anim->next_frame->next && anim->cursor >= anim->next_frame->time){
         anim->next_frame = anim->next_frame->next;
     }
 
     // when animation is finished
     if(anim->cursor >= MIN(anim->end, anim->duration)){
-        anim->cursor = anim->duration;
+        anim->cursor = anim->duration - 0.5f;
         anim->current_frame = 0;
 
         // loop
@@ -348,8 +351,6 @@ static bvr_celframe_t* bvri_insert_new_celframe(bvr_animation_t* anim, bvr_celfr
 
         prev->next = celframe;
         celframe->next = next;
-
-        BVR_PRINTF("added a new key frame! %f-%f-%f", prev->time, prev->next->time, celframe->next->time);
     }
 
     return celframe;
@@ -399,12 +400,12 @@ static void bvri_destroy_celframe(bvr_celframe_t* frame){
     }
 }
 
-void bvr_create_state_machine(bvr_state_machine_t* machine, const uint16 default_state){
+void bvr_create_behaviour_tree(bvr_behaviour_tree_t* machine, const uint16 default_state){
     BVR_ASSERT(machine);
     BVR_ASSERT(default_state < BVR_MAX_STATE_COUNT);
 
     machine->state_count = 0;
-    machine->next_state = &machine->states[default_state];
+    machine->state = &machine->states[default_state];
     machine->default_state = &machine->states[default_state];
 
     for (size_t i = 0; i < BVR_MAX_STATE_COUNT; i++)
@@ -423,16 +424,70 @@ void bvr_create_state_machine(bvr_state_machine_t* machine, const uint16 default
     }
 }
 
-struct bvr_state_machine_state_s* bvr_state_machine_add_state_raw(bvr_state_machine_t* machine, 
-    struct bvr_state_machine_state_s* const parent, const char* name, bvr_animation_t* anim){
+void bvr_behaviour_tree_update(bvr_behaviour_tree_t* machine, float delta_time){
+    BVR_ASSERT(machine);
+
+    // if animation will be finished
+    if(BVR_ANIMATION_TIME_LEFT(*machine->state->animation) <= BVR_ANIMATION_FINISH_TRESHHOLD){
+        if(machine->state->flag == BVR_BEHAVIOUR_TREE_RETURNS){
+            machine->state->next = BVR_BEHAVIOUR_TREE_STATE_RETURN;
+        }
+    }
+
+    if(machine->state->next){
+        uint8 next = 0;
+        switch (machine->state->next)
+        {
+        // when nothing happens
+        case BVR_BEHAVIOUR_TREE_STATE_IDLE:
+            /* no-op */
+            break;
+
+        // when the next state is to return to the previous one
+        case BVR_BEHAVIOUR_TREE_STATE_RETURN:
+            machine->state = machine->default_state;
+            machine->state->next = BVR_BEHAVIOUR_TREE_STATE_IDLE;
+            bvr_animation_restart(machine->state->animation);
+
+            break;
+        
+        // when the next state is to return to the default state
+        case BVR_BEHAVIOUR_TREE_STATE_DEFAULT:
+            machine->state = machine->default_state;
+            machine->state->next = BVR_BEHAVIOUR_TREE_STATE_IDLE;
+            bvr_animation_restart(machine->state->animation);
+
+            break;
+
+        // otherwise, it means that we try to go to a children
+        default:
+            next = machine->state->next - BVR_BEHAVIOUR_TREE_STATE_GOTO_0;
+
+            // if has children
+            if(machine->state->child_count){
+                machine->state = machine->state->childs[MIN(next, machine->state->child_count)];
+            }
+
+            machine->state->next = BVR_BEHAVIOUR_TREE_STATE_IDLE;
+            bvr_animation_restart(machine->state->animation);
+
+            break;
+        }
+    }
+
+    bvr_animation_update(machine->state->animation, delta_time);
+}
+
+struct bvr_behaviour_tree_state_s* bvr_behaviour_tree_add_state_raw(bvr_behaviour_tree_t* machine, 
+    struct bvr_behaviour_tree_state_s* const parent, struct bvr_behaviour_tree_state_s* state, 
+    const char* name, bvr_animation_t* anim, enum bvr_behaviour_tree_flags_e flag){
 
     BVR_ASSERT(machine);
-    BVR_ASSERT(parent);
-    
-    struct bvr_state_machine_state_s* state = NULL;
     
     // try to seek an existing state with the same name
-    state = bvr_state_machine_get_state(machine, name);
+    if(!state){
+        state = bvr_behaviour_tree_get_state(machine, name);
+    }
     
     // if there is no existing state we create it!
     if(!state){
@@ -441,18 +496,35 @@ struct bvr_state_machine_state_s* bvr_state_machine_add_state_raw(bvr_state_mach
         state->child_count = 0;
         state->next = 0;
 
-        bvr_create_string(&state->name, name);
+        bvr_overwrite_string(&state->name, name, strlen(name));
     }
 
-    parent->childs[parent->child_count++] = state;
+    if(parent){
+        parent->childs[parent->child_count++] = state;
+    }
+    
     state->animation = anim;
+    state->flag = flag;
 }
 
-void bvr_destroy_state_machine(bvr_state_machine_t* machine){
+void bvr_behaviour_tree_change_state_raw(bvr_behaviour_tree_t* tree, 
+    struct bvr_behaviour_tree_state_s* state, enum bvr_behaviour_tree_state_e value){
+
+    BVR_ASSERT(tree);
+
+    if(!state){
+        BVR_PRINT("invalid behaviour tree :/");
+        return;
+    }
+
+    state->next = value;
+}
+
+void bvr_destroy_behaviour_tree(bvr_behaviour_tree_t* machine){
     BVR_ASSERT(machine);
 
     machine->default_state = NULL;
-    machine->next_state = NULL;
+    machine->state = NULL;
 
     for (size_t i = 0; i < machine->state_count; i++)
     {

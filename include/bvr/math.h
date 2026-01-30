@@ -27,6 +27,10 @@ struct bvr_bounds_s {
     float height;
 };
 
+#if !defined(BVR_PI)
+    #define BVR_PI 3.14159265358979323846
+#endif
+
 #define BVR_CREATE_VEC2(vec, x, y) vec[0] = x; vec[1] = y;
 #define BVR_CREATE_VEC3(vec, x, y, z) vec[0] = x; vec[1] = y; vec[2] = z;
 #define BVR_CREATE_VEC4(vec, x, y, z, w) vec[0] = x; vec[1] = y; vec[2] = z; vec[3] = w;

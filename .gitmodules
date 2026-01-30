@@ -1,18 +1,15 @@
 [submodule "extern/SDL"]
 	path = extern/SDL
-	url = https://github.com/libsdl-org/SDL
-[submodule "extern/PortAudio"]
-	path = extern/PortAudio
-	url = https://github.com/PortAudio/portaudio
-[submodule "extern/Nuklear"]
-	path = extern/Nuklear
-	url = https://github.com/Immediate-Mode-UI/Nuklear
+	url = https://github.com/libsdl-org/SDL/
 [submodule "extern/Zlib"]
 	path = extern/Zlib
 	url = https://github.com/madler/zlib
 [submodule "extern/Lpng"]
 	path = extern/Lpng
 	url = https://github.com/pnggroup/libpng
-[submodule "json-c"]
+[submodule "extern/json-c"]
 	path = extern/json-c
 	url = https://github.com/json-c/json-c
+[submodule "extern/Nuklear"]
+	path = extern/Nuklear
+	url = https://github.com/Ernest-000/Nuklear

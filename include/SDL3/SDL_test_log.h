@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -43,6 +43,14 @@ extern "C" {
 #endif
 
 /**
+ * Prints given message with a timestamp in the TEST category and given priority.
+ *
+ * \param priority Priority of the message
+ * \param fmt Message to be logged
+ */
+void SDLCALL SDLTest_LogMessage(SDL_LogPriority priority, SDL_PRINTF_FORMAT_STRING const char *fmt, ...);
+
+/**
  * Prints given message with a timestamp in the TEST category and INFO priority.
  *
  * \param fmt Message to be logged
@@ -57,7 +65,7 @@ void SDLCALL SDLTest_Log(SDL_PRINTF_FORMAT_STRING const char *fmt, ...) SDL_PRIN
  * \param buffer Raw data to be escaped.
  * \param size Number of bytes in buffer.
  */
-void SDLCALL SDLTest_LogEscapedString(const char *prefix, const void *buffer, uint64 size);
+void SDLCALL SDLTest_LogEscapedString(const char *prefix, const void *buffer, size_t size);
 
 /**
  * Prints given message with a timestamp in the TEST category and the ERROR priority.

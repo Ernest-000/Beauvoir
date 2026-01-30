@@ -1,77 +1,120 @@
-#include <BVR/audio.h>
-#include <BVR/config.h>
+#include <bvr/audio.h>
+#include <bvr/scene.h>
 
-#include <portaudio.h>
+#include <bvr/window.h>
 
-static int bvri_audio_callback(const void* input, void* output,
-        unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo* time, 
-        PaStreamCallbackFlags flags, void* data){
+#include <SDL3/SDL_audio.h>
+
+#include <malloc.h>
+#include <memory.h>
+
+#define BVR_AUDIO_FORMAT SDL_AUDIO_S16
+
+void bvr_create_audio(bvr_audio_t* audio, const bvr_audio_stream_t* stream, const char* file){
+    BVR_ASSERT(audio);
+    BVR_ASSERT(file);
+
+    SDL_AudioSpec config;
+    config.channels = stream->channels;
+    config.format = BVR_AUDIO_FORMAT;
+    config.freq = stream->sample_rate;
     
-    bvr_audio_buffer_t* buffer = (bvr_audio_buffer_t*) data;
-    float* outbuffer = (float*)output;
-
-    for(uint32 i = 0; i < framesPerBuffer; i++){
-        *outbuffer++ = buffer->left_phase;
-        *outbuffer++ = buffer->right_phase;
-
-        buffer->left_phase += 0.3f;
-        buffer->right_phase += 0.1f;
-        if(buffer->left_phase >= 1.0f) buffer->left_phase -= 2.0f;
-        if(buffer->right_phase >= 1.0f) buffer->right_phase -= 2.0f;
-    }
-
-    return 0;
+    BVR_ASSERT(SDL_LoadWAV(file, &config, &audio->wave, &audio->wave_length));
 }
 
-void bvr_audio_play(bvr_audio_stream_t* stream){
-    BVR_ASSERT(stream);
-    if(stream->stream){
-        Pa_StartStream(stream->stream);
-    }
+void bvr_audio_play(bvr_audio_t* audio){
+    BVR_ASSERT(audio);
+    BVR_ASSERT(audio->wave);
+
+    struct bvr_audio_command_s cmd;
+    cmd.wave = audio->wave;
+    cmd.wave_length = audio->wave_length;
+
+    bvr_audio_add_wave_command(&cmd);
 }
 
-void bvr_audio_stop(bvr_audio_stream_t* stream){
-    BVR_ASSERT(stream);
-    if(stream->stream){
-        Pa_StopStream(stream->stream);
-    }
+void bvr_destroy_audio(bvr_audio_t* audio){
+    BVR_ASSERT(audio);
+
+    free(audio->wave);
+    audio->wave = NULL;
 }
 
-int bvr_create_audio_stream(bvr_audio_stream_t* stream, int sampleRate, int bufsize){
+static void bvri_audio_callback(void* _stream, SDL_AudioStream* sdl, int additional_amount, int total_amount){
+    const bvr_audio_stream_t* stream = (bvr_audio_stream_t*)_stream;
+
+    bvr_audio_push(stream);
+}
+
+int bvr_create_audio_stream(bvr_audio_stream_t* stream, const int sample_rate, const uint8 channels){
     BVR_ASSERT(stream);
+    BVR_ASSERT(sample_rate > 0);
 
-    BVR_ASSERT(Pa_Initialize() == 0);
+    SDL_AudioSpec config;
+    config.channels = channels;
+    config.format = BVR_AUDIO_FORMAT;
+    config.freq = sample_rate;
 
-    int status;
-    PaStreamParameters ouput;
-    
-    ouput.device = Pa_GetDefaultOutputDevice();
-    if(ouput.device == paNoDevice){
-        // there is no device
-        BVR_ASSERT(0);
-    }
+    stream->channels = channels;
+    stream->sample_rate = sample_rate;
+    stream->device_id = BVR_AUDIO_DEFAULT_OUTPUT;
 
-    const PaDeviceInfo* info = Pa_GetDeviceInfo(ouput.device);
-    BVR_PRINTF("Audio Interface %s", info->name);
-
-    ouput.channelCount = 2;
-    ouput.sampleFormat = paFloat32;
-    ouput.suggestedLatency = info->defaultLowOutputLatency;
-    ouput.hostApiSpecificStreamInfo = NULL;
-
-    status = Pa_OpenStream(&stream->stream, NULL, 
-        &ouput, sampleRate, bufsize, paNoFlag, bvri_audio_callback, &stream->buffer
+    stream->context = SDL_OpenAudioDeviceStream(
+        BVR_AUDIO_DEFAULT_OUTPUT, &config, 
+        bvri_audio_callback, stream
     );
-    BVR_ASSERT(status == 0);
+    BVR_ASSERT(stream->context);
 
-    stream->channels = 2;
-    stream->sample_rate = sampleRate;
-    stream->frame_per_buffer = bufsize;
+    memset(stream->commands, 0, sizeof(stream->commands));
+    stream->command_count = 0;
+    
+    SDL_ResumeAudioStreamDevice(stream->context);
+
+    stream->avail = true;
+    return BVR_TRUE;
+}
+
+void bvr_audio_wave_command(const struct bvr_audio_command_s* command){
+    SDL_PutAudioStreamData(
+        bvr_get_instance()->audio.context, 
+        command->wave, command->wave_length
+    );
+}
+
+void bvr_audio_add_wave_command(const struct bvr_audio_command_s* command){
+    BVR_ASSERT(command);
+
+    if(!bvr_get_instance()->audio.avail){
+        return;
+    }
+
+    if(bvr_get_instance()->audio.command_count + 1 < BVR_MAX_AUDIO_COMMAND){
+        memcpy(
+            &bvr_get_instance()->audio.commands[bvr_get_instance()->audio.command_count++],
+            command, sizeof(struct bvr_audio_command_s)
+        );
+    }
+}
+
+void bvr_audio_push(bvr_audio_stream_t* stream){
+    const int max_sample_per_sec = BVR_SAMPLE_RATE * sizeof(float) / 2;
+
+    for (size_t i = 0; i < stream->command_count; i++)
+    {
+        if(SDL_GetAudioStreamQueued(stream->context) >= max_sample_per_sec){
+            break;
+        }
+
+        bvr_audio_wave_command(&stream->commands[i]);
+    }
+
+    stream->command_count = 0;
 }
 
 void bvr_destroy_audio_stream(bvr_audio_stream_t* stream){
-    Pa_CloseStream(&stream->stream);
-    Pa_Terminate();
+    BVR_ASSERT(stream);
 
-    stream->stream = NULL;
+    SDL_CloseAudioDevice(stream->device_id);
+    stream->context = NULL;
+    stream->avail = false;
 }

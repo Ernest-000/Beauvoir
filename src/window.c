@@ -1,7 +1,7 @@
-#include <BVR/window.h>
+#include <bvr/window.h>
 
-#include <BVR/scene.h>
-#include <BVR/common.h>
+#include <bvr/common.h>
+#include <bvr/scene.h>
 
 #include <string.h>
 #include <memory.h>
@@ -11,12 +11,78 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_dialog.h>
 
+#define BVR_LOAD_GL_EXT(_ext) if(!GLAD_ ##_ext) BVR_PRINT("failed to load extention '" #_ext "'");
+
+void static bvr_error_callback(GLenum source, GLenum type, GLuint id,
+   GLenum severity, GLsizei length, const GLchar* message, const void* userParam){
+    
+    if(severity == GL_DEBUG_SEVERITY_NOTIFICATION){
+        return;
+    }
+
+    char src[25];
+    char error[25];
+
+    switch (source)
+    {
+        case GL_DEBUG_SOURCE_API:
+            BVR_STRCPY(src, "API", 4);
+            break;
+
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+            BVR_STRCPY(src, "WINDOW SYSTEM", 14);
+            break;
+
+        case GL_DEBUG_SOURCE_SHADER_COMPILER:
+            BVR_STRCPY(src, "SHADERS", 8);
+            break;
+        
+        case GL_DEBUG_SOURCE_THIRD_PARTY:
+            BVR_STRCPY(src, "THIRD PARTY", 12);
+            break;
+        
+        case GL_DEBUG_SOURCE_APPLICATION:
+            BVR_STRCPY(src, "APPLICATION", 12);
+            break;
+        
+        case GL_DEBUG_SOURCE_OTHER:
+            BVR_STRCPY(src, "OTHER", 6);
+            break;
+    };
+    
+    switch (severity)
+    {
+        case GL_DEBUG_SEVERITY_HIGH:
+            BVR_STRCPY(error, "fatal error", 12);
+            break;
+
+        case GL_DEBUG_SEVERITY_MEDIUM:
+            BVR_STRCPY(error, "medium error", 13);
+            break;
+        
+        case GL_DEBUG_SEVERITY_LOW:
+            BVR_STRCPY(error, "warning", 8);
+            break;
+        
+        // case GL_DEBUG_SEVERITY_NOTIFICATION:
+        //     BVR_STRCPY(error, "notification", 13);
+        //     break;
+        
+        default:
+            BVR_STRCPY(error, "other", 6);
+            break;
+        
+    };
+
+    BVR_PRINTF("catch a new %s(%i) from %s! '%s'", error, id, src, message);
+}
+
 int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 height, const char* title, const int flags){
     BVR_ASSERT(window);
     BVR_ASSERT(width > 0 && height > 0);
 
     // doesn't init SDL_INIT_VIDEO, otherwise Nuklear doesn't work :/
-    BVR_ASSERT(SDL_Init(SDL_INIT_EVENTS) == 1);
+    BVR_ASSERT(SDL_Init(SDL_INIT_EVENTS | SDL_INIT_AUDIO) == BVR_TRUE);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -34,11 +100,14 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     window->handle = NULL;
     window->context = NULL;
     
-    int wflags = SDL_WINDOW_OPENGL;
-    //wflags |= SDL_WINDOW_RESIZABLE;
+    window->flags = SDL_WINDOW_OPENGL;
+    window->flags |= SDL_WINDOW_RESIZABLE * BVR_HAS_FLAG(flags, BVR_WINDOW_RESIZABLE);
+    window->flags |= SDL_WINDOW_ALWAYS_ON_TOP * BVR_HAS_FLAG(flags, BVR_WINDOW_ALWAYS_ON_TOP);
+    window->flags |= SDL_WINDOW_BORDERLESS * BVR_HAS_FLAG(flags, BVR_WINDOW_BORDERLESS);
+    window->flags |= SDL_WINDOW_FULLSCREEN * BVR_HAS_FLAG(flags, BVR_WINDOW_FULLSCREEN);
 
     // create a new window
-    window->handle = SDL_CreateWindow(title, width, height, wflags);
+    window->handle = SDL_CreateWindow(title, width, height, window->flags);
     BVR_ASSERT(window->handle);
 
     // create a new context
@@ -67,20 +136,25 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
 
     // initialize GLAD
     BVR_ASSERT(gladLoadGLES2Loader((GLADloadproc)SDL_GL_GetProcAddress));
-    BVR_PRINT(glGetString(GL_VERSION));
-
-    // check for extensions
-    if(!GLAD_GL_EXT_copy_image || !GLAD_GL_EXT_copy_image){
-        BVR_PRINT("failed to load extentensions! some implementations might not work properly :(");
-    }
     
+    // set vendor informations
+    BVR_STRCPY(window->vendor.version, "Beauvoir " BVR_VERSION, 31);
+    BVR_STRCPY(window->vendor.name, glGetString(GL_VENDOR), 31);
+    BVR_STRCPY(window->vendor.gl_version, glGetString(GL_VERSION), 31);
+    BVR_STRCPY(window->vendor.glsl_version, glGetString(GL_SHADING_LANGUAGE_VERSION), 31);
+
+    BVR_LOAD_GL_EXT(GL_EXT_copy_image);
+    BVR_LOAD_GL_EXT(GL_EXT_texture_view);
+    BVR_LOAD_GL_EXT(GL_KHR_debug);
+
+    // enable debugging
+    if(GLAD_GL_KHR_debug){
+        glEnable(GL_DEBUG_OUTPUT);
+        glDebugMessageCallback(bvr_error_callback, NULL);
+    }
+
     // create framebuffer
-    if(BVR_HAS_FLAG(flags, BVR_WINDOW_USER_FRAMEBUFFER)){
-        bvr_create_framebuffer(&window->framebuffer, width, height, BVR_WINDOW_FRAMEBUFFER_PATH);
-    }
-    else {
-        bvr_create_framebuffer(&window->framebuffer, width, height, NULL);
-    }
+    bvr_window_resize(window, width, height);
 
     window->awake = 1;
     window->focus = 1;
@@ -89,6 +163,9 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
 void bvr_window_poll_events(){
     bvr_window_t* window = &bvr_get_instance()->window;
     SDL_Event event;
+
+    memset(window->inputs.keys, 0, BVR_KEYBOARD_SIZE * sizeof(char));
+    memset(window->inputs.buttons, 0, BVR_MOUSE_SIZE * sizeof(char));
 
     SDL_StartTextInput(window->handle);
 
@@ -126,29 +203,29 @@ void bvr_window_poll_events(){
                 if(event.key.mod){
                     switch (event.key.mod)
                     {
-                    case SDLK_LSHIFT:
+                    case SDL_KMOD_LSHIFT:
                         window->inputs.keys[BVR_KEY_LEFT_SHIFT] = down;
                         break;
-                    case SDLK_RSHIFT:
+                    case SDL_KMOD_RSHIFT:
                         window->inputs.keys[BVR_KEY_RIGHT_SHIFT] = down;
                         break;
-                    case SDLK_LCTRL:
+                    case SDL_KMOD_LCTRL:
                         window->inputs.keys[BVR_KEY_LEFT_CONTROL] = down;
                         break;
-                    case SDLK_RCTRL:
+                    case SDL_KMOD_RCTRL:
                         window->inputs.keys[BVR_KEY_RIGHT_CONTROL] = down;
                         break;
-                    case SDLK_LALT:
+                    case SDL_KMOD_LALT:
                         window->inputs.keys[BVR_KEY_LEFT_ALT] = down;
                         break;
-                    case SDLK_RALT:
+                    case SDL_KMOD_RALT:
                         window->inputs.keys[BVR_KEY_RIGHT_ALT] = down;
                         break;
                     default: break;
                     }
                 }
                 
-                window->inputs.keys[event.key.scancode] = kevent * BVR_INPUT_DOWN;
+                window->inputs.keys[event.key.scancode] = kevent;
             }
             break;
 
@@ -185,8 +262,7 @@ void bvr_window_poll_events(){
         case SDL_EVENT_WINDOW_RESIZED:
             {
                 if(event.display.data1 & event.display.data2){
-                    window->framebuffer.width = event.display.data1;
-                    window->framebuffer.height = event.display.data2;
+                    bvr_window_resize(window, event.display.data1, event.display.data2);
                 }
             }
             break;
@@ -212,6 +288,25 @@ void bvr_window_poll_events(){
 
 void bvr_window_push_buffers(){
     SDL_GL_SwapWindow(bvr_get_instance()->window.handle);
+}
+
+void bvr_window_resize(bvr_window_t* window, const uint16 width, const uint16 height){
+    BVR_ASSERT(window);
+    BVR_ASSERT(width > 0 && height > 0);
+
+    // if a framebuffer has already been initialized
+    if(window->framebuffer.buffer){
+        bvr_destroy_framebuffer(&window->framebuffer);
+    }
+    
+    if(BVR_HAS_FLAG(window->flags, BVR_WINDOW_USER_FRAMEBUFFER)){
+        bvr_create_framebuffer(&window->framebuffer, width, height, BVR_WINDOW_FRAMEBUFFER_PATH);
+    }
+    else {
+        bvr_create_framebuffer(&window->framebuffer, width, height, NULL);
+    }
+
+    SDL_SetWindowSize(window->handle, width, height);
 }
 
 void bvr_destroy_window(bvr_window_t* window){
@@ -255,6 +350,7 @@ int bvr_button_double_pressed(uint16 button){
 
 void bvr_mouse_position(float* x, float* y){
     SDL_GetMouseState(x, y);
+    
     *x = clamp(*x, 0.0f, bvr_get_instance()->window.framebuffer.width);
     *y = clamp(*y, 0.0f, bvr_get_instance()->window.framebuffer.height);
 }

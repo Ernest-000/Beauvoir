@@ -1,10 +1,10 @@
-#include <BVR/file.h>
-#include <BVR/common.h>
+#include <bvr/file.h>
+#include <bvr/common.h>
 
 #include <malloc.h>
 #include <memory.h>
 
-uint64 bvr_get_file_size(FILE* file){
+uint64 bvr_fsize(FILE* file){
     uint64 cursor = ftell(file);
     
     fseek(file, 0, SEEK_END);
@@ -19,11 +19,11 @@ int bvr_read_file(bvr_string_t* string, FILE* file){
     BVR_ASSERT(file);
 
     if(string->string){
-        BVR_ASSERT(0 || "cannot copy on a previously allocated string :(");
+        BVR_ASSERT(0 && "cannot copy on a previously allocated string :(");
     }
     else {
         // TODO: check if size is correct
-        string->length = bvr_get_file_size(file) - ftell(file);
+        string->length = bvr_fsize(file) - ftell(file);
         string->string = malloc(string->length + 1);
         BVR_ASSERT(string->string);
 
@@ -55,10 +55,10 @@ int bvr_fread32_le(FILE* file){
 
 uint8 bvr_freadu8_le(FILE* file){
     int v = getc(file);
-    if(v == EOF){
-        BVR_PRINTF("failed to read character %i", errno);
-        return 0;
-    }
+    // if(v == EOF){
+    //     BVR_PRINTF("failed to read character %i", errno);
+    //     return 0;
+    // }
 
     return (uint8)v;
 }

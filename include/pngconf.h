@@ -1,8 +1,8 @@
 /* pngconf.h - machine-configurable file for libpng
  *
- * libpng version 1.6.48.git
+ * libpng version 1.6.54
  *
- * Copyright (c) 2018-2025 Cosmin Truta
+ * Copyright (c) 2018-2026 Cosmin Truta
  * Copyright (c) 1998-2002,2004,2006-2016,2018 Glenn Randers-Pehrson
  * Copyright (c) 1996-1997 Andreas Dilger
  * Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.
@@ -219,7 +219,7 @@
   /* NOTE: PNGCBAPI always defaults to PNGCAPI. */
 
 #  if defined(PNGAPI) && !defined(PNG_USER_PRIVATEBUILD)
-#     error "PNG_USER_PRIVATEBUILD must be defined if PNGAPI is changed"
+#     error PNG_USER_PRIVATEBUILD must be defined if PNGAPI is changed
 #  endif
 
 #  define PNG_DLL_EXPORT __declspec(dllexport)
@@ -467,7 +467,7 @@
 #if CHAR_BIT == 8 && UCHAR_MAX == 255
    typedef unsigned char png_byte;
 #else
-#  error "libpng requires 8-bit bytes"
+#  error libpng requires 8-bit bytes
 #endif
 
 #if INT_MIN == -32768 && INT_MAX == 32767
@@ -475,7 +475,7 @@
 #elif SHRT_MIN == -32768 && SHRT_MAX == 32767
    typedef short png_int_16;
 #else
-#  error "libpng requires a signed 16-bit type"
+#  error libpng requires a signed 16-bit integer type
 #endif
 
 #if UINT_MAX == 65535
@@ -483,7 +483,7 @@
 #elif USHRT_MAX == 65535
    typedef unsigned short png_uint_16;
 #else
-#  error "libpng requires an unsigned 16-bit type"
+#  error libpng requires an unsigned 16-bit integer type
 #endif
 
 #if INT_MIN < -2147483646 && INT_MAX > 2147483646
@@ -491,7 +491,7 @@
 #elif LONG_MIN < -2147483646 && LONG_MAX > 2147483646
    typedef long int png_int_32;
 #else
-#  error "libpng requires a signed 32-bit (or more) type"
+#  error libpng requires a signed 32-bit (or longer) integer type
 #endif
 
 #if UINT_MAX > 4294967294U
@@ -499,7 +499,7 @@
 #elif ULONG_MAX > 4294967294U
    typedef unsigned long int png_uint_32;
 #else
-#  error "libpng requires an unsigned 32-bit (or more) type"
+#  error libpng requires an unsigned 32-bit (or longer) integer type
 #endif
 
 /* Prior to 1.6.0, it was possible to disable the use of size_t and ptrdiff_t.
@@ -507,7 +507,7 @@
  * behavior of sizeof and ptrdiff_t are required.
  * The legacy typedefs are provided here for backwards compatibility.
  */
-typedef uint64 png_size_t;
+typedef size_t png_size_t;
 typedef ptrdiff_t png_ptrdiff_t;
 
 /* libpng needs to know the maximum value of 'size_t' and this controls the
@@ -541,7 +541,7 @@ typedef ptrdiff_t png_ptrdiff_t;
 #ifdef PNG_SMALL_SIZE_T
    typedef png_uint_32 png_alloc_size_t;
 #else
-   typedef uint64 png_alloc_size_t;
+   typedef size_t png_alloc_size_t;
 #endif
 
 /* Prior to 1.6.0 libpng offered limited support for Microsoft C compiler
@@ -577,8 +577,8 @@ typedef char                  * png_charp;
 typedef const char            * png_const_charp;
 typedef png_fixed_point       * png_fixed_point_p;
 typedef const png_fixed_point * png_const_fixed_point_p;
-typedef uint64                * png_size_tp;
-typedef const uint64          * png_const_size_tp;
+typedef size_t                * png_size_tp;
+typedef const size_t          * png_const_size_tp;
 
 #ifdef PNG_FLOATING_POINT_SUPPORTED
 typedef double       * png_doublep;

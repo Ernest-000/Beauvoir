@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -55,7 +55,7 @@ extern "C" {
  * processors have a 128 byte cache line. We use the larger value to be
  * generally safe.
  *
- * \since This macro is available since SDL 3.1.3.
+ * \since This macro is available since SDL 3.2.0.
  */
 #define SDL_CACHELINE_SIZE  128
 
@@ -68,7 +68,7 @@ extern "C" {
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  */
 extern SDL_DECLSPEC int SDLCALL SDL_GetNumLogicalCPUCores(void);
 
@@ -82,7 +82,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_GetNumLogicalCPUCores(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  */
 extern SDL_DECLSPEC int SDLCALL SDL_GetCPUCacheLineSize(void);
 
@@ -96,7 +96,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_GetCPUCacheLineSize(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  */
 extern SDL_DECLSPEC bool SDLCALL SDL_HasAltiVec(void);
 
@@ -109,7 +109,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasAltiVec(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  */
 extern SDL_DECLSPEC bool SDLCALL SDL_HasMMX(void);
 
@@ -122,7 +122,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasMMX(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_HasSSE2
  * \sa SDL_HasSSE3
@@ -140,7 +140,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasSSE(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_HasSSE
  * \sa SDL_HasSSE3
@@ -158,7 +158,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasSSE2(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_HasSSE
  * \sa SDL_HasSSE2
@@ -176,7 +176,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasSSE3(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_HasSSE
  * \sa SDL_HasSSE2
@@ -194,7 +194,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasSSE41(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_HasSSE
  * \sa SDL_HasSSE2
@@ -212,7 +212,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasSSE42(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_HasAVX2
  * \sa SDL_HasAVX512F
@@ -228,7 +228,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasAVX(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_HasAVX
  * \sa SDL_HasAVX512F
@@ -244,7 +244,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasAVX2(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_HasAVX
  * \sa SDL_HasAVX2
@@ -262,7 +262,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasAVX512F(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_HasNEON
  */
@@ -277,7 +277,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasARMSIMD(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  */
 extern SDL_DECLSPEC bool SDLCALL SDL_HasNEON(void);
 
@@ -291,7 +291,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasNEON(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  */
 extern SDL_DECLSPEC bool SDLCALL SDL_HasLSX(void);
 
@@ -305,7 +305,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasLSX(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  */
 extern SDL_DECLSPEC bool SDLCALL SDL_HasLASX(void);
 
@@ -316,7 +316,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_HasLASX(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  */
 extern SDL_DECLSPEC int SDLCALL SDL_GetSystemRAM(void);
 
@@ -337,12 +337,33 @@ extern SDL_DECLSPEC int SDLCALL SDL_GetSystemRAM(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_aligned_alloc
  * \sa SDL_aligned_free
  */
-extern SDL_DECLSPEC uint64 SDLCALL SDL_GetSIMDAlignment(void);
+extern SDL_DECLSPEC size_t SDLCALL SDL_GetSIMDAlignment(void);
+
+/**
+ * Report the size of a page of memory.
+ *
+ * Different platforms might have different memory page sizes. In current
+ * times, 4 kilobytes is not unusual, but newer systems are moving to larger
+ * page sizes, and esoteric platforms might have any unexpected size.
+ *
+ * Note that this function can return 0, which means SDL can't determine the
+ * page size on this platform. It will _not_ set an error string to be
+ * retrieved with SDL_GetError() in this case! In this case, defaulting to
+ * 4096 is often a reasonable option.
+ *
+ * \returns the size of a single page of memory, in bytes, or 0 if SDL can't
+ *          determine this information.
+ *
+ * \threadsafety It is safe to call this function from any thread.
+ *
+ * \since This function is available since SDL 3.4.0.
+ */
+extern SDL_DECLSPEC int SDLCALL SDL_GetSystemPageSize(void);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

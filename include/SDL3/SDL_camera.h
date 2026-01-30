@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -88,7 +88,7 @@ extern "C" {
  *
  * The value 0 is an invalid ID.
  *
- * \since This datatype is available since SDL 3.1.3.
+ * \since This datatype is available since SDL 3.2.0.
  *
  * \sa SDL_GetCameras
  */
@@ -97,7 +97,7 @@ typedef Uint32 SDL_CameraID;
 /**
  * The opaque structure used to identify an opened SDL camera.
  *
- * \since This struct is available since SDL 3.1.3.
+ * \since This struct is available since SDL 3.2.0.
  */
 typedef struct SDL_Camera SDL_Camera;
 
@@ -107,7 +107,7 @@ typedef struct SDL_Camera SDL_Camera;
  * Cameras often support multiple formats; each one will be encapsulated in
  * this struct.
  *
- * \since This struct is available since SDL 3.1.3.
+ * \since This struct is available since SDL 3.2.0.
  *
  * \sa SDL_GetCameraSupportedFormats
  * \sa SDL_GetCameraFormat
@@ -119,13 +119,13 @@ typedef struct SDL_CameraSpec
     int width;                  /**< Frame width */
     int height;                 /**< Frame height */
     int framerate_numerator;     /**< Frame rate numerator ((num / denom) == FPS, (denom / num) == duration in seconds) */
-    int framerate_denominator;   /**< Frame rate demoninator ((num / denom) == FPS, (denom / num) == duration in seconds) */
+    int framerate_denominator;   /**< Frame rate denominator ((num / denom) == FPS, (denom / num) == duration in seconds) */
 } SDL_CameraSpec;
 
 /**
  * The position of camera in relation to system device.
  *
- * \since This enum is available since SDL 3.1.3.
+ * \since This enum is available since SDL 3.2.0.
  *
  * \sa SDL_GetCameraPosition
  */
@@ -135,6 +135,20 @@ typedef enum SDL_CameraPosition
     SDL_CAMERA_POSITION_FRONT_FACING,
     SDL_CAMERA_POSITION_BACK_FACING
 } SDL_CameraPosition;
+
+/**
+ * The current state of a request for camera access.
+ *
+ * \since This enum is available since SDL 3.4.0.
+ *
+ * \sa SDL_GetCameraPermissionState
+ */
+typedef enum SDL_CameraPermissionState
+{
+    SDL_CAMERA_PERMISSION_STATE_DENIED = -1,
+    SDL_CAMERA_PERMISSION_STATE_PENDING,
+    SDL_CAMERA_PERMISSION_STATE_APPROVED,
+} SDL_CameraPermissionState;
 
 
 /**
@@ -154,7 +168,7 @@ typedef enum SDL_CameraPosition
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_GetCameraDriver
  */
@@ -178,7 +192,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_GetNumCameraDrivers(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_GetNumCameraDrivers
  */
@@ -196,7 +210,7 @@ extern SDL_DECLSPEC const char * SDLCALL SDL_GetCameraDriver(int index);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  */
 extern SDL_DECLSPEC const char * SDLCALL SDL_GetCurrentCameraDriver(void);
 
@@ -211,7 +225,7 @@ extern SDL_DECLSPEC const char * SDLCALL SDL_GetCurrentCameraDriver(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_OpenCamera
  */
@@ -239,7 +253,7 @@ extern SDL_DECLSPEC SDL_CameraID * SDLCALL SDL_GetCameras(int *count);
  * there _is_ a camera until the user has given you permission to check
  * through a scary warning popup.
  *
- * \param devid the camera device instance ID to query.
+ * \param instance_id the camera device instance ID.
  * \param count a pointer filled in with the number of elements in the list,
  *              may be NULL.
  * \returns a NULL terminated array of pointers to SDL_CameraSpec or NULL on
@@ -249,12 +263,12 @@ extern SDL_DECLSPEC SDL_CameraID * SDLCALL SDL_GetCameras(int *count);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_GetCameras
  * \sa SDL_OpenCamera
  */
-extern SDL_DECLSPEC SDL_CameraSpec ** SDLCALL SDL_GetCameraSupportedFormats(SDL_CameraID devid, int *count);
+extern SDL_DECLSPEC SDL_CameraSpec ** SDLCALL SDL_GetCameraSupportedFormats(SDL_CameraID instance_id, int *count);
 
 /**
  * Get the human-readable device name for a camera.
@@ -265,7 +279,7 @@ extern SDL_DECLSPEC SDL_CameraSpec ** SDLCALL SDL_GetCameraSupportedFormats(SDL_
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_GetCameras
  */
@@ -284,7 +298,7 @@ extern SDL_DECLSPEC const char * SDLCALL SDL_GetCameraName(SDL_CameraID instance
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_GetCameras
  */
@@ -330,7 +344,7 @@ extern SDL_DECLSPEC SDL_CameraPosition SDLCALL SDL_GetCameraPosition(SDL_CameraI
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_GetCameras
  * \sa SDL_GetCameraFormat
@@ -346,8 +360,9 @@ extern SDL_DECLSPEC SDL_Camera * SDLCALL SDL_OpenCamera(SDL_CameraID instance_id
  * on others the approval might be implicit and not alert the user at all.
  *
  * This function can be used to check the status of that approval. It will
- * return 0 if still waiting for user response, 1 if the camera is approved
- * for use, and -1 if the user denied access.
+ * return SDL_CAMERA_PERMISSION_STATE_PENDING if waiting for user response,
+ * SDL_CAMERA_PERMISSION_STATE_APPROVED if the camera is approved for use, and
+ * SDL_CAMERA_PERMISSION_STATE_DENIED if the user denied access.
  *
  * Instead of polling with this function, you can wait for a
  * SDL_EVENT_CAMERA_DEVICE_APPROVED (or SDL_EVENT_CAMERA_DEVICE_DENIED) event
@@ -358,17 +373,18 @@ extern SDL_DECLSPEC SDL_Camera * SDLCALL SDL_OpenCamera(SDL_CameraID instance_id
  * SDL_CloseCamera() to dispose of it.
  *
  * \param camera the opened camera device to query.
- * \returns -1 if user denied access to the camera, 1 if user approved access,
- *          0 if no decision has been made yet.
+ * \returns an SDL_CameraPermissionState value indicating if access is
+ *          granted, or `SDL_CAMERA_PERMISSION_STATE_PENDING` if the decision
+ *          is still pending.
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_OpenCamera
  * \sa SDL_CloseCamera
  */
-extern SDL_DECLSPEC int SDLCALL SDL_GetCameraPermissionState(SDL_Camera *camera);
+extern SDL_DECLSPEC SDL_CameraPermissionState SDLCALL SDL_GetCameraPermissionState(SDL_Camera *camera);
 
 /**
  * Get the instance ID of an opened camera.
@@ -379,7 +395,7 @@ extern SDL_DECLSPEC int SDLCALL SDL_GetCameraPermissionState(SDL_Camera *camera)
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_OpenCamera
  */
@@ -394,7 +410,7 @@ extern SDL_DECLSPEC SDL_CameraID SDLCALL SDL_GetCameraID(SDL_Camera *camera);
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  */
 extern SDL_DECLSPEC SDL_PropertiesID SDLCALL SDL_GetCameraProperties(SDL_Camera *camera);
 
@@ -418,7 +434,7 @@ extern SDL_DECLSPEC SDL_PropertiesID SDLCALL SDL_GetCameraProperties(SDL_Camera 
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_OpenCamera
  */
@@ -461,7 +477,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_GetCameraFormat(SDL_Camera *camera, SDL_Cam
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_ReleaseCameraFrame
  */
@@ -489,7 +505,7 @@ extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_AcquireCameraFrame(SDL_Camera *cam
  *
  * \threadsafety It is safe to call this function from any thread.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_AcquireCameraFrame
  */
@@ -504,7 +520,7 @@ extern SDL_DECLSPEC void SDLCALL SDL_ReleaseCameraFrame(SDL_Camera *camera, SDL_
  * \threadsafety It is safe to call this function from any thread, but no
  *               thread may reference `device` once this function is called.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_OpenCamera
  */

@@ -1,10 +1,10 @@
-#include <BVR/graphics.h>
+#include <bvr/graphics.h>
 
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 
-#include <BVR/math.h>
-#include <BVR/common.h>
-#include <BVR/scene.h>
+#include <bvr/math.h>
+#include <bvr/common.h>
+#include <bvr/scene.h>
 
 #include <memory.h>
 #include <malloc.h>
@@ -15,11 +15,19 @@ static void bvri_pipeline_restore_depth(struct bvr_pipeline_state_s* const state
 void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
     bvri_pipeline_restore_blending(state);
     bvri_pipeline_restore_depth(state);
+
+    // flags
+    glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_CULL_FACE);
+    
+    if(BVR_HAS_FLAG(state->flags, BVR_SCISSORS_ENABLE)){
+        glEnable(GL_SCISSOR_TEST);
+    }
 }
 
 void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
     // try to apply local uniform
-    bvr_shader_set_uniformi(
+    bvr_shader_set_uniform_raw(
         bvr_find_uniform_tag(cmd->shader, BVR_UNIFORM_LOCAL_TRANSFORM), 
         cmd->vertex_group.matrix
     );
@@ -59,13 +67,16 @@ void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cmd->element_buffer);
 
     bvr_shader_disable();
-
-    // update pipeline state
-    bvr_get_instance()->pipeline.state.command = cmd;
 }
 
 void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd){
     BVR_ASSERT(cmd);
+
+    // old invalid shader implementation
+    // if(!cmd->shader->program && bvr_get_instance()->predefs.is_available){
+    //     cmd->shader = &bvr_get_instance()->predefs.c_shaders.c_invalid_shader;
+    //     BVR_PRINT("invalid shader!");
+    // }
 
     if(bvr_get_instance()->pipeline.command_count + 1 < BVR_MAX_DRAW_COMMAND){
         memcpy(
@@ -76,6 +87,7 @@ void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd){
 }
 
 void bvr_poll_errors(void){
+#if 0
     char found_error = 0;
     uint32 err;
 
@@ -126,6 +138,7 @@ void bvr_poll_errors(void){
     if(found_error){
         BVR_BREAK();
     }
+#endif
 }
 
 int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, const uint16 width, const uint16 height, const char* shader){
@@ -235,7 +248,7 @@ void bvr_framebuffer_blit(bvr_framebuffer_t* framebuffer){
         0.0f, 0.1f
     );
 
-    BVR_ASSERT(bvr_shader_set_uniformi(
+    BVR_ASSERT(bvr_shader_set_uniform_raw(
         &shader->uniforms[0], &ortho[0][0]
     ));
 
@@ -282,8 +295,8 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
 
     /* invalid shader */
     {
-        vertex_shader = "#version 400\n"
-            "layout(location=0) in vec2 in_position;\n"
+        vertex_shader = BVR_SHADER_VERSION
+            "layout(location=0) in vec3 in_position;\n"
             "layout(location=1) in vec2 in_uvs;\n"
             "uniform mat4 bvr_transform;\n"
             "layout(std140) uniform bvr_camera {"
@@ -294,7 +307,7 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
             "	vec2 uvs;\n"
             "} vertex;\n"
             "void main() {\n"
-            "	gl_Position = bvr_projection * bvr_view * bvr_transform * vec4(in_position, 0.0, 1.0);\n"
+            "	gl_Position = bvr_transform * vec4(in_position, 1.0);\n"
             "	vertex.uvs = in_uvs;\n"
             "}";
         
@@ -303,13 +316,13 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
             "vec2 uvs;\n"
             "} vertex;\n"
             "void main() {\n"
-            	"gl_FragColor = vec4(vertex.uvs, 1.0, 1.0);\n"
+            	"gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);\n"
             "}";
 
         shader_array[0] = vertex_shader;
         shader_array[1] = fragment_shader;
 
-        predefs->is_available = bvr_create_shader_raw(&predefs->c_shaders.c_invalid_shader, 
+        predefs->is_available &= bvr_create_shader_raw(&predefs->c_shaders.c_invalid_shader, 
             (const char**)shader_array, 
             BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER
         );
@@ -317,7 +330,7 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
 
     /* framebuffer shader */
     {
-        vertex_shader = "#version 400\n"
+        vertex_shader = BVR_SHADER_VERSION
             "layout(location=0) in vec2 in_position;\n"
             "layout(location=1) in vec2 in_uvs;\n"
             "uniform mat4 bvr_transform;\n"
@@ -341,15 +354,15 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
         shader_array[0] = vertex_shader;
         shader_array[1] = fragment_shader;
 
-        predefs->is_available = bvr_create_shader_raw(&predefs->c_shaders.c_framebuffer_shader, 
+        predefs->is_available &= bvr_create_shader_raw(&predefs->c_shaders.c_framebuffer_shader, 
             (const char**)shader_array, 
             BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER
         );
 
-        predefs->is_available = bvr_shader_register_uniform(
+        predefs->is_available &= bvr_shader_register_uniform(
             &predefs->c_shaders.c_framebuffer_shader, 
             BVR_MAT4, 1, BVR_UNIFORM_PROJECTION, "bvr_projection"
-        );
+        ) == NULL;
     }
 
     /* composite shader */
@@ -382,7 +395,7 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
         shader_array[0] = vertex_shader;
         shader_array[1] = fragment_shader;
 
-        predefs->is_available = bvr_create_shader_raw(&predefs->c_shaders.c_composite_shader, 
+        predefs->is_available &= bvr_create_shader_raw(&predefs->c_shaders.c_composite_shader, 
             (const char**)shader_array, 
             BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER
         );
@@ -404,17 +417,22 @@ static void bvri_pipeline_restore_blending(struct bvr_pipeline_state_s* const st
 
     if(state->blending){
         glEnable(GL_BLEND);
+        
         switch(state->blending)
         {
         case BVR_BLEND_FUNC_ALPHA_ONE_MINUS:
+            glBlendEquation(GL_FUNC_ADD);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             break;
         case BVR_BLEND_FUNC_ALPHA_ADD:
-            glBlendFunc(GL_ONE, GL_ONE);
+            glBlendEquation(GL_FUNC_ADD);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             break;
         case BVR_BLEND_FUNC_ALPHA_MULT:
-            glBlendFunc(GL_ONE, GL_SRC_COLOR);
+            glBlendEquation(GL_FUNC_ADD);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             break;
+            
         default:
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             break;

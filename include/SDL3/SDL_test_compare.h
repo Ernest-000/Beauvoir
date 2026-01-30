@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -52,6 +52,7 @@ extern "C" {
  * \returns 0 if comparison succeeded, >0 (=number of pixels for which the comparison failed) if comparison failed, -1 if any of the surfaces were NULL, -2 if the surface sizes differ.
  */
 int SDLCALL SDLTest_CompareSurfaces(SDL_Surface *surface, SDL_Surface *referenceSurface, int allowable_error);
+int SDLCALL SDLTest_CompareSurfacesIgnoreTransparentPixels(SDL_Surface *surface, SDL_Surface *referenceSurface, int allowable_error);
 
 /**
  * Compares 2 memory blocks for equality
@@ -63,9 +64,9 @@ int SDLCALL SDLTest_CompareSurfaces(SDL_Surface *surface, SDL_Surface *reference
  *
  * \returns 0 if the left and right memory block are equal, non-zero if they are non-equal.
  *
- * \since This function is available since SDL 3.1.3.
+ * \since This function is available since SDL 3.2.0.
  */
-int SDLCALL SDLTest_CompareMemory(const void *actual, uint64 size_actual, const void *reference, uint64 size_reference);
+int SDLCALL SDLTest_CompareMemory(const void *actual, size_t size_actual, const void *reference, size_t size_reference);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

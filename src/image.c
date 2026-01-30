@@ -1,10 +1,11 @@
 #include <bvr/image.h>
-#include <BVR/common.h>
-#include <BVR/file.h>
+#include <bvr/common.h>
+#include <bvr/file.h>
 
 #include <bvr/shader.h>
 #include <bvr/scene.h>
 
+#include <stdlib.h>
 #include <malloc.h>
 #include <memory.h>
 #include <string.h>
@@ -53,11 +54,25 @@ static void bvri_png_error(png_structp sptr, png_const_charp cc){
     BVR_ASSERT(cc || 0);
 }
 
+static void bvri_png_warn(png_structp sptr, png_const_charp cc){
+    BVR_PRINT(cc);
+}
+
 static int bvri_load_png(bvr_image_t* image, FILE* file){
-    png_structp pngldr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, bvri_png_error, NULL);
+    BVR_ASSERT(image);
+    BVR_ASSERT(file);
+
+    png_structp pngldr;
+    png_infop pnginfo;
+    uint32 width, height;
+    uint64 rowbytes;
+    int compression;
+    int depth, color_type, interlace_type;
+
+    pngldr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, bvri_png_error, bvri_png_warn);
     BVR_ASSERT(pngldr);
 
-    png_infop pnginfo = png_create_info_struct(pngldr);
+    pnginfo = png_create_info_struct(pngldr);
     BVR_ASSERT(pnginfo);
 
     if(setjmp(png_jmpbuf(pngldr))){
@@ -71,16 +86,21 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
     png_set_sig_bytes(pngldr, BVR_PNG_HEADER_LENGTH);
     png_read_info(pngldr, pnginfo);
 
-    image->width = png_get_image_width(pngldr, pnginfo);
-    image->height = png_get_image_height(pngldr, pnginfo);
-    image->depth = png_get_bit_depth(pngldr, pnginfo);
-    int color_type = png_get_color_type(pngldr, pnginfo);
+    //image->width = png_get_image_width(pngldr, pnginfo);
+    //image->height = png_get_image_height(pngldr, pnginfo);
+    //image->depth = png_get_bit_depth(pngldr, pnginfo);
+    //color_type = png_get_color_type(pngldr, pnginfo);
+
+    png_get_IHDR(pngldr, pnginfo,
+        &width, &height, &depth, &color_type,
+        &interlace_type, &compression, NULL
+    );
 
     if(color_type == PNG_COLOR_TYPE_PALETTE){
         png_set_palette_to_rgb(pngldr);
     }
     
-    if(color_type == PNG_COLOR_TYPE_GRAY && image->depth < 8){
+    if(color_type == PNG_COLOR_TYPE_GRAY && depth < 8){
         png_set_expand_gray_1_2_4_to_8(pngldr);
     }
 
@@ -88,10 +108,10 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
         png_set_tRNS_to_alpha(pngldr);
     }
 
-    if(image->depth == 16){
+    if(depth == 16){
         png_set_strip_16(pngldr);
     }
-    else if(image->depth < 8){
+    else if(depth < 8){
         png_set_packing(pngldr);
     }
 
@@ -104,7 +124,7 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
         image->format = BVR_RGB;
         image->channels = 3;
         break;
-    case PNG_COLOR_TYPE_RGBA:
+    case PNG_COLOR_TYPE_RGB_ALPHA:
         image->format = BVR_RGBA;
         image->channels = 4;
         break;
@@ -114,13 +134,15 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
         break;
     }
 
+    image->width = (int)width;
+    image->height = (int)height;
+    image->depth = (int)depth;
     image->sformat = bvri_get_sformat(image);
 
-    uint64 rowbytes = png_get_rowbytes(pngldr, pnginfo);
-    image->pixels = malloc(image->width * image->height * image->channels * sizeof(uint8));
-    BVR_ASSERT(image->pixels);
-
+    rowbytes = png_get_rowbytes(pngldr, pnginfo);
+    image->pixels = malloc(image->height * rowbytes * sizeof(uint8));
     uint8** rowp = malloc(image->height * sizeof(uint8*));
+    BVR_ASSERT(image->pixels);
     BVR_ASSERT(rowp);
 
     for (uint64 i = 0; i < image->height; i++)
@@ -139,6 +161,8 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
 #endif
 
 #ifndef BVR_NO_BMP
+
+#define BVR_BMP_PALETTE_LENGTH 256
 
 /*
     https://en.wikipedia.org/wiki/BMP_file_format
@@ -162,7 +186,7 @@ struct bvri_bmpheader_s {
     uint32 color_palette;
     uint32 important_color;
 
-    uint8* palette;
+    uint8 palette[BVR_BMP_PALETTE_LENGTH][3];
 };
 
 /*
@@ -179,13 +203,6 @@ static int bvri_is_bmp(FILE* file){
 
     return (size == 12 || size == 40 || size == 56
         || size == 108 || size == 124);
-}
-
-/*
-    Return the bigger number
-*/
-static uint32 bvri_bmpmax(uint32 max, uint32 i){
-    return i > max ? max : i;
 }
 
 static int bvri_load_bmp(bvr_image_t* image, FILE* file){
@@ -213,7 +230,6 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
     header.vertical_resolution = bvr_freadu32_le(file);
     header.color_palette = bvr_freadu32_le(file);
     header.important_color = bvr_fread32_le(file);
-    header.palette = NULL;
 
     // check for correct color plane
     if(header.color_plane != 1){
@@ -230,16 +246,16 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
     }
 
     // create color palette
-    if(header.bit_per_pixel < 8){
-        header.palette = malloc(header.color_palette * 3);
+    if(header.color_palette){
+        // check for max palette colors
+        BVR_ASSERT(header.color_palette <= BVR_BMP_PALETTE_LENGTH);
+
         for (uint64 color = 0; color < header.color_palette; color++)
         {
-            header.palette[color * 3 + 0] = bvr_freadu8_le(file);
-            header.palette[color * 3 + 1] = bvr_freadu8_le(file);
-            header.palette[color * 3 + 2] = bvr_freadu8_le(file);
-            bvr_freadu8_le(file);
-
-            BVR_PRINTF("palette color %i %i %i", header.palette[color * 3], header.palette[color * 3 + 1], header.palette[color * 3 + 2]);
+            header.palette[color][0] = bvr_freadu8_le(file); // Blue
+            header.palette[color][1] = bvr_freadu8_le(file); // Green
+            header.palette[color][2] = bvr_freadu8_le(file); // Red
+            bvr_freadu8_le(file); // Reserved
         }   
     }
 
@@ -248,21 +264,9 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
 
     image->width = header.width;
     image->height = abs(header.height);
-    image->depth = 8;
-    
-    // define correct channel and format based on bpp
-    if(header.bit_per_pixel < 8){
-        image->channels = 3;
-        image->format = BVR_BGR;
-    }
-    else {
-        image->channels = header.bit_per_pixel / 8;
-        image->format = BVR_BGR;
-
-        if(image->channels == 4){
-            image->format = BVR_BGRA;
-        }
-    }
+    image->depth = header.bit_per_pixel;
+    image->channels = 3; // does not handle alpha 
+    image->format = BVR_BGR;
 
     image->sformat = bvri_get_sformat(image);
     image->pixels = malloc(image->width * image->height * image->channels);
@@ -270,62 +274,51 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
 
     // RAW compression
     if(header.compression_method == 0){
-        uint32 packed_bytes = 0;
         uint32 unpacked_bytes = 0;
-        uint32 stride_length = ((int)ceilf(image->width * header.bit_per_pixel) / 32 * 4 + 3) & ~3;
+        uint32 stride_length = ((int)floorf(image->width * header.bit_per_pixel) / 32 * 4);
 
-        // load image from palette
-        if(header.bit_per_pixel < 8){
-            // because repetitive image might have a shorter stride length
-            // we need to duplicate pixels to copy the correct number of pixels to get the full width.
-            uint32 stride_rle = image->width / stride_length;
-            uint8 buffer[4];
+        // load image in palette mode
+        if(header.color_palette){
 
-            for (uint64 row = 0; row < image->height; row++)
+            uint32 lookup;
+            uint8* pixel = NULL;
+            for (size_t row = 0; row < image->height; row++)
             {
-                packed_bytes = 0;
                 unpacked_bytes = 0;
+             
+                // get the first pixel of the row
+                pixel = &image->pixels[row * image->width * image->channels];
 
-                while (packed_bytes < stride_length)
+                while(unpacked_bytes < stride_length)
                 {
-                    // copy packed data into 
-                    memcpy(
-                        buffer,
-                        header.palette + bvri_bmpmax(header.color_palette - 1, bvr_freadu8_le(file)) * image->channels,
-                        image->channels * sizeof(uint8)
-                    );         
-                           
-                    while (packed_bytes * stride_rle - unpacked_bytes)
-                    {
-                        // copy the buffer 'stride_rle' times
-                        memcpy(
-                            image->pixels + (row * image->width + unpacked_bytes) * image->channels,
-                            buffer, image->channels * sizeof(uint8)
-                        );
+                    // palette index
+                    lookup = bvr_freadu8_le(file);
 
-                        unpacked_bytes++;
-                    }
-                    
-                    packed_bytes++;
+                    *pixel++ = header.palette[lookup][0];
+                    *pixel++ = header.palette[lookup][1];
+                    *pixel++ = header.palette[lookup][2];
+
+                    unpacked_bytes++;
                 }
-            }            
+            }                     
         }
         // load image with raw data
         else {
             // we just copy all data row per row
-            for (uint64 row = 0; row < image->height; row++)
+            for (uint32 row = 0; row < image->height; row++)
             {
-                packed_bytes = fread(image->pixels + row * image->width * image->channels, sizeof(uint8), stride_length, file);
-                BVR_ASSERT(packed_bytes == stride_length);
+                unpacked_bytes = fread(
+                    &image->pixels[row * image->width * image->channels], 
+                    sizeof(uint8), stride_length, file
+                );
+                
+                BVR_ASSERT(unpacked_bytes == stride_length);
             }
         }
     }
     else {
-        BVR_ASSERT(0 || "compression not supported");
+        BVR_ASSERT(0 && "compression not supported");
     }
-
-    // try to free color palette
-    free(header.palette);
 
     return BVR_TRUE;
 }
@@ -507,7 +500,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
                                 frame.strip_offsets
                             );
                         }
-                        else {BVR_ASSERT(0 || "failed to allocate strip offset!");}
+                        else {BVR_ASSERT(0 && "failed to allocate strip offset!");}
                     }
                 }
                 break;
@@ -533,7 +526,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
                                 frame.strip_byte_counts
                             );
                         }
-                        else {BVR_ASSERT(0 || "failed to allocate strip byte offset!");}
+                        else {BVR_ASSERT(0 && "failed to allocate strip byte offset!");}
                     }
                 }
                 break;
@@ -569,7 +562,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
                                 frame.photoshop_infos 
                             );
                         }
-                        else {BVR_ASSERT(0 || "failed to allocate photoshop informations!");}
+                        else {BVR_ASSERT(0 && "failed to allocate photoshop informations!");}
                     }
                 }
             */
@@ -600,15 +593,15 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
                 BVR_PRINTF("start %i end %i", frame.strip_offsets[strip], frame.strip_byte_counts[strip]);    
             }*/
 
-            BVR_ASSERT(0 || "configuration not supported!");
+            BVR_ASSERT(0 && "configuration not supported!");
         }
         else if(frame.planar_configuration == 2) {
             /*
                 Each color layers are stored in a different strip
-                strip 1 -> R 
-                strip 2 -> G 
-                strip 3 -> B 
-                strip 4 -> A
+                stride 1 -> R 
+                stride 2 -> G 
+                stride 3 -> B 
+                stride 4 -> A
             */
             if(image->pixels){
                 // free previous allocated memory
@@ -641,7 +634,7 @@ static int bvri_load_tif(bvr_image_t* image, FILE* file){
 
         }
         else {
-            BVR_ASSERT(0 || "configuration is not supported!");
+            BVR_ASSERT(0 && "configuration is not supported!");
         }
 
         switch (image->channels)
@@ -813,7 +806,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
     color_mode_section.data = NULL;
     if(color_mode_section.size){
         BVR_PRINTF("color mode %i, should read full data", color_mode_section.size);
-        BVR_ASSERT(0 || "not supported!");
+        BVR_ASSERT(0 && "not supported!");
     }
 
     // ressource section parsing
@@ -990,7 +983,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
     case 3: image->format = BVR_RGB; break; // rgb
     case 4: image->format = BVR_RGBA; break;
     default:
-        BVR_ASSERT(0 || "image format not supported!");
+        BVR_ASSERT(0 && "image format not supported!");
         break;
     }
 
@@ -1005,19 +998,19 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
     // initialize layers to make sure they're correct
     for (uint64 layer = 0; layer < layer_section.layer_count; layer++)
     {
-        bvr_layer_t* layer_ptr = &((bvr_layer_t*)image->layers.data)[layer];
+        bvr_layer_t* p_layer = &((bvr_layer_t*)image->layers.data)[layer];
 
-        bvr_string_create_and_copy(&layer_ptr->name, &layer_section.layers[layer].name);
-        layer_ptr->flags = 0;
-        layer_ptr->blend_mode = (bvr_layer_blend_mode_t)layer_section.layers[layer].blend_mode;
-        layer_ptr->width = layer_section.layers[layer].bounds[3] - layer_section.layers[layer].bounds[1];
-        layer_ptr->height = layer_section.layers[layer].bounds[2] - layer_section.layers[layer].bounds[0];
-        layer_ptr->anchor_x = layer_section.layers[layer].bounds[1];
-        layer_ptr->anchor_y = layer_section.layers[layer].bounds[0];
-        layer_ptr->opacity = layer_section.layers[layer].opacity;
+        bvr_string_create_and_copy(&p_layer->name, &layer_section.layers[layer].name);
+        p_layer->flags = 0;
+        p_layer->blend_mode = (bvr_layer_blend_mode_t)layer_section.layers[layer].blend_mode;
+        p_layer->width = layer_section.layers[layer].bounds[3] - layer_section.layers[layer].bounds[1];
+        p_layer->height = layer_section.layers[layer].bounds[2] - layer_section.layers[layer].bounds[0];
+        p_layer->anchor_x =  MIN(layer_section.layers[layer].bounds[1], image->width - p_layer->width);
+        p_layer->anchor_y = MIN(layer_section.layers[layer].bounds[0], image->height - p_layer->height);
+        p_layer->opacity = layer_section.layers[layer].opacity;
 
         if(layer_section.layers[layer].clipping){
-            layer_ptr->flags |= BVR_LAYER_CLIPPED;
+            p_layer->flags |= BVR_LAYER_CLIPPED;
         }
     }
 
@@ -1029,7 +1022,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
         if(image_data_section.compression == 0){
             // proceed to RAW uncompression 
 
-            BVR_ASSERT(0 || "unsupported compression mode");
+            BVR_ASSERT(0 && "unsupported compression mode");
         }
         else if(image_data_section.compression == 1){
             // do RLE uncompression
@@ -1037,9 +1030,10 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
             {
                 int layer_width = layer_section.layers[layer].bounds[3] - layer_section.layers[layer].bounds[1];
                 int layer_height = layer_section.layers[layer].bounds[2] - layer_section.layers[layer].bounds[0];
-                int layer_anchor_x = __min(layer_section.layers[layer].bounds[1], image->width - layer_width);
-                int layer_anchor_y = __min(layer_section.layers[layer].bounds[0], image->height - layer_height);
-            
+                
+                int layer_anchor_x = 0;
+                int layer_anchor_y = 0;
+
                 image_data_section.channels = layer_section.layers[layer].channel_count;
                 image_data_section.rle_pack_lengths = calloc(layer_height, sizeof(uint16));
                 BVR_ASSERT(image_data_section.rle_pack_lengths);
@@ -1162,7 +1156,6 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
                         for (uint64 column = 0; column < image_data_section.columns; column++)
                         {
 #ifndef BVR_NO_FLIP
-
                             image->pixels[
                                 (((strip + layer_anchor_y) * image->width + column + layer_anchor_x) * image->channels + image_data_section.channel) +
                                 (image->width * image->height * image->channels * layer)
@@ -1196,7 +1189,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
             
         }
         else {
-            BVR_ASSERT(0 || "unsupported compression mode");
+            BVR_ASSERT(0 && "unsupported compression mode");
         }
     }
 
@@ -1233,6 +1226,7 @@ static void bvri_create_empty_layer(bvr_image_t* image){
     ((bvr_layer_t*)image->layers.data)[0].height = image->height;
     ((bvr_layer_t*)image->layers.data)[0].anchor_x = 0;
     ((bvr_layer_t*)image->layers.data)[0].anchor_y = 0;
+    ((bvr_layer_t*)image->layers.data)[0].opacity = 255;
     
     bvr_create_string(&((bvr_layer_t*)image->layers.data)[0].name, "layer0");
 }
@@ -1311,7 +1305,7 @@ int bvr_create_imagef(bvr_image_t* image, FILE* file){
 #endif
 
 #ifndef BVR_NO_FLIP
-    if(image->pixels && status){
+    if(image->pixels){
         bvr_flip_image_vertically(image);
     }
 #endif
@@ -1433,9 +1427,8 @@ static int bvri_create_texture_base(bvr_texture_t* texture){
     return texture->id > 0;
 }
 
-int bvr_create_view_texture(bvr_texture_t* origin, bvr_texture_t* dest, int width, int height, int layer){
+int bvr_create_view_texture(const bvr_composite_t* composite, bvr_texture_t* origin, bvr_texture_t* dest, const uint32 layer){
     BVR_ASSERT(origin);
-    BVR_ASSERT(width > 0 && height > 0);
 
     dest->filter = origin->filter;
     dest->wrap = origin->wrap;
@@ -1453,38 +1446,47 @@ int bvr_create_view_texture(bvr_texture_t* origin, bvr_texture_t* dest, int widt
     dest->image.layers.size = 0;
     dest->image.layers.elemsize = sizeof(bvr_layer_t);
 
-    BVR_ASSERT(bvri_create_texture_base(dest));
+    if(origin->tiles.tile_per_row > 1 || origin->tiles.tile_per_column > 1){
+        dest->image.width = origin->tiles.width;
+        dest->image.height = origin->tiles.height;
+    }
 
-    // if texture view extension is enabled
-    if(GLAD_GL_EXT_texture_view){
-        glTextureViewEXT(
-            dest->id, 
-            dest->target,
-            origin->id,
-            origin->image.sformat,
-            0, 1,
-            layer, 1
-        );
+    BVR_ASSERT(bvri_create_texture_base(dest));
+    
+    if(origin->target == BVR_TEXTURE_2D){
+        dest->id = origin->id;
+        return BVR_TRUE;
     }
     else {
-        glTexStorage2D(GL_TEXTURE_2D, 1, origin->image.sformat, width, height);
+        dest->image.pixels = malloc(dest->image.width * dest->image.height * dest->image.channels);
+        BVR_ASSERT(dest->image.pixels);
 
-        glCopyImageSubData(
-            origin->id, origin->target,
-            0, 0, 0, layer,
-            dest->id, dest->target,
-            0, 0, 0, 0, width, height, 1
+        bvr_create_composite(composite, &origin->image);
+        bvr_composite_enable(composite, NULL);
+        glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, origin->id, 0, layer);
+
+        glReadnPixels(0, 0, 
+            dest->image.width, dest->image.height, dest->image.format, GL_UNSIGNED_BYTE,
+            dest->image.width * dest->image.height * dest->image.channels, dest->image.pixels
         );
 
-        glGenerateMipmap(dest->target);
+        bvr_composite_disable(composite);
+
+        glBindTexture(GL_TEXTURE_2D, dest->id);
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, dest->image.sformat, 
+            dest->image.width, dest->image.height, 0,
+            dest->image.format, GL_UNSIGNED_BYTE, dest->image.pixels
+        );
+
+        free(dest->image.pixels);
+        dest->image.pixels = NULL;
     }
 
-    glBindTexture(dest->target, 0);
-    
     return BVR_TRUE;
 }
 
-int bvr_create_texture_from_image(bvr_texture_t* texture, bvr_image_t* image, int filter, int wrap){
+int bvr_create_texture_2d(bvr_texture_t* texture, bvr_image_t* image, int filter, int wrap){
     BVR_ASSERT(texture);
     BVR_ASSERT(image);
 
@@ -1494,11 +1496,20 @@ int bvr_create_texture_from_image(bvr_texture_t* texture, bvr_image_t* image, in
     texture->unit = 0;
     texture->target = GL_TEXTURE_2D;
 
-    if(BVR_BUFFER_COUNT(image->layers) > 1){
-        // TODO: compress images into one layer
-    }
+    texture->tiles.width = texture->image.width;
+    texture->tiles.height = texture->image.height;
+    texture->tiles.target_id = 0;
+    texture->tiles.tile_per_column = 1;
+    texture->tiles.tile_per_row = 1;
+    texture->tiles.padding[0] = 0;
+    texture->tiles.padding[1] = 0;
+    texture->tiles.padding[2] = 0;
+    texture->tiles.padding[3] = 0;
 
-    bvri_create_texture_base(texture);
+    if(!bvri_create_texture_base(texture)){
+        bvr_destroy_texture(texture);
+        return BVR_FALSE;
+    }
 
     glTexStorage2D(
         texture->target, 1, 
@@ -1515,7 +1526,80 @@ int bvr_create_texture_from_image(bvr_texture_t* texture, bvr_image_t* image, in
     );
 
     glGenerateMipmap(texture->target);
+    glBindTexture(texture->target, 0);
 
+    free(image->pixels);
+    image->pixels = NULL;
+
+    return BVR_TRUE;
+}
+
+int bvr_create_texture_3d(bvr_texture_t* texture, bvr_image_t* image, int filter, int wrap){
+    BVR_ASSERT(texture);
+    BVR_ASSERT(image);
+    
+    texture->filter = filter;
+    texture->wrap = wrap;
+    texture->target = GL_TEXTURE_2D_ARRAY;
+
+    texture->tiles.width = texture->image.width;
+    texture->tiles.height = texture->image.height;
+    texture->tiles.target_id = 0;
+    texture->tiles.tile_per_column = 1;
+    texture->tiles.tile_per_row = 1;
+    texture->tiles.padding[0] = 0;
+    texture->tiles.padding[1] = 0;
+    texture->tiles.padding[2] = 0;
+    texture->tiles.padding[3] = 0;
+
+    texture->id = 0;
+    texture->unit = 0;
+
+    if(!image->layers.data){
+        bvri_create_empty_layer(&texture->image);
+    }
+
+    if(!bvri_create_texture_base(texture)){
+        bvr_destroy_texture(texture);
+        return BVR_FALSE;
+    }
+
+    glTexStorage3D(
+        texture->target, 1, 
+        image->sformat,
+        image->width, image->height, 
+        image->layers.size / sizeof(bvr_layer_t)
+    );
+
+    for (uint64 layer = 0; layer < image->layers.size / sizeof(bvr_layer_t); layer++)
+    {
+
+#ifndef BVR_NO_FLIP
+        glTexSubImage3D(
+            texture->target, 0, 
+            0, 
+            0,
+            layer,
+            image->width, 
+            image->height, 
+            1, image->format, GL_UNSIGNED_BYTE,
+            image->pixels + image->width * image->height * image->channels * layer
+        );
+#else
+        glTexSubImage3D(
+            texture->target, 0, 
+            ((bvr_layer_t*)image->layers.data)[layer].anchor_x, 
+            ((bvr_layer_t*)image->layers.data)[layer].anchor_y,
+            layer,
+            ((bvr_layer_t*)image->layers.data)[layer].width, 
+            ((bvr_layer_t*)image->layers.data)[layer].height, 
+            1, image->format, GL_UNSIGNED_BYTE,
+            image->pixels + image->width * image->height * image->channels * layer
+        );
+#endif
+    }
+
+    glGenerateMipmap(texture->target);
     glBindTexture(texture->target, 0);
 
     free(image->pixels);
@@ -1534,7 +1618,114 @@ int bvr_create_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap
         return BVR_FALSE;
     }
 
-    return bvr_create_texture_from_image(texture, &texture->image, filter, wrap);    
+    // if the texture has layer, we create a layered texture
+    if(texture->image.layers.size > sizeof(bvr_layer_t)){
+        return bvr_create_texture_3d(texture, &texture->image, filter, wrap);
+    }
+    
+    // otherwise we create a single layer texture
+    return bvr_create_texture_2d(texture, &texture->image, filter, wrap);    
+}
+
+int bvr_create_texture_atlasf(bvr_texture_t* texture, FILE* file, 
+        bvr_atlas_desc_t* desc, int filter, int wrap){
+
+    BVR_ASSERT(texture);
+    BVR_ASSERT(file);
+
+    bvr_create_imagef(&texture->image, file);
+    if(!texture->image.pixels){
+        BVR_PRINT("invalid image!");
+        return BVR_FALSE;
+    }
+
+    texture->filter = filter;
+    texture->wrap = wrap;
+    texture->target = GL_TEXTURE_2D_ARRAY;
+    texture->id = 0;
+    texture->unit = 0;
+
+    if(desc->tile_per_row && desc->tile_per_column){
+        // when tiling is calculated based on tile's count
+        texture->tiles.tile_per_row = desc->tile_per_row;
+        texture->tiles.tile_per_column = desc->tile_per_column;
+        texture->tiles.width = texture->image.width / desc->tile_per_column;
+        texture->tiles.height = texture->image.height / desc->tile_per_row;
+    }
+    else {
+        // when tiling is calculated based on tile's sizes
+        texture->tiles.tile_per_row = texture->image.width / desc->tile_width;
+        texture->tiles.tile_per_column = texture->image.height / desc->tile_height;
+        texture->tiles.width = desc->tile_width;
+        texture->tiles.height = desc->tile_height;    
+    }
+
+    texture->tiles.target_id = 0;
+    texture->tiles.padding[0] = desc->padding_bottom;
+    texture->tiles.padding[1] = desc->padding_left;
+    texture->tiles.padding[2] = desc->padding_right;
+    texture->tiles.padding[3] = desc->padding_top;
+
+    if(!bvri_create_texture_base(texture)){
+        bvr_destroy_texture(texture);
+        return BVR_FALSE;
+    }
+
+    glTexStorage3D(
+        texture->target, 1, 
+        texture->image.sformat,
+        texture->tiles.width, texture->tiles.height, 
+        texture->tiles.tile_per_column * texture->tiles.tile_per_row
+    );
+
+    uint32 offset_x;
+    uint32 offset_y;
+#ifndef BVR_NO_FLIP
+    for (size_t y = 0; y < texture->tiles.tile_per_column; y++)
+    {
+        for (size_t x = 0; x < texture->tiles.tile_per_row; x++)
+        {
+            offset_x = x * texture->tiles.width;
+            offset_y = y * texture->tiles.height;
+
+            glTexSubImage3D(
+                texture->target, 0, 0, 0, 
+                (texture->tiles.tile_per_column - y - 1) * texture->tiles.tile_per_row + x,
+                texture->tiles.width,
+                texture->tiles.height,
+                1, texture->image.format, GL_UNSIGNED_BYTE,
+                &texture->image.pixels[(offset_y * texture->image.width + offset_x) * texture->image.channels]
+            );
+        }        
+    }
+#else
+    for (size_t y = 0; y < texture->tiles.tile_per_column; y++)
+    {
+        for (size_t x = 0; x < texture->tiles.tile_per_row; x++)
+        {
+            offset_x = x * texture->tiles.width;
+            offset_y = y * texture->tiles.height;
+
+            glTexSubImage3D(
+                texture->target, 0, 0, 0, 
+                y * texture->tiles.tile_per_row + x,
+                texture->tiles.width,
+                texture->tiles.height,
+                1, texture->image.format, GL_UNSIGNED_BYTE,
+                &texture->image.pixels[(offset_y * texture->image.width + offset_x) * texture->image.channels]
+            );
+        }        
+    }
+#endif
+    
+    glGenerateMipmap(texture->target);
+
+    glBindTexture(texture->target, 0);
+    
+    free(texture->image.pixels);
+    texture->image.pixels = NULL;
+
+    return BVR_TRUE;
 }
 
 void bvr_texture_enable(bvr_texture_t* texture){
@@ -1554,169 +1745,22 @@ void bvr_destroy_texture(bvr_texture_t* texture){
     bvr_destroy_image(&texture->image);
 }
 
-int bvr_create_texture_atlasf(bvr_texture_atlas_t* atlas, FILE* file, 
-        uint32 tile_width, uint32 tile_height, int filter, int wrap){
-
-    BVR_ASSERT(atlas);
-    BVR_ASSERT(file);
-
-    atlas->texture.filter = filter;
-    atlas->texture.wrap = wrap;
-    atlas->texture.target = GL_TEXTURE_2D_ARRAY;
-    atlas->texture.id = 0;
-    atlas->texture.unit = 0;
-
-    atlas->tiles.width = tile_width;
-    atlas->tiles.height = tile_height;
-
-    bvr_create_imagef(&atlas->texture.image, file);
-    if(!atlas->texture.image.pixels){
-        BVR_PRINT("invalid image!");
-        return BVR_FALSE;
-    }
-
-    if(BVR_BUFFER_COUNT(atlas->texture.image.layers) > 1){
-        // TODO: compress images into one layer
-    }
-
-    const int tile_cx = atlas->texture.image.width / tile_width;
-    const int tile_cy = atlas->texture.image.height / tile_height;
-
-    atlas->tiles.count = tile_cx * tile_cy;
-
-    bvri_create_texture_base(&atlas->texture);
-
-    glTexStorage3D(
-        atlas->texture.target, 1, 
-        atlas->texture.image.sformat,
-        atlas->tiles.width, atlas->tiles.height, 
-        atlas->tiles.count
-    );
-
-    for (uint64 y = 0; y < atlas->texture.image.height; y += atlas->tiles.height)
-    {
-        for (uint64 x = 0; x < atlas->texture.image.width; x += atlas->tiles.width)
-        {
-#ifndef BVR_NO_FLIP
-            glTexSubImage3D(
-                GL_TEXTURE_2D_ARRAY, 0, 
-                0, 
-                0,
-                atlas->tiles.count - ((y / atlas->tiles.height) * tile_cx + (tile_cx - x / atlas->tiles.width - 1)) - 1,
-                atlas->tiles.width, 
-                atlas->tiles.height, 
-                1, atlas->texture.image.format, GL_UNSIGNED_BYTE,
-                atlas->texture.image.pixels + (y * atlas->texture.image.width + x) * atlas->texture.image.channels
-            );
-#else
-            glTexSubImage3D(
-                GL_TEXTURE_2D_ARRAY, 0, 
-                0, 
-                0,
-                ((y / atlas->tiles.height) * tile_cx + (x / atlas->tiles.width)),
-                atlas->tiles.width, 
-                atlas->tiles.height, 
-                1, atlas->texture.image.format, GL_UNSIGNED_BYTE,
-                atlas->texture.image.pixels + (y * atlas->texture.image.width + x) * atlas->texture.image.channels
-            );
-#endif
-        }
-        
-    }
-    
-    glGenerateMipmap(atlas->texture.target);
-
-    glBindTexture(atlas->texture.target, 0);
-    
-    free(atlas->texture.image.pixels);
-    atlas->texture.image.pixels = NULL;
-
-    return BVR_TRUE;
-}
-
-int bvr_create_layered_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap){
-    BVR_ASSERT(texture);
-    BVR_ASSERT(file);
-    texture->filter = filter;
-    texture->wrap = wrap;
-    texture->target = GL_TEXTURE_2D_ARRAY;
-
-    texture->id = 0;
-    texture->unit = 0;
-
-    bvr_create_imagef(&texture->image, file);
-    if(!texture->image.pixels){
-        BVR_PRINT("invalid image!");
-        return BVR_FALSE;
-    }
-
-    if(texture->image.layers.size / sizeof(bvr_layer_t) < 1){
-        BVR_PRINT("layered texture will load without layer info. Data might be lost.");
-    }
-
-    if(!texture->image.layers.data){
-        bvri_create_empty_layer(&texture->image);
-    }
-
-    bvri_create_texture_base(texture);
-
-    glTexStorage3D(
-        texture->target, 1, 
-        texture->image.sformat,
-        texture->image.width, texture->image.height, 
-        texture->image.layers.size / sizeof(bvr_layer_t)
-    );
-
-    for (uint64 layer = 0; layer < texture->image.layers.size / sizeof(bvr_layer_t); layer++)
-    {
-
-#ifndef BVR_NO_FLIP
-        glTexSubImage3D(
-            texture->target, 0, 
-            0, 
-            0,
-            layer,
-            texture->image.width, 
-            texture->image.height, 
-            1, texture->image.format, GL_UNSIGNED_BYTE,
-            texture->image.pixels + texture->image.width * texture->image.height * texture->image.channels * layer
-        );
-#else
-        glTexSubImage3D(
-            texture->target, 0, 
-            ((bvr_layer_t*)texture->image.layers.data)[layer].anchor_x, 
-            ((bvr_layer_t*)texture->image.layers.data)[layer].anchor_y,
-            layer,
-            ((bvr_layer_t*)texture->image.layers.data)[layer].width, 
-            ((bvr_layer_t*)texture->image.layers.data)[layer].height, 
-            1, texture->image.format, GL_UNSIGNED_BYTE,
-            texture->image.pixels + texture->image.width * texture->image.height * texture->image.channels * layer
-        );
-#endif
-    }
-
-    glGenerateMipmap(texture->target);
-    
-    glBindTexture(texture->target, 0);
-
-    free(texture->image.pixels);
-    texture->image.pixels = NULL;
-
-    return BVR_TRUE;
-}
-
 int bvr_create_composite(bvr_composite_t* composite, bvr_image_t* target){
     BVR_ASSERT(composite);
-    BVR_ASSERT(target);
-
-    if(target->width <= 0 || target->height <= 0){
-        BVR_PRINT("invalid image!");
-        return BVR_TRUE;
-    }
 
     composite->framebuffer = 0;
     composite->tex = 0;
     composite->image = target;
+
+    // if there is no target
+    if(!target){
+        return BVR_FALSE;
+    }
+
+    if(target->width <= 0 || target->height <= 0){
+        BVR_PRINT("invalid image!");
+        return BVR_FALSE;
+    }
 
     glGenFramebuffers(1, &composite->framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, composite->framebuffer);
@@ -1748,7 +1792,7 @@ int bvr_create_composite(bvr_composite_t* composite, bvr_image_t* target){
     return BVR_TRUE;
 }
 
-void bvr_composite_enable(bvr_composite_t* composite){
+void bvr_composite_enable(bvr_composite_t* composite, bvr_transform_t* const transform){
     BVR_ASSERT(composite && composite->framebuffer);
 
     glBindFramebuffer(GL_FRAMEBUFFER, composite->framebuffer);
@@ -1757,11 +1801,49 @@ void bvr_composite_enable(bvr_composite_t* composite){
     glClear(GL_COLOR_BUFFER_BIT);
 
     glViewport(0, 0, composite->image->width, composite->image->height);
+
+    // try to copy previous framebuffer content onto the current framebuffer
+    if(bvr_get_instance()->pipeline.state.framebuffer && transform){
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, bvr_get_instance()->pipeline.state.framebuffer->buffer);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, composite->framebuffer);
+
+        float hw = composite->image->width * 0.5f;
+        float hh = composite->image->height * 0.5f;
+
+        vec2 src0, src1;
+        vec4 world0, world1;
+
+        world0[0] = -hw;
+        world0[1] = -hh;
+        world0[2] = 0.0f;
+        world0[3] = 0.0f;
+
+        world1[0] = +hw;
+        world1[1] = +hh;
+        world1[2] = 0.0f;
+        world1[3] = 0.0f;
+
+        mat4_mul_vec4(world0, transform->matrix, world0);
+        mat4_mul_vec4(world1, transform->matrix, world1);
+
+        bvr_world_to_screen(&bvr_get_instance()->page->camera, world0, src0);
+        bvr_world_to_screen(&bvr_get_instance()->page->camera, world1, src1);
+
+        glBlitFramebuffer(
+            src0[0], src0[1], src1[0], src1[1], 
+            0.0f, 0.0f, composite->image->width, composite->image->height,
+            GL_COLOR_BUFFER_BIT, GL_NEAREST
+        );
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, composite->framebuffer);
+    }
 }
 
 void bvr_composite_prepare(bvr_composite_t* composite){
     BVR_ASSERT(composite);
-
+    
     glBindTexture(GL_TEXTURE_2D, composite->tex);
     glActiveTexture(GL_TEXTURE0);
 }

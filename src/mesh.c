@@ -1,14 +1,14 @@
-#include <BVR/mesh.h>
-#include <BVR/math.h>
-#include <BVR/buffer.h>
-#include <BVR/file.h>
-#include <BVR/physics.h>
+#include <bvr/mesh.h>
+#include <bvr/math.h>
+#include <bvr/buffer.h>
+#include <bvr/file.h>
+#include <bvr/physics.h>
 
 #include <malloc.h>
 #include <string.h>
 #include <memory.h>
 
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 
 #ifndef BVR_NO_OBJ
     #include <ctype.h>
@@ -255,7 +255,7 @@ static int bvri_load_obj(bvr_mesh_t* mesh, FILE* file){
         BVR_ASSERT(object.faces[face].edges == 3 || object.faces[face].edges == 4);
 
         if(object.faces[face].edges == 4){
-            BVR_ASSERT(0 || "4 edges faces are not supported");
+            BVR_ASSERT(0 && "4 edges faces are not supported");
         }
         else {
             BVR_ASSERT(element + 3 <= object.elements.count);
@@ -403,11 +403,14 @@ struct bvri_gltfobject {
     json_object* json_accessors;
     json_object* json_bufferviews;
     json_object* json_buffers;
+
+    float scale;
 };
 
 static int bvri_gltfsizeof(const json_object* component, const json_object* type, int* scalar);
-static int bvri_gltfpushbackattribute(struct bvri_gltfobject* object, json_object* target, uint32_t offset, const uint32 stride);
-static void bvri_gltfhandletransform(const json_object* node, bvr_vertex_group_t* group);
+static int bvri_gltfpushbackattribute(struct bvri_gltfobject* object, json_object* target, uint32_t offset, const uint32 stride, const uint32 tbuffer);
+static void bvri_gltfhandletransform(struct bvri_gltfobject* object, const json_object* node, bvr_vertex_group_t* group);
+static void bvri_gltfhandlescale(struct bvri_gltfobject* object, json_object* target);
 
 static int bvri_is_gltf(FILE* file){
     fseek(file, 0, SEEK_SET);
@@ -437,6 +440,8 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
     object.elements.count = 0;
     object.elements.data = NULL;
     object.elements.type = BVR_FLOAT;
+
+    object.scale = 1.0f;
 
     // json section;
     json_section.length = bvr_freadu32_le(file);
@@ -535,7 +540,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
                 object.vertices.type = json_object_get_int(json_object_object_get(json_accessor, "componentType"));
             }
             else {
-                BVR_ASSERT(0 || "invalid gdb primitive (missing position attribute)!");
+                BVR_ASSERT(0 && "invalid gdb primitive (missing position attribute)!");
             }
 
             // if there is a position attribute
@@ -553,7 +558,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
                 object.vertices.count += (component_size / component_number) * accessor_count;
             }
             else {
-                BVR_ASSERT(0 || "invalid gdb primitive (missing normal attribute)!");
+                BVR_ASSERT(0 && "invalid gdb primitive (missing normal attribute)!");
             }
             
             // if there is a position attribute
@@ -571,7 +576,7 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
                 object.vertices.count += (component_size / component_number) * accessor_count;
             }
             else {
-                BVR_ASSERT(0 || "invalid gdb primitive (missing texcoords attribute)!");
+                BVR_ASSERT(0 && "invalid gdb primitive (missing texcoords attribute)!");
             }
 
             json_accessor = json_object_array_get_idx(
@@ -618,6 +623,8 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
     {
         bvr_vertex_group_t* group = bvr_pool_alloc(&mesh->vertex_groups);
 
+        object.scale = 1.0f;
+
         json_node = json_object_array_get_idx(object.json_nodes, i);
         json_mesh = json_object_array_get_idx(object.json_meshes, json_object_get_int(json_object_object_get(json_node, "mesh")));
         json_pritimive = json_object_object_get(json_mesh, "primitives");
@@ -627,8 +634,6 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
         group->element_offset = object.elements.count;
 
         bvr_create_string(&group->name, json_object_get_string(json_object_object_get(json_node, "name")));
-
-        bvri_gltfhandletransform(json_node, group);
 
         for (size_t p = 0; p < json_object_array_length(json_pritimive); p++)
         {
@@ -644,17 +649,18 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
         
             // VERTEX
             if(!json_object_is_type(json_position, json_type_null)){
-                bvri_gltfpushbackattribute(&object, json_position, 0, 8);
+                bvri_gltfpushbackattribute(&object, json_position, 0, 8, GL_ARRAY_BUFFER);
+                bvri_gltfhandlescale(&object, json_position);
             }
             
             // TEXTURE COORDS
             if(!json_object_is_type(json_texcoords, json_type_null)){
-                bvri_gltfpushbackattribute(&object, json_texcoords, 3, 8);         
+                bvri_gltfpushbackattribute(&object, json_texcoords, 3, 8, GL_ARRAY_BUFFER);         
             }
 
             // NORMALS
             if(!json_object_is_type(json_normal, json_type_null)){
-                bvri_gltfpushbackattribute(&object, json_normal, 5, 8);
+                bvri_gltfpushbackattribute(&object, json_normal, 5, 8, GL_ARRAY_BUFFER);
             }
         
             json_object* json_elements = json_object_object_get(
@@ -662,9 +668,11 @@ static int bvri_load_gltf(bvr_mesh_t* mesh, FILE* file){
                 "indices"
             );
             
-            group->element_count += bvri_gltfpushbackattribute(&object, json_elements, 0, 1);
+            group->element_count += bvri_gltfpushbackattribute(&object, json_elements, 0, 1, GL_ELEMENT_ARRAY_BUFFER);
         }
         
+        bvri_gltfhandletransform(&object, json_node, group);
+
         group->element_offset = object.elements.count;
         object.elements.count += group->element_count;
     }
@@ -714,7 +722,7 @@ static int bvri_gltfsizeof(const json_object* component, const json_object* type
     return size * scalar;
 }
 
-static int bvri_gltfpushbackattribute(struct bvri_gltfobject* object, json_object* target, uint32_t offset, const uint32 stride){
+static int bvri_gltfpushbackattribute(struct bvri_gltfobject* object, json_object* target, uint32_t offset, const uint32 stride, const uint32 tbuffer){
     // query data
     json_object* json_accessor = json_object_array_get_idx(object->json_accessors, json_object_get_int(target));
     json_object* json_bufferview = json_object_array_get_idx(object->json_bufferviews, json_object_get_int(json_object_object_get(json_accessor, "bufferView")));
@@ -730,17 +738,21 @@ static int bvri_gltfpushbackattribute(struct bvri_gltfobject* object, json_objec
     );
 
     // get generic variables
-    const int buffer_id = json_object_get_int(json_object_object_get(json_bufferview, "buffer"));
-    const int byte_length = json_object_get_int(json_object_object_get(json_bufferview, "byteLength"));
-    const int byte_offset = json_object_get_int(json_object_object_get(json_bufferview, "byteOffset"));
-    const int target_buffer = json_object_get_int(json_object_object_get(json_bufferview, "target"));
+    int buffer_id = json_object_get_int(json_object_object_get(json_bufferview, "buffer"));
+    int byte_length = json_object_get_int(json_object_object_get(json_bufferview, "byteLength"));
+    int byte_offset = json_object_get_int(json_object_object_get(json_bufferview, "byteOffset"));
+    int target_buffer = json_object_get_int(json_object_object_get(json_bufferview, "target"));
 
     //TODO: support multiple buffers
     BVR_ASSERT(buffer_id == 0);
     
     // check for errors
     BVR_ASSERT(object->binary->length >= byte_offset + byte_length);
-    BVR_ASSERT(target_buffer == GL_ARRAY_BUFFER || target_buffer == GL_ELEMENT_ARRAY_BUFFER);
+
+    // check for invalid buffer
+    if(target_buffer != GL_ARRAY_BUFFER && target_buffer != GL_ELEMENT_ARRAY_BUFFER){
+        target_buffer = tbuffer;
+    }
 
     // if there is no stride, we just copy all data to the buffer
     if(stride == 1){
@@ -776,7 +788,7 @@ static int bvri_gltfpushbackattribute(struct bvri_gltfobject* object, json_objec
     return element_count;
 }
 
-static void bvri_gltfhandletransform(const json_object* node, bvr_vertex_group_t* group){
+static void bvri_gltfhandletransform(struct bvri_gltfobject* object, const json_object* node, bvr_vertex_group_t* group){
     BVR_ASSERT(node);
     BVR_ASSERT(group);
 
@@ -787,8 +799,27 @@ static void bvri_gltfhandletransform(const json_object* node, bvr_vertex_group_t
     json_object* rotation = json_object_object_get(node, "rotation");
     json_object* scale = json_object_object_get(node, "scale");
 
+    // if the node contains translation informations
+    if(json_object_is_type(translation, json_type_array)){
+        group->matrix[3][0] = json_object_get_double(json_object_array_get_idx(translation, 0));
+        group->matrix[3][1] = json_object_get_double(json_object_array_get_idx(translation, 1));
+        group->matrix[3][2] = json_object_get_double(json_object_array_get_idx(translation, 2));
+    }
+
+    // if the node contains scaling informations
+    if(json_object_is_type(scale, json_type_array)){
+        group->matrix[0][0] = json_object_get_double(json_object_array_get_idx(scale, 0));
+        group->matrix[1][1] = json_object_get_double(json_object_array_get_idx(scale, 1));
+        group->matrix[2][2] = json_object_get_double(json_object_array_get_idx(scale, 2));
+    }
+
+    group->matrix[0][0] *= object->scale;
+    group->matrix[1][1] *= object->scale;
+    group->matrix[2][2] *= object->scale;
+
     // if the node contains rotation informations 
     if(json_object_is_type(rotation, json_type_array)){
+        mat4x4 rotation_matrix;
         quat quat_rotation;
         vec3 euler;
         
@@ -798,23 +829,40 @@ static void bvri_gltfhandletransform(const json_object* node, bvr_vertex_group_t
         quat_rotation[3] = json_object_get_double(json_object_array_get_idx(rotation, 3));
         euler_quat(euler, quat_rotation);
 
-        mat4_rotate(group->matrix, euler);
+        mat4_rotate(rotation_matrix, euler);
+        mat4_mul(group->matrix, group->matrix, rotation_matrix);
+    }
+}
+
+static void bvri_gltfhandlescale(struct bvri_gltfobject* object, json_object* target){
+    json_object* json_accessor = json_object_array_get_idx(object->json_accessors, json_object_get_int(target));
+    BVR_ASSERT(json_accessor);
+
+    json_object* json_min = json_object_object_get(json_accessor, "min");
+    json_object* json_max = json_object_object_get(json_accessor, "max");
+
+    vec3 min, max, norm;
+    BVR_IDENTITY_VEC3(min);
+    BVR_IDENTITY_VEC3(max);
+
+    // try to get min values
+    if(json_object_get_type(json_min) != json_type_null){
+        min[0] = json_object_get_double(json_object_array_get_idx(json_min, 0));
+        min[1] = json_object_get_double(json_object_array_get_idx(json_min, 1));
+        min[2] = json_object_get_double(json_object_array_get_idx(json_min, 2));
     }
 
-    // if the node contains translation informations
-    if(json_object_is_type(translation, json_type_array)){
-        group->matrix[3][0] = json_object_get_double(json_object_array_get_idx(translation, 0));
-        group->matrix[3][1] = json_object_get_double(json_object_array_get_idx(translation, 1));
-        group->matrix[3][2] = json_object_get_double(json_object_array_get_idx(translation, 2));
-        BVR_PRINT_VEC3("", group->matrix[3]);
+    // try to get max values
+    if(json_object_get_type(json_max) != json_type_null){
+        max[0] = json_object_get_double(json_object_array_get_idx(json_max, 0));
+        max[1] = json_object_get_double(json_object_array_get_idx(json_max, 1));
+        max[2] = json_object_get_double(json_object_array_get_idx(json_max, 2));
     }
 
-    // if the node contains scaling informations
-    if(json_object_is_type(scale, json_type_array)){
-        group->matrix[0][0] = json_object_get_double(json_object_array_get_idx(scale, 0));
-        group->matrix[1][1] = json_object_get_double(json_object_array_get_idx(scale, 1));
-        group->matrix[2][2] = json_object_get_double(json_object_array_get_idx(scale, 2));
-    }
+    vec3_sub(norm, max, min);
+    float scale = ((1.0f / vec3_len(norm)) * 500.0f);
+
+    object->scale = MAX(scale, 1.0f);
 }
 
 #endif
@@ -871,7 +919,7 @@ static int bvri_is_fbx(FILE* file){
             (endian == 0x0 || endian == 0x1);
 }
 
-static void bvri_copyfbxproperty(FILE* file, char** destination, size_t* length, uint32* dtype){
+static void bvri_copyfbxproperty(FILE* file, char** destination, uint64* length, uint32* dtype){
     if(destination == NULL || length == NULL){
         return;
     }
@@ -920,13 +968,13 @@ static void bvri_copyfbxproperty(FILE* file, char** destination, size_t* length,
         case 'F':
             *length = 4;
             //*destination = (char*)bvr_freadf(file);
-            BVR_ASSERT(0 || "float not supported");
+            BVR_ASSERT(0 && "float not supported");
             break;
         
         case 'D':
             *length = 8;
             //((float*)*destination) = bvr_freadf(file);
-            BVR_ASSERT(0 || "double not supported");
+            BVR_ASSERT(0 && "double not supported");
             break;
 
         case 'L':
@@ -1094,7 +1142,7 @@ static int bvri_load_fbx(bvr_mesh_t* mesh, FILE* file){
     BVR_ASSERT(endian == 0x0 || "big endian fbx not supported");
     
     object.readed_bytes = ftell(file);
-    object.total_bytes = bvr_get_file_size(file);
+    object.total_bytes = bvr_fsize(file);
 
     bool eof = 0;
     while (object.readed_bytes < object.total_bytes - BVR_FBX_FOOTER_LENGTH || eof)
@@ -1134,10 +1182,10 @@ int bvr_create_meshf(bvr_mesh_t* mesh, FILE* file, bvr_mesh_array_attrib_t attri
     mesh->attrib = attrib;
     
     mesh->vertex_groups.data = NULL;
-    mesh->vertex_groups.next = NULL;
+    mesh->vertex_groups.avail = NULL;
+    mesh->vertex_groups.next_block = NULL;
     mesh->vertex_groups.count = 0;
     mesh->vertex_groups.elemsize = sizeof(bvr_vertex_group_t);
-    mesh->vertex_groups.capacity = 0;
 
 #ifndef BVR_NO_GLTF
     if(bvri_is_gltf(file)){
@@ -1486,10 +1534,10 @@ void bvr_triangulate(bvr_mesh_buffer_t* src, bvr_mesh_buffer_t* dest, const uint
 void bvr_destroy_mesh(bvr_mesh_t* mesh){
     BVR_ASSERT(mesh);
 
-    bvr_vertex_group_t group;
+    bvr_vertex_group_t* group;
     BVR_POOL_FOR_EACH(group, mesh->vertex_groups){
         //TODO: find why this fucking vertex group mess up string's pointer
-        //bvr_destroy_string(&group.name);
+        bvr_destroy_string(&group->name);
     }
 
     //free(mesh->vertex_groups.data);

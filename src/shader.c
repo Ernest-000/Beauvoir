@@ -1,13 +1,13 @@
-#include <BVR/shader.h>
-#include <BVR/math.h>
-#include <BVR/file.h>
-#include <BVR/image.h>
+#include <bvr/shader.h>
+#include <bvr/math.h>
+#include <bvr/file.h>
+#include <bvr/image.h>
 
 #include <string.h>
 #include <memory.h>
 #include <malloc.h>
 
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 
 #define BVR_MAX_GLSL_HEADER_SIZE 100
 
@@ -181,16 +181,19 @@ static int bvri_register_shader_stage(bvr_shader_t* program, bvr_shader_stage_t*
         }
         else {
             BVR_PRINTF("failed to compile shader '%s'!", name);
+            return BVR_FALSE;
         }
     }
 
     bvr_destroy_string(&shader_str);
+    return BVR_TRUE;
 }
 
 int bvr_create_shaderf(bvr_shader_t* shader, FILE* file, const int flags){
     BVR_ASSERT(shader);
     BVR_ASSERT(file);
 
+    int success = BVR_TRUE;
     int version_offset = 0;
     char version_header_content[BVR_MAX_GLSL_HEADER_SIZE];
     bvr_string_t file_content;
@@ -234,22 +237,22 @@ int bvr_create_shaderf(bvr_shader_t* shader, FILE* file, const int flags){
         Framebuffers shader must jump over vertex and fragment sections
     */
     if(BVR_HAS_FLAG(flags, BVR_FRAMEBUFFER_SHADER)){
-        bvri_register_shader_stage(shader,
+        success &= bvri_register_shader_stage(shader,
             &shader->shaders[shader->shader_count++], &file_content,
             version_header_content, "_VERTEX_", GL_VERTEX_SHADER
         );
         
-        bvri_register_shader_stage(shader,
+        success &= bvri_register_shader_stage(shader,
             &shader->shaders[shader->shader_count++], &file_content,
             version_header_content, "_FRAGMENT_", GL_FRAGMENT_SHADER
         );
 
-        goto shader_cstor_bidings;
+        goto shader_ctr_bindings;
     }
 
     // check if it contains a vertex shader and create vertex shader stage.
     if (BVR_HAS_FLAG(flags, BVR_VERTEX_SHADER)) {
-        bvri_register_shader_stage(shader,
+        success &= bvri_register_shader_stage(shader,
             &shader->shaders[shader->shader_count++], &file_content,
             version_header_content, "_VERTEX_", GL_VERTEX_SHADER
         );
@@ -260,7 +263,7 @@ int bvr_create_shaderf(bvr_shader_t* shader, FILE* file, const int flags){
 
     // check if it contains a fragment shader and create fragment shader stage.
     if (BVR_HAS_FLAG(flags, BVR_FRAGMENT_SHADER)) {
-        bvri_register_shader_stage(shader,
+        success &= bvri_register_shader_stage(shader,
             &shader->shaders[shader->shader_count++], &file_content,
             version_header_content, "_FRAGMENT_", GL_FRAGMENT_SHADER
         );
@@ -269,10 +272,11 @@ int bvr_create_shaderf(bvr_shader_t* shader, FILE* file, const int flags){
         BVR_PRINT("missing fragment shader!");
     }
 
-shader_cstor_bidings:
+shader_ctr_bindings:
     // try to compile shader
     if (!bvri_link_shader(shader->program)) {
-        BVR_PRINT("failed to compile shader!");
+        BVR_PRINT("failed to link the shader!");
+        success = GL_FALSE;
     }
 
     if(BVR_HAS_FLAG(flags, BVR_FRAMEBUFFER_SHADER)){
@@ -323,13 +327,15 @@ shader_cstor_bidings:
         BVR_PRINT("cannot find transform uniform!");
     }
 
-#ifndef BVR_SHADER_NO_EXT
-
-#endif
-
     bvr_destroy_string(&file_content);
 
-    return BVR_TRUE;
+    // if initialization failed, we destroy the shader
+    if(success == BVR_FALSE){
+        BVR_PRINTF("failed to create shader '%i'", shader->program);
+        bvr_destroy_shader(shader);
+    }
+
+    return success;
 }
 
 int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int flags){
@@ -407,7 +413,7 @@ int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int 
     }
     else {
         shader->blocks[0].location = 0;
-        shader->block_count--;
+        shader->block_count = 0;
     }
 
     return BVR_TRUE;
@@ -475,6 +481,7 @@ void bvr_destroy_uniform_buffer(uint32* buffer){
 bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type, enum bvr_uniform_tag_e tag, int count, const char* name){
     BVR_ASSERT(shader);
     BVR_ASSERT(name);
+    BVR_ASSERT(BVR_IS_AVAIL_TYPE(type));
 
     // when you cannot add another uniform
     if (shader->uniform_count + 1 >= BVR_MAX_UNIFORM_COUNT) {
@@ -517,10 +524,7 @@ bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type
     BVR_ASSERT(name);
 
     // TODO: find another test?
-    if(!BVR_IS_TEXTURE(type)){
-        BVR_PRINT("wrong texture type!");
-        return NULL;
-    }
+    BVR_ASSERT(BVR_IS_AVAIL_TYPE(type));
 
     // create a new uniform
     bvr_shader_uniform_t* uniform = bvr_shader_register_uniform(shader, type, BVR_UNIFORM_TEXTURE, 1, name);
@@ -537,6 +541,7 @@ bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type
 bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* name, int type, int count, int index){
     BVR_ASSERT(shader);
     BVR_ASSERT(count > 0);
+    BVR_ASSERT(BVR_IS_AVAIL_TYPE(type));
 
     if(shader->block_count + 1 >= BVR_MAX_SHADER_BLOCK_COUNT){
         BVR_PRINTF("block maximum capacity reached for shader '%i'!", shader->program);
@@ -561,7 +566,7 @@ bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* 
     }
 }
 
-int bvr_shader_set_uniformi(bvr_shader_uniform_t* uniform, void* data){
+int bvr_shader_set_uniform_raw(bvr_shader_uniform_t* uniform, void* data){
     if(!uniform) {
         return BVR_FALSE;
     }
@@ -581,7 +586,7 @@ int bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data){
     BVR_ASSERT(shader);
     BVR_ASSERT(name);
 
-    return bvr_shader_set_uniformi(bvr_find_uniform(shader, name), data);
+    return bvr_shader_set_uniform_raw(bvr_find_uniform(shader, name), data);
 }
 
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
@@ -591,7 +596,6 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
 
     // if uniform is not initialize
     if(uniform->location == -1){
-        BVR_PRINTF("cannot find uniform %s", uniform->name.string);
         return;
     }
 
@@ -605,31 +609,32 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
         switch (uniform->type)
         {
         case BVR_FLOAT: 
-            glUniform1fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (float*)data); 
+            glUniform1fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data); 
             break;
 
         case BVR_INT32: 
-            glUniform1iv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (int*)data); 
+            glUniform1iv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (int*)data); 
             break;
         
         case BVR_VEC2:
-            glUniform2fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (float*)data);
+            glUniform2fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data);
             break;
 
         case BVR_VEC3:
-            glUniform3fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (float*)data);
+            glUniform3fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data);
             break;
 
         case BVR_VEC4:
-            glUniform4fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (float*)data);
+            glUniform4fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data);
             break;
 
         case BVR_MAT4: 
-            glUniformMatrix4fv(uniform->location, uniform->memory.size / uniform->memory.elemsize, GL_FALSE, (float*)data); 
+            glUniformMatrix4fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), GL_FALSE, (float*)data); 
             break;
         
         case BVR_TEXTURE_2D:
         case BVR_TEXTURE_2D_LAYER:
+        case BVR_TEXTURE_2D_ARRAY:            
             {
                 bvr_texture_t* texture = (bvr_texture_t*)data;
 
@@ -637,18 +642,9 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
                 glUniform1i(uniform->location, (int)texture->unit);
             }
             break;
-        
-        case BVR_TEXTURE_2D_ARRAY:            
-            {
-                bvr_texture_atlas_t* texture = (bvr_texture_atlas_t*)data;
-
-                bvr_texture_enable(&texture->texture);
-                glUniform1i(uniform->location, (int)texture->texture.unit);
-            }
-            break;
 
         case BVR_TEXTURE_2D_LAYER_STRUCT:
-            glUniform1iv(uniform->location, uniform->memory.size / uniform->memory.elemsize, (int*)data);
+            glUniform1iv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (int*)data);
             break;
 
         case BVR_TEXTURE_2D_COMPOSITE:
@@ -667,8 +663,8 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
 
 void bvr_shader_enable(bvr_shader_t* shader){
     glUseProgram(shader->program);
-    
-    // start at one it order to omit transform uniform
+
+    // iterate through each uniforms
     for (uint64 uniform = 0; uniform < shader->uniform_count; uniform++)
     {
         bvr_shader_use_uniform(&shader->uniforms[uniform], NULL);
@@ -694,4 +690,12 @@ void bvr_destroy_shader(bvr_shader_t* shader){
     }
 
     glDeleteProgram(shader->program);
+
+    // will trigger 'invalid shader' when 
+    // an un-initialized shader will be used to 
+    // draw something on the screen
+    shader->program = 0;
+    shader->uniform_count = 0;
+    shader->block_count = 0;
+    shader->shader_count = 0;
 }

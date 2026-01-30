@@ -1,4 +1,4 @@
-#include <BVR/lights.h>
+#include <bvr/lights.h>
 
-#include <BVR/scene.h>
-#include <BVR/common.h>
+#include <bvr/scene.h>
+#include <bvr/common.h>

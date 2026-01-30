@@ -1,28 +1,50 @@
 cmake_minimum_required(VERSION 3.16.3)
 
-project(gestalt)
+project(gestalt LANGUAGES C)
 
 set(BVR_TARGET_SHARED ON)
+set(BVR_DEBUG OFF)
 
-set(BVR_CURRENT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../..)
-set(BVR_DEMO_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../..)
-set(BVR_DEMO_DIRECTORY_BIN ${CMAKE_CURRENT_SOURCE_DIR}/bin)
-set(BVR_DEMO_DIRECTORY_BUILD ${CMAKE_CURRENT_SOURCE_DIR}/build)
-set(BVR_DEMO_DIRECTORY_INCLUDE ${BVR_CURRENT_DIR}/include)
+##
+# Set Beauvoir's path
+##
+set(CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/../../build/" ${CMAKE_PREFIX_PATH})
+set(BVR_PATH "${CMAKE_SOURCE_DIR}/../..")
 
-set(BVR_MAIN_FILE "gestalt.c")
+##
+# Use Beauvoir without building it
+##
+# find_package(beauvoir REQUIRED)
 
-add_subdirectory(${BVR_DEMO_DIRECTORY} ${BVR_DEMO_DIRECTORY_BIN} EXCLUDE_FROM_ALL)
+##
+# Use Beauvoir and recompile it each time
+##
+add_subdirectory("${CMAKE_SOURCE_DIR}/../../" "${CMAKE_SOURCE_DIR}/../../build/")
 
-include_directories(${BVR_DEMO_DIRECTORY_INCLUDE})
-message("${BVR_DEMO_DIRECTORY_INCLUDE}")
-add_executable(gestalt ${BVR_MAIN_FILE})
+##
+# Set Sources
+##
+set(SOURCES "main.c")
 
-target_link_libraries(gestalt Beauvoir)
-target_include_directories(gestalt PRIVATE ${BVR_DEMO_DIRECTORY_INCLUDE})
+add_executable(gestalt ${SOURCES})
 
+target_link_libraries(gestalt PRIVATE beauvoir)
+target_include_directories(gestalt PRIVATE "${BVR_PATH}/include/")
+
+##
+# Define your project DLL path
+##
 set_target_properties(gestalt PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${BVR_DEMO_DIRECTORY_BIN}"
-    ARCHIVE_OUTPUT_DIRECTORY "${BVR_DEMO_DIRECTORY_BUILD}"
-    LIBRARY_OUTPUT_DIRECTORY "${BVR_DEMO_DIRECTORY_BUILD}"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin"
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+)
+
+##
+# Define beauvoir DLL path
+##
+set_target_properties(beauvoir PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin"
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
 )

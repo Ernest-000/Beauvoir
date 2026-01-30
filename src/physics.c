@@ -1,6 +1,6 @@
-#include <BVR/physics.h>
+#include <bvr/physics.h>
 
-#include <BVR/common.h>
+#include <bvr/common.h>
 
 #include <memory.h>
 #include <malloc.h>

@@ -92,6 +92,11 @@ BVR_H_FUNC float clamp(float d, float min, float max) {
   return t > max ? max : t;
 }
 
+BVR_H_FUNC int clampi(int d, int min, int max) {
+  const int t = d < min ? min : d;
+  return t > max ? max : t;
+}
+
 BVR_H_FUNC void vec2_add(vec2 result, vec2 const a, vec2 const b){
     result[0] = a[0] + b[0];
     result[1] = a[1] + b[1];

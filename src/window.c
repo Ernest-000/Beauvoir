@@ -165,7 +165,6 @@ void bvr_window_poll_events(){
     SDL_Event event;
 
     memset(window->inputs.keys, 0, BVR_KEYBOARD_SIZE * sizeof(char));
-    memset(window->inputs.buttons, 0, BVR_MOUSE_SIZE * sizeof(char));
 
     SDL_StartTextInput(window->handle);
 

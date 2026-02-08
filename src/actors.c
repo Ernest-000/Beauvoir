@@ -156,53 +156,53 @@ static void bvri_create_dynamic_actor(bvr_dynamic_actor_t* actor, int flags){
     }
 }
 
-static void bvri_create_bitmap_layer(bvr_texture_actor_t* layer, int flags){
-    BVR_ASSERT(layer);
+static void bvri_create_bitmap_layer(bvr_texture_actor_t* actor, int flags){
+    BVR_ASSERT(actor);
 
-    bvri_create_generic_dynactor((bvr_dynamic_actor_t*)layer, flags);
+    bvri_create_generic_dynactor((bvr_dynamic_actor_t*)actor, flags);
 
     /*
         Here, we're trying to bind collision boxes by using a bit map
     */
     if(BVR_HAS_FLAG(flags, BVR_BITMAP_CREATE_COLLIDER)){
-        BVR_ASSERT(layer->texture.image.pixels);
+        BVR_ASSERT(actor->texture.image.pixels);
 
         struct bvr_bounds_s rects[BVR_BUFFER_SIZE / 2];
-        uint8* pixels = malloc(layer->texture.image.width * layer->texture.image.height);
-        memcpy(pixels, layer->texture.image.pixels, layer->texture.image.width * layer->texture.image.height);
+        uint8* pixels = malloc(actor->texture.image.width * actor->texture.image.height);
+        memcpy(pixels, actor->texture.image.pixels, actor->texture.image.width * actor->texture.image.height);
 
         int x, y;
         int rect_width, rect_height, rc;
         int rect_count = 0;
 
-        for (uint64 i = 0; i < layer->texture.image.width * layer->texture.image.height; i++)
+        for (uint64 i = 0; i < actor->texture.image.width * actor->texture.image.height; i++)
         {
             // skip null pixels
             if(pixels[i] == 0){
                 continue;
             }
 
-            y = i / layer->texture.image.width;
-            x = i % layer->texture.image.width;
+            y = i / actor->texture.image.width;
+            x = i % actor->texture.image.width;
             rc = 1;
             rect_width = 0;
             rect_height = 0;
 
             // scan horizontal line until there is a non-null pixel 
-            while (x + rect_width < layer->texture.image.width && 
-                pixels[y * layer->texture.image.width + x + rect_width] > 0)
+            while (x + rect_width < actor->texture.image.width && 
+                pixels[y * actor->texture.image.width + x + rect_width] > 0)
             {
                 rect_width++;
             }
             
             // then, scan vertical line from the end of the rectangle until it reaches a non-null pixel
-            while (y + rect_height < layer->texture.image.height && rc)
+            while (y + rect_height < actor->texture.image.height && rc)
             {
                 // for each vertical line check if the width is still correct 
                 for (uint64 dx = 0; dx < rect_width; dx++)
                 {
                     // if not, it's the end of the rectangle
-                    if(pixels[(y + rect_height) * layer->texture.image.width + x + dx] == 0){
+                    if(pixels[(y + rect_height) * actor->texture.image.width + x + dx] == 0){
                         rc = 0;
                         break;
                     }
@@ -216,7 +216,7 @@ static void bvri_create_bitmap_layer(bvr_texture_actor_t* layer, int flags){
             {
                 for (uint64 dx = 0; dx < rect_width; dx++)
                 {
-                    pixels[(y + dy) * layer->texture.image.width + x + dx] = 0;
+                    pixels[(y + dy) * actor->texture.image.width + x + dx] = 0;
                 }
                 
             }
@@ -236,12 +236,12 @@ static void bvri_create_bitmap_layer(bvr_texture_actor_t* layer, int flags){
             }
         }
 
-        layer->collider.geometry.elemsize = sizeof(struct bvr_bounds_s);
-        layer->collider.geometry.size = rect_count * sizeof(struct bvr_bounds_s);
-        layer->collider.geometry.data = malloc(layer->collider.geometry.size);
-        BVR_ASSERT(layer->collider.geometry.data);
+        actor->collider.geometry.elemsize = sizeof(struct bvr_bounds_s);
+        actor->collider.geometry.size = rect_count * sizeof(struct bvr_bounds_s);
+        actor->collider.geometry.data = malloc(actor->collider.geometry.size);
+        BVR_ASSERT(actor->collider.geometry.data);
         
-        memcpy(layer->collider.geometry.data, &rects, layer->collider.geometry.size);
+        memcpy(actor->collider.geometry.data, &rects, actor->collider.geometry.size);
 
         free(pixels);
     }
@@ -297,6 +297,8 @@ static void bvri_create_landscape(bvr_landscape_actor_t* landscape, int flags){
 
         BVR_IDENTITY_MAT4(group->matrix);
     }
+
+    free(vertices);
 }
 
 void bvr_create_actor(struct bvr_actor_s* actor, const char* name, int flags, bvr_actor_event_t event){
@@ -474,7 +476,7 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
         cmd.vertex_group = *(bvr_vertex_group_t*)actor->mesh.vertex_groups.blocks[0].data;
         cmd.vertex_group.texture = actor->texture.id;
 
-        bvr_pipeline_draw_cmd(&cmd);
+        bvr_pipeline_do_draw_cmd(&cmd);
     }
 
     // disable composite and target the renderbuffer

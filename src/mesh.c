@@ -1256,7 +1256,7 @@ int bvr_create_meshv(bvr_mesh_t* mesh, bvr_mesh_buffer_t* vertices, bvr_mesh_buf
 
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertices->count * bvr_sizeof(vertices->type), vertices->data);
 
-    if(elements->count){
+    if(elements->type){
         glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, elements->count * bvr_sizeof(elements->type), elements->data);
     }
     
@@ -1276,8 +1276,8 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
     BVR_ASSERT(vertices_size);
 
     // gather type size
-    const int vertex_t = bvr_sizeof(vertex_type);
-    const int element_t = bvr_sizeof(element_type);
+    int vertex_t = bvr_sizeof(vertex_type);
+    int element_t = 1;
 
     // create vertex array 
     glGenVertexArrays(1, &mesh->array_buffer);
@@ -1285,13 +1285,15 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
 
     // create vertex and element buffers
     glGenBuffers(1, &mesh->vertex_buffer);
-    glGenBuffers(1, &mesh->element_buffer);
 
     // allocate the whole buffers
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, vertices_size, NULL, GL_STATIC_DRAW);
 
-    if(element_size){
+    if(element_type){
+        element_t = bvr_sizeof(element_type);
+
+        glGenBuffers(1, &mesh->element_buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->element_buffer);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, element_size, NULL, GL_STATIC_DRAW);
     }
@@ -1301,7 +1303,6 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
     mesh->vertex_count = vertices_size / vertex_t;
     mesh->element_count = element_size / element_t;
     mesh->element_type = element_type;
-
 
     // define each attributes pointers depending on attribute's type
     switch (attrib)

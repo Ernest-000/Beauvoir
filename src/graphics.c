@@ -25,7 +25,7 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
     }
 }
 
-void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd){
+void bvr_pipeline_do_draw_cmd(struct bvr_draw_command_s* cmd){
     // try to apply local uniform
     bvr_shader_set_uniform_raw(
         bvr_find_uniform_tag(cmd->shader, BVR_UNIFORM_LOCAL_TRANSFORM), 

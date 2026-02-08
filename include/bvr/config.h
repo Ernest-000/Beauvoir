@@ -28,6 +28,8 @@ typedef long int64;
 typedef unsigned long uint64;
 #endif
 
+typedef float float32;
+
 #define BVR_INT8_MIN   (-0x80)
 #define BVR_INT8_MAX   (0x7F)
 #define BVR_UINT8_MIN  (0x00)

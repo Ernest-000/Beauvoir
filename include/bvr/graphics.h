@@ -132,7 +132,7 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state);
  * @param bvr_draw_command_s
  * @return (void)
  */
-void bvr_pipeline_draw_cmd(struct bvr_draw_command_s* cmd);
+void bvr_pipeline_do_draw_cmd(struct bvr_draw_command_s* cmd);
 
 /**
  * @brief Add a draw command to the draw queue. The command will be sorted and drawn when the 

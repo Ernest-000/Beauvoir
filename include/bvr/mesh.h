@@ -7,6 +7,7 @@
 
 #include <bvr/math.h>
 
+
 #define BVR_VERTEX_GROUP_FLAG_INVISIBLE 0x01
 
 typedef enum bvr_drawmode_e {
@@ -121,6 +122,8 @@ void bvr_destroy_mesh(bvr_mesh_t* mesh);
 
 #ifndef BVR_NO_GEOMETRY
 
+#include <malloc.h>
+
 BVR_H_FUNC void bvr_create_2d_square_mesh(bvr_mesh_t* mesh, float width, float height){
     float vertices[16] = {
         -width,  height, 0, 1,
@@ -166,6 +169,40 @@ BVR_H_FUNC void bvr_create_3d_square_mesh(bvr_mesh_t* mesh, float width, float h
     element_buffer.count = 6;
 
     bvr_create_meshv(mesh, &vertices_buffer, &element_buffer, BVR_MESH_ATTRIB_V3UV2);
+}
+
+BVR_H_FUNC void bvr_create_3d_line(bvr_mesh_t* mesh, uint32 seg_count, vec3 dir, float length){
+    BVR_ASSERT(mesh);
+    BVR_ASSERT(seg_count >= 2);
+    
+    uint32 vertex_count = (seg_count) * 3;
+    float step = length / (seg_count - 1);
+    
+    vec3_norm(dir, dir);
+
+    float* vertices = malloc(vertex_count * sizeof(float));
+    BVR_ASSERT(vertices);
+
+    for (size_t i = 0; i < seg_count; i += 3)
+    {
+        vertices[i + 0] = dir[0] * step * i;
+        vertices[i + 1] = dir[1] * step * i;
+        vertices[i + 2] = dir[2] * step * i;
+    }
+    
+    bvr_mesh_buffer_t vertices_buffer;
+    vertices_buffer.data = (char*)vertices;
+    vertices_buffer.type = BVR_FLOAT;
+    vertices_buffer.count = vertex_count;
+
+    bvr_mesh_buffer_t indices_buffer;
+    indices_buffer.data = (char*)NULL;
+    indices_buffer.type = BVR_NULL;
+    indices_buffer.count = vertex_count;
+
+    bvr_create_meshv(mesh, &vertices_buffer, &indices_buffer, BVR_MESH_ATTRIB_V3);
+
+    free(vertices);
 }
 
 #endif

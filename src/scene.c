@@ -206,7 +206,7 @@ void bvr_flush(bvr_book_t *book)
     // draw each command
     for (uint64 i = 0; i < book->pipeline.command_count; i++)
     {
-        bvr_pipeline_draw_cmd(&book->pipeline.commands[i]);
+        bvr_pipeline_do_draw_cmd(&book->pipeline.commands[i]);
     }
 
     book->pipeline.command_count = 0;

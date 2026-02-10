@@ -24,7 +24,7 @@ int bvr_create_book(bvr_book_t *book)
 
     __s_book_instance = book;
 
-    memset(&book->audio, 0, sizeof(bvr_audio_stream_t));
+    memset(&book->audio, 0, sizeof(bvr_audio_mixer_t));
     memset(&book->window, 0, sizeof(bvr_window_t));
     memset(&book->page, 0, sizeof(bvr_page_t));
 
@@ -260,7 +260,7 @@ void bvr_destroy_book(bvr_book_t *book)
     bvr_destroy_window(&book->window);
 
     // try to destroy the audio stream
-    bvr_destroy_audio_stream(&book->audio);
+    bvr_destroy_audio_mixer(&book->audio);
 
     // destroy current page
     bvr_destroy_page(book->page);

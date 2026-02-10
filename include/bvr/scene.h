@@ -84,7 +84,7 @@ typedef struct bvr_book_s {
     bvr_pipeline_t pipeline;
 
     // audio channels and buffers
-    bvr_audio_stream_t audio;
+    bvr_audio_mixer_t audio;
 
     // contains all assets information
     // this might be used to store assets information to export them as bundle
@@ -157,6 +157,10 @@ BVR_H_FUNC int bvr_is_focus(bvr_book_t* book){
 */
 BVR_H_FUNC int bvr_is_active(bvr_book_t* book){
     return book->page->is_available;
+}
+
+BVR_H_FUNC void bvr_quit(bvr_book_t* book){
+    book->window.awake = 0;
 }
 
 /*

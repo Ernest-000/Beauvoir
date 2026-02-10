@@ -4,12 +4,17 @@
 #include <bvr/common.h>
 #include <bvr/buffer.h>
 
+#define BVR_AUDIO_MONO 1
+#define BVR_AUDIO_STEREO 2
+
 #ifndef BVR_SAMPLE_RATE
     #define BVR_SAMPLE_RATE 44100
 #endif
 
-#if !defined(BVR_AUDIO_BYTE_LENGTH)
-    #define BVR_AUDIO_BYTE_LENGTH 4096
+#if !defined(BVR_AUDIO_FRAME_COUNT)
+    // sample count is doubled because we usually use 
+    // two channels (Left + Right)
+    #define BVR_AUDIO_FRAME_COUNT (4096 * 2U)
 #endif
 
 #if !defined(BVR_MAX_AUDIO_COMMAND)
@@ -29,31 +34,37 @@ enum bvr_audio_device_e {
 
 struct bvr_audio_command_s {
     short* wave;
-    uint32 wave_length;
+    uint32 sample_count;
     
     uint8 channels;
-    uint32 stride;
+    uint32 sample_depth;
 };
 
-typedef struct bvr_audio_stream_s {
+typedef struct bvr_audio_mixer_s {
     void* context;
     uint32 device_id;
 
     uint8 channels;
+
+    /* frequency of each samples */
     uint32 sample_rate;
 
-    struct {
-        float gain;
+    /* maximum amplitude for a sample */
+    uint32 sample_depth;
+    
+    float gain;
 
-        uint32 command_count;
-        struct bvr_audio_command_s commands[BVR_MAX_AUDIO_COMMAND];
+    struct {
 
         uint32 avail_buffer_length;
-        short buffer[BVR_AUDIO_BYTE_LENGTH];
-    } mixer;
+        short pcm[BVR_AUDIO_FRAME_COUNT];
+    } master;
+
+    uint32 command_count;
+    struct bvr_audio_command_s commands[BVR_MAX_AUDIO_COMMAND];
 
     bool avail;
-} bvr_audio_stream_t;
+} bvr_audio_mixer_t;
 
 typedef struct bvr_audio_s {
     short* wave;
@@ -62,7 +73,7 @@ typedef struct bvr_audio_s {
     uint8 channels;
     uint32 format;
     uint32 sample_rate;
-    uint32 byte_per_sample;
+    uint32 sample_depth;
 } bvr_audio_t;
 
 int bvr_create_audiof(bvr_audio_t* audio, FILE* file);
@@ -91,9 +102,12 @@ void bvr_destroy_audio(bvr_audio_t* audio);
  * @param sample_rate stream's audio frequency
  * @param channel number of audio channels
  */
-int bvr_create_audio_stream(bvr_audio_stream_t* stream, const int sample_rate, const uint8 channels);
+int bvr_create_audio_mixer(bvr_audio_mixer_t* stream, const int sample_rate, const uint8 channels);
 
-bool bvr_audio_do_wave_command(struct bvr_audio_command_s* command);
+/**
+ * @return the number of played bytes
+ */
+uint32 bvr_audio_do_wave_command(struct bvr_audio_command_s* command);
 void bvr_audio_add_wave_command(const struct bvr_audio_command_s* command);
 
-void bvr_destroy_audio_stream(bvr_audio_stream_t* stream);
+void bvr_destroy_audio_mixer(bvr_audio_mixer_t* stream);

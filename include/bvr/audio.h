@@ -52,6 +52,7 @@ typedef struct bvr_audio_mixer_s {
     /* maximum amplitude for a sample */
     uint32 sample_depth;
     
+    /* global volume */
     float gain;
 
     struct {

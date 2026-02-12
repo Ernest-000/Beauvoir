@@ -190,6 +190,8 @@ void bvr_destroy_audio(bvr_audio_t* audio){
 static void bvri_audio_callback(void* _stream, SDL_AudioStream* sdl, int additional_amount, int total_amount){
     uint32 done = 0;
     bvr_audio_mixer_t* mixer = (bvr_audio_mixer_t*)_stream;
+
+    // update buffer length in bytes
     mixer->master.avail_buffer_length = MIN(additional_amount, BVR_AUDIO_FRAME_COUNT * sizeof(short));
 
     // clear previous audio buffer
@@ -246,34 +248,36 @@ int bvr_create_audio_mixer(bvr_audio_mixer_t* mixer, const int sample_rate, cons
  */
 uint32 bvr_audio_do_wave_command(struct bvr_audio_command_s* command){
     bvr_audio_mixer_t* mixer = &bvr_get_instance()->audio;
-    uint32 mixing_channel = mixer->channels;
 
-    // get the available mixing sample length
-    uint32 wave_samples = MIN(command->sample_count, mixer->master.avail_buffer_length / sizeof(short));
+    // maximum available frames
+    uint32 max_wave_frames = mixer->master.avail_buffer_length / (sizeof(short) * mixer->channels);
+    uint32 requested_wave_frames = command->sample_count / command->channels;
 
-    // get available sample count
-    uint32 frame_count = wave_samples / command->channels;
+    uint32 frame_count = MIN(requested_wave_frames, max_wave_frames);
+    
+    // number of samples 
+    uint32 wave_samples = frame_count * command->channels;
 
     for (uint32 s = 0; s < frame_count; s++)
     {
         // add audio's amplitude to previous master values 
-        short left = (mixer->master.pcm[mixing_channel * s] + command->wave[command->channels * s]);
-        short right = (mixer->master.pcm[mixing_channel * s + 1] + command->wave[command->channels * s + 1]);
+        short left = (mixer->master.pcm[mixer->channels * s] + command->wave[command->channels * s]);
+        short right = (mixer->master.pcm[mixer->channels * s + 1] + command->wave[command->channels * s + 1]);
         
         // clip audio values
         left = clampi(left, BVR_INT16_MIN, BVR_INT16_MAX) * mixer->gain;
         right = clampi(right, BVR_INT16_MIN, BVR_INT16_MAX) * mixer->gain;
 
         // when master if mono
-        mixer->master.pcm[mixing_channel * s + 0] = left;
+        mixer->master.pcm[mixer->channels * s + 0] = left;
 
         // when master is stereo
-        if(mixing_channel > 1){
-            mixer->master.pcm[mixing_channel * s + 1] = left;
+        if(mixer->channels > 1){
+            mixer->master.pcm[mixer->channels * s + 1] = left;
     
             // when audio clip is stereo
             if(command->channels > 1){
-                mixer->master.pcm[mixing_channel * s + 1] = right;
+                mixer->master.pcm[mixer->channels * s + 1] = right;
             }
         }
     }

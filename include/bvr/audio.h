@@ -74,6 +74,8 @@ typedef struct bvr_audio_s {
     uint32 format;
     uint32 sample_rate;
     uint32 sample_depth;
+
+    float duration;
 } bvr_audio_t;
 
 int bvr_create_audiof(bvr_audio_t* audio, FILE* file);

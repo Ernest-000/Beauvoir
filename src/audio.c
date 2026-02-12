@@ -26,39 +26,80 @@ static int bvri_is_wav(FILE* file){
 struct bvri_wavheader_s {
     uint8 sig[4];
     uint32 size;
-    uint32 format;
 
-    uint32 bloc_format;
-    uint32 bloc_size;
+    // WAVE
+    uint8 cdda[4]; 
+
+};
+
+struct bvri_wavchunk_s {
+    uint8 sig[4];
+    uint32 size;
+};
+
+struct bvri_wavfmt_s {
+    // bloc signature
+    struct bvri_wavchunk_s chunk;
+
     uint16 audio_format;
     uint16 channel_count;
     uint32 sample_rate;
     uint32 byte_per_sec;
-    uint16 byte_per_bloc;
+    uint16 bloc_align;
     uint16 bits_per_sample;
 };
 
+/*
+https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
+*/
 static int bvri_load_wav(bvr_audio_t* audio, FILE* file){
     BVR_ASSERT(audio);
     BVR_ASSERT(file);
 
     uint8* wave_bytes = NULL;
     struct bvri_wavheader_s header;
-    uint32 packed_bytes, unpacked_bytes;
+    struct bvri_wavfmt_s fmt;
+    struct bvri_wavchunk_s chunk;
+    
+    uint32 unpacked_bytes;
 
     fseek(file, 0, SEEK_SET);
     fread(&header, sizeof(struct bvri_wavheader_s), 1, file);
+    fread(&fmt.chunk, sizeof(struct bvri_wavchunk_s), 1, file);
 
-    bvr_fread32_le(file); // skip data bloc id;
-    packed_bytes = bvr_fread32_le(file);
+    if(!BVR_STRNCMP(fmt.chunk.sig, "fmt", 3)){
+        BVR_PRINT("enable to find fmt chunk!");
+        return BVR_FALSE;
+    }
 
-    audio->wave = malloc(packed_bytes);
-    audio->wave_length = packed_bytes;
-    audio->channels = header.channel_count;
-    audio->sample_rate = header.sample_rate;
-    audio->sample_depth = header.bits_per_sample;
+    // read fmt informations
+    fmt.audio_format = bvr_fread16_le(file);
+    fmt.channel_count = bvr_fread16_le(file);
+    fmt.sample_rate = bvr_fread32_le(file);
+    fmt.byte_per_sec = bvr_fread32_le(file);
+    fmt.bloc_align = bvr_fread16_le(file);
+    fmt.bits_per_sample = bvr_fread16_le(file);
 
-    switch (header.bits_per_sample)
+    // search data chunk
+    while (!feof(file))
+    {
+        fread(&chunk, sizeof(struct bvri_wavchunk_s), 1, file);
+        
+        if(BVR_STRNCMP(chunk.sig, "data", 4)){
+            break;
+        }
+
+        fseek(file, chunk.size, SEEK_CUR);
+    }
+
+    audio->wave = malloc(chunk.size);
+    audio->wave_length = chunk.size;
+    audio->channels = fmt.channel_count;
+    audio->sample_rate = fmt.sample_rate;
+    audio->sample_depth = fmt.bits_per_sample / 8;
+    audio->duration = chunk.size / audio->sample_depth;
+
+    switch (fmt.bits_per_sample)
     {
     case 8:  audio->format = BVR_AUDIO_INT8; break;
     case 16: audio->format = BVR_AUDIO_INT16; break;
@@ -70,8 +111,8 @@ static int bvri_load_wav(bvr_audio_t* audio, FILE* file){
     }
 
     // copy raw wav to data
-    unpacked_bytes = fread(audio->wave, sizeof(uint8), packed_bytes, file);
-    BVR_ASSERT(packed_bytes == unpacked_bytes);
+    unpacked_bytes = fread(audio->wave, sizeof(uint8), chunk.size, file);
+    BVR_ASSERT(chunk.size == unpacked_bytes);
 
     return BVR_TRUE;
 }
@@ -92,6 +133,11 @@ static void bvri_quantize_audio(bvr_audio_t* audio, const bvr_audio_mixer_t* mix
     if(audio->sample_depth != mixer->sample_depth){
         BVR_PRINT("sample depth doesn't match");
     }
+
+    // BVR_PRINTF(
+    //     "audio infos: \nduration: %fs\nsample rate: %i\nsample depth: %i\nchannels: %i\n", 
+    //     audio->duration, audio->sample_rate, audio->sample_depth, audio->channels
+    // );
 }
 
 int bvr_create_audiof(bvr_audio_t* audio, FILE* file){
@@ -127,7 +173,7 @@ void bvr_audio_play(bvr_audio_t* audio){
 
     struct bvr_audio_command_s cmd;
     cmd.wave = audio->wave;
-    cmd.sample_depth = audio->sample_depth / 8;
+    cmd.sample_depth = audio->sample_depth;
     cmd.sample_count = audio->wave_length / cmd.sample_depth;
     cmd.channels = audio->channels;
 
@@ -210,17 +256,22 @@ uint32 bvr_audio_do_wave_command(struct bvr_audio_command_s* command){
 
     for (uint32 s = 0; s < frame_count; s++)
     {
+        // add audio's amplitude to previous master values 
         short left = (mixer->master.pcm[mixing_channel * s] + command->wave[command->channels * s]);
         short right = (mixer->master.pcm[mixing_channel * s + 1] + command->wave[command->channels * s + 1]);
         
+        // clip audio values
         left = clampi(left, BVR_INT16_MIN, BVR_INT16_MAX) * mixer->gain;
         right = clampi(right, BVR_INT16_MIN, BVR_INT16_MAX) * mixer->gain;
 
+        // when master if mono
         mixer->master.pcm[mixing_channel * s + 0] = left;
 
+        // when master is stereo
         if(mixing_channel > 1){
             mixer->master.pcm[mixing_channel * s + 1] = left;
     
+            // when audio clip is stereo
             if(command->channels > 1){
                 mixer->master.pcm[mixing_channel * s + 1] = right;
             }

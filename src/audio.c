@@ -167,7 +167,7 @@ int bvr_create_audiof(bvr_audio_t* audio, FILE* file){
     return status;
 }
 
-void bvr_audio_play(bvr_audio_t* audio){
+void bvr_audio_play(bvr_audio_t* audio, uint8 track){
     BVR_ASSERT(audio);
     BVR_ASSERT(audio->wave);
 
@@ -176,6 +176,7 @@ void bvr_audio_play(bvr_audio_t* audio){
     cmd.sample_depth = audio->sample_depth;
     cmd.sample_count = audio->wave_length / cmd.sample_depth;
     cmd.channels = audio->channels;
+    cmd.track_id = track;
 
     bvr_audio_add_wave_command(&cmd);
 }
@@ -225,7 +226,7 @@ int bvr_create_audio_mixer(bvr_audio_mixer_t* mixer, const int sample_rate, cons
     mixer->sample_rate = sample_rate;
     mixer->sample_depth = 16;
     mixer->device_id = BVR_AUDIO_DEFAULT_OUTPUT;
-    mixer->gain = 0.5f;
+    mixer->gain = 1.0f;
     mixer->command_count = 0;
 
     mixer->context = SDL_OpenAudioDeviceStream(
@@ -233,11 +234,24 @@ int bvr_create_audio_mixer(bvr_audio_mixer_t* mixer, const int sample_rate, cons
         bvri_audio_callback, mixer
     );
     BVR_ASSERT(mixer->context);
+
+    for (size_t i = 0; i < BVR_MAX_AUDIO_TRACKS; i++)
+    {
+        bvr_create_audio_track(mixer, i, 100.0f, 0.0f);
+    }
     
     SDL_ResumeAudioStreamDevice(mixer->context);
 
     mixer->avail = true;
     return BVR_TRUE;
+}
+
+void bvr_create_audio_track(bvr_audio_mixer_t* mixer, uint8 track, float volume, float pan){
+    BVR_ASSERT(mixer);
+    BVR_ASSERT(track < BVR_MAX_AUDIO_TRACKS);
+
+    mixer->master.tracks[track].gain = volume / 100.0f;
+    mixer->master.tracks[track].pan = clamp(pan, -100.0f, 100.0f);
 }
 
 /**
@@ -263,10 +277,19 @@ uint32 bvr_audio_do_wave_command(struct bvr_audio_command_s* command){
         // add audio's amplitude to previous master values 
         short left = (mixer->master.pcm[mixer->channels * s] + command->wave[command->channels * s]);
         short right = (mixer->master.pcm[mixer->channels * s + 1] + command->wave[command->channels * s + 1]);
+
+        float left_volume = (mixer->master.tracks[command->track_id].pan / 100.0f + 0.5f);
+        float right_volume = 1.0 - (mixer->master.tracks[command->track_id].pan / 100.0f + 0.5f);
         
+        left_volume *= mixer->gain * mixer->master.tracks[command->track_id].gain;
+        right_volume *= mixer->gain * mixer->master.tracks[command->track_id].gain;
+
+        left_volume = clamp(left_volume, 0.0f, 1.0f);
+        right_volume = clamp(right_volume, 0.0f, 1.0f);
+
         // clip audio values
-        left = clampi(left, BVR_INT16_MIN, BVR_INT16_MAX) * mixer->gain;
-        right = clampi(right, BVR_INT16_MIN, BVR_INT16_MAX) * mixer->gain;
+        left = clampi(left, BVR_INT16_MIN, BVR_INT16_MAX) * left_volume;
+        right = clampi(right, BVR_INT16_MIN, BVR_INT16_MAX) * right_volume;
 
         // when master if mono
         mixer->master.pcm[mixer->channels * s + 0] = left;

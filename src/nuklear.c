@@ -1,5 +1,7 @@
 #ifndef BVR_NO_NUKLEAR
 
+#include <bvr/common.h>
+
 /**
  * This file includes nuklear implementation :3
  */

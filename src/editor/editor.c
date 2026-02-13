@@ -193,6 +193,7 @@ void bvr_editor_draw_page_hierarchy(){
 
             if(nk_tree_push(p_context, NK_TREE_TAB, "parameters", NK_MAXIMIZED)){
                 bvr_nk_draw_button(__editor, "globals", 0, NULL);
+                bvr_nk_draw_button(__editor, "audio", BVR_EDITOR_AUDIO, &__editor->book->audio);
                 bvr_nk_draw_button(__editor, "user", BVR_EDITOR_USER, NULL);
                 bvr_nk_draw_button(__editor, "graphics", BVR_EDITOR_PIPELINE, &__editor->book->pipeline);
 

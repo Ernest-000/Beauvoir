@@ -87,7 +87,7 @@ void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd){
 }
 
 void bvr_poll_errors(void){
-#if 0
+#if !defined(GLAD_GL_KHR_debug)
     char found_error = 0;
     uint32 err;
 

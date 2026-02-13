@@ -21,11 +21,27 @@
     #define BVR_MAX_AUDIO_COMMAND 32
 #endif
 
+#if !defined(BVR_MAX_AUDIO_TRACKS)
+    #define BVR_MAX_AUDIO_TRACKS 10
+#endif
+
+
 #define BVR_AUDIO_FLOAT 0x8120u
 #define BVR_AUDIO_UINT8 0x0008u
 #define BVR_AUDIO_INT8  0x8008u
 #define BVR_AUDIO_INT16 0x8010u
 #define BVR_AUDIO_INT32 0x8020u
+
+#define BVR_AUDIO_TRACK0 0
+#define BVR_AUDIO_TRACK1 1
+#define BVR_AUDIO_TRACK2 2
+#define BVR_AUDIO_TRACK3 3
+#define BVR_AUDIO_TRACK4 4
+#define BVR_AUDIO_TRACK5 5
+#define BVR_AUDIO_TRACK6 6
+#define BVR_AUDIO_TRACK7 7
+#define BVR_AUDIO_TRACK8 8
+#define BVR_AUDIO_TRACK9 9
 
 enum bvr_audio_device_e {
     BVR_AUDIO_DEFAULT_OUTPUT = 0xFFFFFFFFu,
@@ -37,8 +53,15 @@ struct bvr_audio_command_s {
     uint32 sample_count;
     
     uint8 channels;
-    uint32 sample_depth;
+    uint8 track_id;
+    
+    uint16 sample_depth;
 };
+
+typedef struct bvr_audio_track_s {
+    float gain;
+    float pan;
+} bvr_audio_track_t;
 
 typedef struct bvr_audio_mixer_s {
     void* context;
@@ -56,6 +79,7 @@ typedef struct bvr_audio_mixer_s {
     float gain;
 
     struct {
+        bvr_audio_track_t tracks[BVR_MAX_AUDIO_TRACKS];
 
         uint32 avail_buffer_length;
         short pcm[BVR_AUDIO_FRAME_COUNT];
@@ -96,7 +120,7 @@ BVR_H_FUNC int bvr_create_audio(bvr_audio_t* audio, const char* path){
 /**
  * Play an audio sound
  */
-void bvr_audio_play(bvr_audio_t* audio);
+void bvr_audio_play(bvr_audio_t* audio, uint8 track);
 
 void bvr_destroy_audio(bvr_audio_t* audio);
 
@@ -106,6 +130,15 @@ void bvr_destroy_audio(bvr_audio_t* audio);
  * @param channel number of audio channels
  */
 int bvr_create_audio_mixer(bvr_audio_mixer_t* stream, const int sample_rate, const uint8 channels);
+
+/**
+ * Initialize a specific audio track
+ * @param mixer
+ * @param track track index
+ * @param volume volume of the track. Value between 0.0 and 100.0
+ * @param pan directing the sound more to the left, right, or center speaker where -100.0f is left and 100.0f is right
+ */
+void bvr_create_audio_track(bvr_audio_mixer_t* mixer, uint8 track, float volume, float pan);
 
 /**
  * @return the number of played bytes

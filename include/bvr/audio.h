@@ -49,6 +49,8 @@ enum bvr_audio_device_e {
 };
 
 struct bvr_audio_command_s {
+    uint32 id;
+
     short* wave;
     uint32 sample_count;
     
@@ -92,6 +94,8 @@ typedef struct bvr_audio_mixer_s {
 } bvr_audio_mixer_t;
 
 typedef struct bvr_audio_s {
+    bvr_string_t name;
+
     short* wave;
     uint32 wave_length;
 
@@ -103,24 +107,29 @@ typedef struct bvr_audio_s {
     float duration;
 } bvr_audio_t;
 
-int bvr_create_audiof(bvr_audio_t* audio, FILE* file);
+int bvr_create_audiof(bvr_audio_t* audio, FILE* file, const char* name);
 
 /**
  * Create a new audio sound from path.
  */
-BVR_H_FUNC int bvr_create_audio(bvr_audio_t* audio, const char* path){
+BVR_H_FUNC int bvr_create_audio(bvr_audio_t* audio, const char* path, const char* name){
     BVR_ASSERT(path);
     
     FILE* file = fopen(path, "rb");
-    int status = bvr_create_audiof(audio, file);
+    int status = bvr_create_audiof(audio, file, name);
     fclose(file);
     return status;
 }
 
 /**
- * Play an audio sound
+ * Play an audio sound from the start
  */
 void bvr_audio_play(bvr_audio_t* audio, uint8 track);
+
+/**
+ * Stop an audio sound from playing
+ */
+void bvr_audio_stop(bvr_audio_t* audio);
 
 void bvr_destroy_audio(bvr_audio_t* audio);
 

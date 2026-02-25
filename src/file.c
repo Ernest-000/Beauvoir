@@ -53,14 +53,21 @@ int bvr_fread32_le(FILE* file){
     return (int)((((d << 8) | c) << 8 | b) << 8 | a);
 }
 
+int64 bvr_fread64_le(FILE* file){
+    int a, b;
+    a = bvr_fread32_le(file);
+    b = bvr_fread32_le(file);
+    return (long)(b << 32) | a;
+}
+
 uint8 bvr_freadu8_le(FILE* file){
-    int v = getc(file);
+    //int v = getc(file);
     // if(v == EOF){
     //     BVR_PRINTF("failed to read character %i", errno);
     //     return 0;
     // }
 
-    return (uint8)v;
+    return (uint8)getc(file);
 }
 
 float bvr_freadf(FILE* file){
@@ -89,5 +96,37 @@ uint32 bvr_freadu32_le(FILE* file){
     b = bvr_freadu8_le(file);
     c = bvr_freadu8_le(file);
     d = bvr_freadu8_le(file);
+    return (uint32)((((d << 8) | c) << 8 | b) << 8 | a);
+}
+
+uint64 bvr_freadu64_le(FILE* file){
+    uint32 a, b;
+    a = bvr_fread32_le(file);
+    b = bvr_fread32_le(file);
+    return (uint64)(b << 32) | a;
+}
+
+short bvr_mread16_le(uint8** ptr){
+    uint8 a, b;
+    a = bvr_mread8_le(ptr);
+    b = bvr_mread8_le(ptr);
+    return (short)((b << 8) | a);
+}
+
+int bvr_mread32_le(uint8** ptr){
+    uint8 a, b, c, d;
+    a = bvr_mread8_le(ptr);
+    b = bvr_mread8_le(ptr);
+    c = bvr_mread8_le(ptr);
+    d = bvr_mread8_le(ptr);
+    return (int)((((d << 8) | c) << 8 | b) << 8 | a);
+}
+
+uint32 bvr_mreadu32_le(uint8** ptr){
+    uint8 a, b, c, d;
+    a = bvr_mread8_le(ptr);
+    b = bvr_mread8_le(ptr);
+    c = bvr_mread8_le(ptr);
+    d = bvr_mread8_le(ptr);
     return (uint32)((((d << 8) | c) << 8 | b) << 8 | a);
 }

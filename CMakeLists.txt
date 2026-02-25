@@ -96,6 +96,8 @@ target_link_libraries(beauvoir PUBLIC
     ${BVR_THIRD_PARTY_MODULES}
 )
 
+target_link_options(beauvoir PRIVATE -lm)
+
 ##
 # Compiler flags (multi-config)
 ##

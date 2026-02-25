@@ -11,7 +11,7 @@ BVR_BUILD_DIR="$BVR_ROOT_DIR/build"
 BVR_INCLUDE_DIR="$BVR_ROOT_DIR/include"
 BVR_NUKLEAR_DIR="$BVR_ROOT_DIR/extern/Nuklear/src"
 
-BVR_EXTERNAL_MODULES=("SDL" "Zlib" "Lpng" "json-c")
+BVR_EXTERNAL_MODULES=( "SDL" "Zlib" "Lpng" "json-c" )
 
 # Flags
 BVR_CLEAR=false

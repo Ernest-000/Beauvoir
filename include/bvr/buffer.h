@@ -104,7 +104,7 @@
     Generic data pointer
 */
 struct bvr_buffer_s {
-    void* data;
+    char* data;
     uint64 size;
     uint32 elemsize;
 };

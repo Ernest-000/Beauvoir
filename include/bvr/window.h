@@ -217,7 +217,7 @@ int bvr_button_down(uint16 button);
 int bvr_button_double_pressed(uint16 button);
 
 void bvr_mouse_position(float* x, float* y);
-void bvr_mouse_relative_position(float* x, float *y);
+void bvr_mouse_relative_position(float* x, float* y);
 
 /*
     Ask the user to return a file. 

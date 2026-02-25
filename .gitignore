@@ -15,6 +15,7 @@
 *.ninja_log
 Makefile
 CMakeCache.txt
+compile_commands.json
 
 bin/*.exe
 !bin/*.dll

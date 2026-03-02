@@ -1498,7 +1498,7 @@ int bvr_create_texture_2d(bvr_texture_t* texture, bvr_image_t* image, int filter
 
     texture->tiles.width = texture->image.width;
     texture->tiles.height = texture->image.height;
-    texture->tiles.target_id = 0;
+    texture->tiles.brush = 0;
     texture->tiles.tile_per_column = 1;
     texture->tiles.tile_per_row = 1;
     texture->tiles.padding[0] = 0;
@@ -1544,7 +1544,7 @@ int bvr_create_texture_3d(bvr_texture_t* texture, bvr_image_t* image, int filter
 
     texture->tiles.width = texture->image.width;
     texture->tiles.height = texture->image.height;
-    texture->tiles.target_id = 0;
+    texture->tiles.brush = 0;
     texture->tiles.tile_per_column = 1;
     texture->tiles.tile_per_row = 1;
     texture->tiles.padding[0] = 0;
@@ -1660,7 +1660,7 @@ int bvr_create_texture_atlasf(bvr_texture_t* texture, FILE* file,
         texture->tiles.height = desc->tile_height;    
     }
 
-    texture->tiles.target_id = 0;
+    texture->tiles.brush = 0;
     texture->tiles.padding[0] = desc->padding_bottom;
     texture->tiles.padding[1] = desc->padding_left;
     texture->tiles.padding[2] = desc->padding_right;
@@ -1729,7 +1729,7 @@ int bvr_create_texture_atlasf(bvr_texture_t* texture, FILE* file,
 }
 
 void bvr_texture_enable(bvr_texture_t* texture){
-    glActiveTexture(BVR_TEXTURE_UNIT0 + texture->unit);
+    glActiveTexture(GL_TEXTURE0 + texture->unit);
     glBindTexture(texture->target, texture->id);
 }
 

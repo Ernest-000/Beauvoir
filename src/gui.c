@@ -33,6 +33,8 @@ int bvr_create_canvas(bvr_canvas_t* context, const bvr_book_t* book){
     context->device.copy_event = bvri_clipboard_copy;
     context->device.paste_event = bvri_clipboard_paste;
 
+    context->device.texture_offset = 0;
+
     context->device.vs = sizeof(struct bvri_gui_vertex_s);
     context->device.vp = offsetof(struct bvri_gui_vertex_s, position);
     context->device.vt = offsetof(struct bvri_gui_vertex_s, uvs);
@@ -63,10 +65,15 @@ int bvr_create_canvas(bvr_canvas_t* context, const bvr_book_t* book){
            BVR_SHADER_VERSION
            "precision mediump float;\n"
            "uniform sampler2D bvr_texture;\n"
+           "uniform sampler2DArray bvr_texture_array;\n"
+           "uniform float bvr_layer;\n"
            "in vec2 o_uvs;\n"
            "in vec4 o_color;\n"
            "void main(){\n"
-           "   gl_FragColor = o_color * texture2D(bvr_texture, o_uvs);\n"
+           "    if(bvr_layer < 0.0) {\n"
+           "        gl_FragColor = o_color * texture(bvr_texture, o_uvs); }\n"
+           "    else {"
+            "        gl_FragColor = o_color * texture(bvr_texture_array, vec3(o_uvs, bvr_layer)); }\n"
            "}\n";
         
         const char* shaders[2] = {vertex_shader, fragment_shader};
@@ -78,8 +85,20 @@ int bvr_create_canvas(bvr_canvas_t* context, const bvr_book_t* book){
         );
 
         context->device.texture = bvr_shader_register_uniform(
-            &context->device.shader, BVR_INT32, BVR_UNIFORM_NONE, 1, "bvr_texture"
+            &context->device.shader, BVR_TEXTURE_2D, BVR_UNIFORM_TEXTURE, 1, "bvr_texture"
         );
+
+        context->device.texture_array = bvr_shader_register_uniform(
+            &context->device.shader, BVR_TEXTURE_2D_ARRAY, BVR_UNIFORM_TEXTURE, 1, "bvr_texture_array"
+        );
+
+        context->device.texture_layer = bvr_shader_register_uniform(
+            &context->device.shader, BVR_FLOAT, BVR_UNIFORM_NONE, 1, "bvr_layer"
+        );
+
+        glUseProgram(context->device.shader.program);
+        glUniform1i(context->device.texture->location, 0);
+        glUniform1i(context->device.texture_array->location, 1); 
     }
 
     // create buffers
@@ -128,6 +147,8 @@ void bvr_canvas_new_frame(bvr_canvas_t* context){
     BVR_ASSERT(context);
 
     nk_input_begin(&context->context);
+
+    // context->device.texture_offset = -1;
 
     if(((context->win->events & SDL_EVENT_KEY_DOWN) == SDL_EVENT_KEY_DOWN) ||
         (context->win->events & SDL_EVENT_KEY_UP) == SDL_EVENT_KEY_UP){
@@ -217,7 +238,11 @@ void bvr_canvas_new_frame(bvr_canvas_t* context){
 void bvr_canvas_render(bvr_canvas_t* context){
     BVR_ASSERT(context);
 
-    uint32 texture_target = 0;
+    float tex_layer = -1.0f;
+    bvr_texture_t texture;
+    texture.target = BVR_TEXTURE_2D;
+    texture.unit = 0;
+    texture.id = 0;
 
     vec2 scale;
     BVR_CREATE_VEC2(scale, 1.0f, 1.0f);
@@ -237,11 +262,11 @@ void bvr_canvas_render(bvr_canvas_t* context){
 
     // update shaders
     bvr_shader_set_uniform_raw(context->device.projection, &view[0][0]);
-    bvr_shader_set_uniform_raw(context->device.texture, &texture_target);
+
+    bvr_shader_set_uniform_raw(context->device.texture, NULL);
+    bvr_shader_set_uniform_raw(context->device.texture_array, NULL);
 
     bvr_shader_enable(&context->device.shader);
-
-    glActiveTexture(GL_TEXTURE0);
 
     {
         const struct nk_draw_command* cmd;
@@ -316,9 +341,28 @@ void bvr_canvas_render(bvr_canvas_t* context){
 
         nk_draw_foreach(cmd, &context->context, &context->device.cmds){
             if(!cmd->elem_count) continue;
-            BVR_ASSERT(cmd->texture.id);
 
-            glBindTexture(GL_TEXTURE_2D, cmd->texture.id);
+            if(cmd->texture.id >= 0){
+                texture.target = BVR_TEXTURE_2D;
+                texture.id = cmd->texture.id;
+                texture.unit = BVR_TEXTURE_UNIT0;
+
+                tex_layer = -1.0f;
+
+                bvr_shader_use_uniform(context->device.texture, &texture);
+            }
+            else {
+                texture.target = BVR_TEXTURE_2D_ARRAY;
+                texture.id = (-cmd->texture.id) >> 16;
+                texture.unit = BVR_TEXTURE_UNIT1;
+
+                tex_layer = (-cmd->texture.id) & 0xFFFF;
+
+                bvr_shader_use_uniform(context->device.texture_array, &texture);
+            }
+
+            bvr_shader_use_uniform(context->device.texture_layer, &tex_layer);
+
             glScissor((GLint)(cmd->clip_rect.x * scale[0]),
                 (GLint)((context->win->framebuffer.height - (GLint)(cmd->clip_rect.y + cmd->clip_rect.h)) * scale[1]),
                 (GLint)(cmd->clip_rect.w * scale[0]),

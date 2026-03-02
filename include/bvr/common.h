@@ -55,12 +55,19 @@
 /**
  * Returns a boolean. Check if 't' (which is an int that enumarate a type) is a correct type.
  */
-#define BVR_IS_AVAIL_TYPE(t) (t >= BVR_BOOL && t <= BVR_TEXTURE_2D_LAYER_STRUCT)
+#define BVR_IS_AVAIL_TYPE(t) (t >= BVR_TEXTURE_2D && t <= BVR_TEXTURE_2D_ARRAY)
 
 /*
     Returns a boolean. Check if 't' (which is an int that enumerate a type) is a texture.
 */
-#define BVR_IS_AVAIL_TEXTURE(t) (t >= BVR_TEXTURE_2D && t <= BVR_TEXTURE_2D_COMPOSITE)
+#define BVR_IS_AVAIL_TEXTURE(t) ( \\
+    t == BVR_TEXTURE_2D || \\
+    t == BVR_TEXTURE_3D || \\
+    t == BVR_TEXTURE_2D_ARRAY || \\
+    t == BVR_TEXTURE_2D_LAYER || \\
+    t == BVR_TEXTURE_2D_COMPOSITE || \\
+    t == BVR_TEXTURE_2D_LAYER_STRUCT || \\
+)
 
 /**
  * Return the biggest sizeof

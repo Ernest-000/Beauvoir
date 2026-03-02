@@ -570,16 +570,8 @@ int bvr_shader_set_uniform_raw(bvr_shader_uniform_t* uniform, void* data){
     if(!uniform) {
         return BVR_FALSE;
     }
-    
-    if(data){
-        // copy raw pointer
-        uniform->memory.data = data;
-        return BVR_TRUE;
-    }
-    else {
-        BVR_PRINTF("failed to copy %s's data!", uniform->name.string);
-        return BVR_FALSE;
-    }
+
+    uniform->memory.data = data;
 }
 
 int bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data){

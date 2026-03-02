@@ -9,6 +9,7 @@
 
 #define BVR_NK_WINDOW_DEFAULT (NK_WINDOW_BORDER | NK_WINDOW_TITLE)
 #define BVR_ROW_HEIGHT (15)
+#define BVR_TILESET_SCALE (1.5)
 
 #define BVR_NK_SEPARATOR(context) nk_label(context, "~~~~~~~~~~~~~~~~~~~~~", NK_TEXT_CENTERED)
 
@@ -120,44 +121,72 @@ BVR_H_FUNC void bvr_nk_draw_button(bvr_editor_t* editor, const char* name, uint3
     }
 }
 
-BVR_H_FUNC void bvr_nk_view_image(bvr_canvas_t* context, bvr_texture_t* texture){
+BVR_H_FUNC void bvr_nk_view_image(bvr_canvas_t* context, bvr_texture_t* texture, bool draw_has_tileset){
     bvr_editor_t* editor = bvr_get_editor_instance();
     
-    if(editor->draw_cmd.view_texture.id || editor->draw_cmd.view_fbo.framebuffer){
-        BVR_PRINT("trying to render multiple views in the same frame :<");
-        return;
-    }
-    
     struct nk_rect rect;
-    struct nk_color color;
     struct nk_image image;
-    
-    color.r = 255.0;
-    color.g = 255.0;
-    color.b = 255.0;
-    color.a = 255.0;
     
     rect.w = texture->image.width;
     rect.h = texture->image.height;
 
-    // if texture has tiles
-    if(texture->tiles.tile_per_column > 1 || texture->tiles.tile_per_row > 1){
-        rect.w = texture->tiles.width;
-        rect.h = texture->tiles.height;
-    }
-
-    image = nk_image_id(texture->id);
-
     if(nk_tree_push(&context->context, NK_TREE_NODE, "view", NK_MAXIMIZED)){
        
-        if(nk_widget(&rect, &context->context)){
-            nk_draw_image(
-                &context->context.current->buffer,
-                rect, &image,
-                color
-            );
+        // if texture has tiles
+        if(texture->tiles.tile_per_column > 1 || texture->tiles.tile_per_row > 1){
+            rect.w = texture->tiles.width;
+            rect.h = texture->tiles.height;
+
+            int tile = texture->tiles.brush;
+
+            if (draw_has_tileset)
+            {
+                // draw tile atlas as a tileset.
+                // each tile is shown in a sheet
+
+                nk_layout_row_static(
+                    &context->context, texture->tiles.height * BVR_TILESET_SCALE, texture->tiles.width * BVR_TILESET_SCALE,
+                    texture->tiles.tile_per_row
+                );
+
+                for (size_t y = 0; y < texture->tiles.tile_per_row; y++)
+                {
+                    for (size_t x = 0; x < texture->tiles.tile_per_column; x++)
+                    {
+                        tile = y * texture->tiles.tile_per_row + x;
+                        long long id = (texture->id << 16) | (tile & 0xFFFF);
+                        image = nk_image_ptr((void*)-id);
+
+                        nk_image(&context->context, image);
+                    }
+                }
+            }
+            else
+            {
+                // only draw current used tile
+                nk_layout_row_static(
+                    &context->context, 
+                    texture->tiles.height * BVR_TILESET_SCALE * 2, 
+                    texture->tiles.width * BVR_TILESET_SCALE * 2,
+                    texture->tiles.tile_per_row
+                );
+
+                int id = (texture->id << 16) | (tile & 0xFFFF);
+                image = nk_image_id(-id);
+
+                nk_image(&context->context, image);
+            }
         }
-        
+        else {
+            // draw as a single image
+
+            image = nk_image_id(texture->id);
+
+            nk_layout_row_dynamic(&context->context, rect.w, 1);
+
+            nk_image(&context->context, image);
+        }
+
         nk_tree_pop(&context->context);
     }
 
@@ -459,6 +488,70 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
 
     BVR_NK_SEPARATOR(&context->context);
     nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));
+
+    if(nk_button_label(&context->context, "focus")){
+        bvr_camera_t* camera = &bvr_get_instance()->page->camera;
+        
+        vec3 center;
+        float distance;
+
+        center[0] = actor->dimension.resolution[0] * actor->dimension.count[0] / 2;
+        center[1] = -actor->dimension.resolution[1] * actor->dimension.count[1] / 2;
+        center[2] = 0.0f;
+
+        vec3_add(center, actor->self.transform.position, center);
+
+        distance = actor->dimension.resolution[1] * actor->dimension.count[1];
+        distance /= 2 * tanf((camera->framebuffer->height / 2.0 / camera->field_of_view.scale / 2.0) / 2.0);
+
+        camera->field_of_view.scale = distance / camera->framebuffer->height;
+
+        vec3_copy(camera->transform.position, center);
+    }
+
+    bvr_nk_view_image(context, &actor->atlas, false);
+
+    {
+        // interactible tileset
+
+        struct nk_style_button button_state = context->context.style.button;
+        struct nk_image image;
+
+        context->context.style.button.border = 0;
+        context->context.style.button.padding = nk_vec2(0, 0);
+
+        nk_layout_row_dynamic(&context->context, 
+            actor->atlas.tiles.height * actor->atlas.tiles.tile_per_column * BVR_TILESET_SCALE, 1);
+
+        if (nk_group_begin(&context->context, "#tileset", BVR_NK_WINDOW_DEFAULT | NK_WINDOW_SCALABLE))
+        {
+            nk_layout_row_static(
+                &context->context, actor->atlas.tiles.height * BVR_TILESET_SCALE, actor->atlas.tiles.width * BVR_TILESET_SCALE,
+                actor->atlas.tiles.tile_per_row
+            );
+
+            for (size_t y = 0; y < actor->atlas.tiles.tile_per_row; y++)
+            {
+                for (size_t x = 0; x < actor->atlas.tiles.tile_per_column; x++)
+                {
+                    int tile = y * actor->atlas.tiles.tile_per_row + x;
+                    int id = (actor->atlas.id << 16) | (tile & 0xFFFF);
+                    image = nk_image_id(-id);
+
+                    if (nk_button_image(&context->context, image))
+                    {
+                        actor->atlas.tiles.brush = tile;
+                    }
+                }
+            }
+
+            nk_group_end(&context->context);
+        }
+
+        // reset state
+        nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
+        context->context.style.button = button_state;
+    }
 }
 
 #endif

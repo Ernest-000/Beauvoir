@@ -158,8 +158,6 @@ void bvr_editor_new_frame(){
         __editor->state = BVR_EDITOR_STATE_HANDLE;
     }
 
-    __editor->draw_cmd.view_texture.id = 0;
-    __editor->draw_cmd.view_fbo.framebuffer = 0;
     __editor->device.is_gui_hovered = 0;
 }
 
@@ -265,14 +263,6 @@ void bvr_editor_render(){
         bvri_bind_editor_buffers(0, 0);
 
         bvr_shader_disable();
-    }
-
-    if(__editor->draw_cmd.view_texture.id){
-        bvr_destroy_texture(&__editor->draw_cmd.view_texture);
-    }
-
-    if(__editor->draw_cmd.view_fbo.framebuffer){
-        bvr_destroy_composite(&__editor->draw_cmd.view_fbo);
     }
 
     bvr_canvas_render(&__editor->gui);

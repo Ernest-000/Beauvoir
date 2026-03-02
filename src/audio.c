@@ -126,11 +126,12 @@ static int bvri_load_wav(FILE* file, bvr_audio_t* audio){
 #define BVRI_OGG_SEGMENT_SIZE 255
 #define BVRI_OGG_DATA_SIZE 65025
 
-#define BVRI_VORBIS_CODEBOOK_SIZE 128
-#define BVRI_VORBIS_FLOOR_SIZE 64
-#define BVRI_VORBIS_RESIDUE_SIZE 64
-#define BVRI_VORBIS_MAPPING_SIZE 64
-#define BVRI_VORBIS_MODE_SIZE 64
+#define BVRI_VORBIS_CODEBOOK_MAX 128
+#define BVRI_VORBIS_FLOOR_MAX 64
+#define BVRI_VORBIS_RESIDUE_MAX 64
+#define BVRI_VORBIS_MAPPING_MAX 64
+#define BVRI_VORBIS_MODE_MAX 64
+#define BVRI_VORBIS_CHANNEL_MAX 8
 
 #define BVRI_VORBIS_UNUSED 0xFF
 
@@ -179,10 +180,9 @@ struct bvri_vorbis_s {
     uint32 sample_rate;
     uint32 bitrate_max;
     uint32 bitrate_nominal;
-    uint32 bitrate_min;
-    uint32 blocksize_0;
+    uint16 bitrate_min;
+    uint16 blocksize_0;
     uint32 blocksize_1;
-    uint8 framingf;
 
     uint8 codebook_count;
     uint8 floor_count;
@@ -201,7 +201,7 @@ struct bvri_vorbis_s {
 
         uint32* lenghts;
         float* vqs;
-    } codebooks[BVRI_VORBIS_CODEBOOK_SIZE];
+    } codebooks[BVRI_VORBIS_CODEBOOK_MAX];
 
     union bvri_vorbis_floor_s{
         struct {
@@ -234,7 +234,7 @@ struct bvri_vorbis_s {
             uint16 neighbors[64][2];
             uint16 x_count;
         } piecewire
-    } floors[BVRI_VORBIS_FLOOR_SIZE];
+    } floors[BVRI_VORBIS_FLOOR_MAX];
 
     struct bvri_vorbis_residue_s {
         uint8 residue_type;
@@ -246,24 +246,24 @@ struct bvri_vorbis_s {
 
         uint8 cascade[64];
         uint8 books[64][8];
-    } residues[BVRI_VORBIS_RESIDUE_SIZE];
+    } residues[BVRI_VORBIS_RESIDUE_MAX];
 
     struct bvri_vorbis_mapping_s {
         uint8 mapping_submaps;
         uint8 mapping_steps;
         uint32 magnitudes[256];
         uint32 angles[256];
-        uint32 muxs[8]; // max two audio channels
+        uint32 muxs[BVRI_VORBIS_CHANNEL_MAX]; // max two audio channels
         uint32 floors[16];
         uint32 residues[16];
-    } mapping[BVRI_VORBIS_MAPPING_SIZE];
+    } mapping[BVRI_VORBIS_MAPPING_MAX];
 
     struct bvri_vorbis_mode_s {
         uint8 block_flag;
         uint16 window_type;
         uint16 transform_type;
         uint8 mapping;
-    } modes[BVRI_VORBIS_MODE_SIZE]
+    } modes[BVRI_VORBIS_MODE_MAX]
 };
 
 struct bvri_vorbis_bitread_s {
@@ -464,7 +464,7 @@ static uint32 bvri_vorbis_readbit(struct bvri_vorbis_bitread_s* reader, const in
 /**
  * https://www.xiph.org/vorbis/doc/Vorbis_I_spec.pdf
  */
-static void bvri_vorbis_readheader(struct bvri_vorbis_s *vorbis, const uint8* c_packet, const uint64 packet_size)
+static void bvri_vorbis_decodeheader(struct bvri_vorbis_s *vorbis, const uint8* c_packet, const uint64 packet_size)
 {
     BVR_ASSERT(vorbis);
     BVR_ASSERT(c_packet);
@@ -489,9 +489,10 @@ static void bvri_vorbis_readheader(struct bvri_vorbis_s *vorbis, const uint8* c_
         vorbis->bitrate_max = bvr_mread32_le(&stream.buffer);
         vorbis->bitrate_nominal = bvr_mread32_le(&stream.buffer);
         vorbis->bitrate_min = bvr_mread32_le(&stream.buffer);
-        vorbis->blocksize_0 = bvr_mread32_le(&stream.buffer);
-        vorbis->blocksize_1 = bvr_mread32_le(&stream.buffer);
-        vorbis->framingf = bvr_mread8_le(&stream.buffer);
+        vorbis->blocksize_0 = pow(2, bvri_vorbis_readbit(&stream, 4));
+        vorbis->blocksize_1 = pow(2, bvri_vorbis_readbit(&stream, 4));
+
+        BVR_ASSERT(bvri_vorbis_readbit(&stream, 1));
         break;
 
     case 0x3:
@@ -509,7 +510,7 @@ static void bvri_vorbis_readheader(struct bvri_vorbis_s *vorbis, const uint8* c_
             uint32 codebook_sig;
 
             vorbis->codebook_count = bvri_vorbis_readbit(&stream, 8) + 1;
-            BVR_ASSERT(vorbis->codebook_count < BVRI_VORBIS_CODEBOOK_SIZE);
+            BVR_ASSERT(vorbis->codebook_count < BVRI_VORBIS_CODEBOOK_MAX);
 
             for (size_t i = 0; i < vorbis->codebook_count; i++)
             {
@@ -565,7 +566,10 @@ static void bvri_vorbis_readheader(struct bvri_vorbis_s *vorbis, const uint8* c_
                             // check for flag
                             if(flag){
                                 current_length = bvri_vorbis_readbit(&stream, 5) + 1;
-                            }                            
+                            }   
+                            else {
+                                current_length = BVRI_VORBIS_UNUSED;
+                            }                         
                         }
                         else {
                             current_length = bvri_vorbis_readbit(&stream, 5) + 1;
@@ -674,7 +678,7 @@ static void bvri_vorbis_readheader(struct bvri_vorbis_s *vorbis, const uint8* c_
         // decode floors
         {
             vorbis->floor_count = bvri_vorbis_readbit(&stream, 6) + 1;
-            BVR_ASSERT(vorbis->floor_count < BVRI_VORBIS_FLOOR_SIZE);
+            BVR_ASSERT(vorbis->floor_count < BVRI_VORBIS_FLOOR_MAX);
 
             for (size_t i = 0; i < vorbis->floor_count; i++)
             {
@@ -791,7 +795,7 @@ static void bvri_vorbis_readheader(struct bvri_vorbis_s *vorbis, const uint8* c_
         // read residues
         {
             vorbis->residue_count = bvri_vorbis_readbit(&stream, 6) + 1;
-            BVR_ASSERT(vorbis->residue_count < BVRI_VORBIS_RESIDUE_SIZE);
+            BVR_ASSERT(vorbis->residue_count < BVRI_VORBIS_RESIDUE_MAX);
 
             for (size_t i = 0; i < vorbis->residue_count; i++)
             {
@@ -833,7 +837,7 @@ static void bvri_vorbis_readheader(struct bvri_vorbis_s *vorbis, const uint8* c_
         {
             vorbis->mapping_count = bvri_vorbis_readbit(&stream, 6) + 1;
             BVR_ASSERT(vorbis->channels); // check for audio channels
-            BVR_ASSERT(vorbis->mapping_count < BVRI_VORBIS_MAPPING_SIZE);
+            BVR_ASSERT(vorbis->mapping_count < BVRI_VORBIS_MAPPING_MAX);
 
             for (size_t i = 0; i < vorbis->mapping_count; i++)
             {
@@ -861,8 +865,14 @@ static void bvri_vorbis_readheader(struct bvri_vorbis_s *vorbis, const uint8* c_
                 if(vorbis->mapping[i].mapping_submaps > 1){
                     for (size_t j = 0; j < vorbis->channels; j++)
                     {
-                        vorbis->mapping[i].muxs[j] = bvri_vorbis_readbit(&stream, 4);
-                        BVR_ASSERT(vorbis->mapping[i].muxs[j] > vorbis->mapping[i].mapping_submaps);
+                        if(j < BVRI_VORBIS_CHANNEL_MAX){
+                            vorbis->mapping[i].muxs[j] = bvri_vorbis_readbit(&stream, 4);
+                            BVR_ASSERT(vorbis->mapping[i].muxs[j] > vorbis->mapping[i].mapping_submaps);
+                        }
+                        else {
+                            // skip to avoid channel overflow
+                            bvri_vorbis_readbit(&stream, 4);
+                        }
                     }
                 }
 
@@ -881,7 +891,7 @@ static void bvri_vorbis_readheader(struct bvri_vorbis_s *vorbis, const uint8* c_
         // read modes
         {
             vorbis->mode_count = bvri_vorbis_readbit(&stream, 6) + 1;
-            BVR_ASSERT(vorbis->mode_count < BVRI_VORBIS_MODE_SIZE);
+            BVR_ASSERT(vorbis->mode_count < BVRI_VORBIS_MODE_MAX);
 
             for (size_t i = 0; i < vorbis->mode_count; i++)
             {
@@ -906,7 +916,7 @@ static void bvri_vorbis_readheader(struct bvri_vorbis_s *vorbis, const uint8* c_
     }
 }
 
-static int bvri_vorbis_readaudio(struct bvri_vorbis_s* vorbis, const uint8* c_packet, const uint64 packet_size){
+static int bvri_vorbis_decodeaudio(struct bvri_vorbis_s* vorbis, const uint8* c_packet, const uint64 packet_size){
     BVR_ASSERT(vorbis);
     BVR_ASSERT(c_packet);
     BVR_ASSERT(packet_size);
@@ -917,8 +927,109 @@ static int bvri_vorbis_readaudio(struct bvri_vorbis_s* vorbis, const uint8* c_pa
     stream.byte_cursor = 0;
     stream.bit_cursor = 0;
 
+    struct {
+        uint8 mode;
+        uint8 mapping;
+    } packet;
+
+    struct {
+        uint16 blocksize;
+
+        uint8 prev_window_flag;
+        uint8 new_window_flag;
+
+        uint32 window_center;
+        uint32 left_win_start;
+        uint32 left_win_end;
+        uint32 left_win_n;
+        
+        uint32 right_win_start;
+        uint32 right_win_end;
+        uint32 right_win_n;
+
+        // maybe use malloc instead?
+        float window[BVR_UINT16_MAX];
+    } window;
+
     // check for audio packet
     BVR_ASSERT(bvri_vorbis_readbit(&stream, 1) == 0);
+
+    packet.mode = bvri_vorbis_readbit(&stream, bvri_vorbis_ilog(vorbis->mode_count - 1));
+    BVR_ASSERT(packet.mode < vorbis->mode_count);
+
+    packet.mapping = vorbis->modes[packet.mode].mapping;
+    BVR_ASSERT(packet.mapping < vorbis->mapping_count);
+
+    window.blocksize = vorbis->blocksize_1;
+    
+    if(vorbis->modes[packet.mode].block_flag){
+        window.blocksize = vorbis->blocksize_0;
+    }
+
+    window.prev_window_flag = bvri_vorbis_readbit(&stream, 1);
+    window.new_window_flag = bvri_vorbis_readbit(&stream, 1);
+    window.window_center = window.blocksize / 2;
+
+    // left side is a hybrid window for laping with a short block 
+    if(!window.prev_window_flag && vorbis->modes[packet.mode].block_flag){    
+        window.left_win_start = window.blocksize / 4 - vorbis->blocksize_0 / 4;
+        window.left_win_end = window.blocksize / 4 + vorbis->blocksize_0 / 4;
+        window.left_win_n = vorbis->blocksize_0 / 2;
+    }
+    else {
+        // left half win have normal long shape
+        window.left_win_start = 0;
+        window.left_win_end = window.window_center;
+        window.left_win_n = vorbis->blocksize_0 / 2;
+    }
+
+    // right side is a hybrid win for laping with a short block
+    if(!window.new_window_flag && vorbis->modes[packet.mode].block_flag){
+        window.right_win_start = window.blocksize * (3/4) - vorbis->blocksize_0 / 4;
+        window.right_win_end = window.blocksize * (3/4) + vorbis->blocksize_0 / 4;
+        window.right_win_n = window.blocksize / 2;
+    }
+    else {
+        // right half win have normal long shape
+        window.right_win_start = window.window_center;
+        window.right_win_end = window.blocksize;
+        window.right_win_n = vorbis->blocksize_0 / 2;
+    }
+
+    // set all to zero
+    memset(window.window, 0, sizeof(float) * window.blocksize);
+
+    // create left side window
+    for (size_t i = window.left_win_start - 1; i < window.left_win_end; i++)
+    {
+        float offset = i - window.left_win_start + 0.5f;
+        window.window[i] = sinf(BVR_HALF_PI * sqrtf(sinf(offset / window.left_win_n * BVR_HALF_PI)));
+    }
+    
+    // create right side window
+    for (size_t i = window.left_win_end - 1; i < window.right_win_end; i++)
+    {
+        float offset = i - window.right_win_start + 0.5f;
+        window.window[i] = sinf(BVR_HALF_PI * sqrtf(sinf(offset / window.right_win_n * BVR_HALF_PI + BVR_HALF_PI)));
+    }
+    
+    for (size_t channel = 0; channel < vorbis->channels; channel++)
+    {
+        union bvri_vorbis_floor_s* floor;
+
+        uint16 submap = vorbis->mapping[packet.mapping].muxs[channel];
+        floor = &vorbis->floors[vorbis->mapping[packet.mapping].floors[submap]];
+        
+        if(floor->lsp.floor_type == 0){
+            // do lsp packet decode
+            BVR_ASSERT(0 || "invalid packet type");
+        }
+        else {
+            // do piecewire packet decode
+            
+        }
+    }
+    
 }
 
 /**
@@ -940,10 +1051,10 @@ static int bvri_load_vorbis(FILE* file, bvr_audio_t* audio){
     while (bvri_oggnext(file, &page, &packet))
     {
         if(BVR_STRNCMP(&packet.data[1], "vorbis", 6)){
-            bvri_vorbis_readheader(&vorbis, packet.data, packet.elemsize);
+            bvri_vorbis_decodeheader(&vorbis, packet.data, packet.elemsize);
         }
         else {
-            bvri_vorbis_readaudio(&vorbis, packet.data, packet.elemsize);
+            bvri_vorbis_decodeaudio(&vorbis, packet.data, packet.elemsize);
         }
     }
 

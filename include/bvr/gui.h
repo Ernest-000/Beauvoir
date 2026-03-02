@@ -42,6 +42,11 @@ typedef struct bvr_canvas_s {
 
         bvr_shader_uniform_t* projection;
         bvr_shader_uniform_t* texture;
+        bvr_shader_uniform_t* texture_array;
+        bvr_shader_uniform_t* texture_layer;
+
+        // texture layer offset
+        float texture_offset;
 
         // offsets
         uint32 vs, vp, vt, vc;

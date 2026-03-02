@@ -77,11 +77,6 @@ typedef struct bvr_editor_s {
 
         uint32 element_offset;
         uint32 element_count;
-
-        // view texture
-        // use to create sub view of an image
-        bvr_texture_t view_texture;
-        bvr_composite_t view_fbo;
     } draw_cmd;
 
 } bvr_editor_t;

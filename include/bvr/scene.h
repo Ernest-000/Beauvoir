@@ -13,7 +13,7 @@
 #include <stdint.h>
 
 #if !defined(BVR_MAX_PAGE_COUNT)
-    #define BVR_MAX_PAGE_COUNT 1
+    #define BVR_MAX_PAGE_COUNT 8
 #endif
 
 #if !defined(BVR_MAX_SCENE_ACTOR_COUNT)

@@ -8,6 +8,7 @@
 #include <bvr/mesh.h>
 #include <bvr/animation.h>
 #include <bvr/physics.h>
+#include <bvr/landscape.h>
 
 /*
     Does not destroy the actor when freeing the page
@@ -127,14 +128,9 @@ typedef struct bvr_landscape_actor_s {
     bvr_mesh_t mesh;
     bvr_shader_t shader;
     
-    bvr_texture_t atlas;
-
-    struct {
-        vec2 count;
-        vec2 resolution;
-        
-        uint8 layers;
-    } dimension;
+    bvr_texture_t tileset;
+    
+    bvr_landscape_t landscape;
 } bvr_landscape_actor_t;
 
 typedef union bvr_generic_actor_u {
@@ -144,16 +140,6 @@ typedef union bvr_generic_actor_u {
     bvr_texture_actor_t texture_actor;
     bvr_landscape_actor_t landscape_actor;
 } bvr_generic_actor_t;
-
-/*
-    landscape tile's informations
-*/
-struct bvr_tile_s {
-    uint8 altitude;
-    uint8 texture;
-    uint8 norm_x;
-    uint8 norm_y;
-};
 
 /*
     Initialize a generic actor.

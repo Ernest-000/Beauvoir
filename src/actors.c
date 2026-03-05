@@ -4,6 +4,8 @@
 #include <bvr/scene.h>
 #include <bvr/graphics.h>
 
+#include <bvr/landscape.h>
+
 #include <stdlib.h>
 #include <math.h>
 #include <memory.h>
@@ -247,60 +249,6 @@ static void bvri_create_bitmap_layer(bvr_texture_actor_t* actor, int flags){
     }
 }
 
-static void bvri_create_landscape(bvr_landscape_actor_t* landscape, int flags){
-    // generate grid
-    
-    uint32 vertex_count = landscape->dimension.count[0] * landscape->dimension.count[1] * 2;
-    vertex_count += (landscape->dimension.count[1] * 3); 
-    vertex_count *= MAX(1, landscape->dimension.layers);
-
-    const int max_altitude = 50;
-
-    struct bvr_tile_s generic;
-    generic.texture = 1;
-    generic.altitude = 0;
-    generic.norm_x = 0;
-    generic.norm_y = 0;
-
-    struct bvr_tile_s* vertices = malloc(vertex_count * sizeof(struct bvr_tile_s));
-    BVR_ASSERT(vertices);
-
-    // copy generic tiles
-    for (size_t i = 0; i < vertex_count; i++)
-    {
-        vertices[i] = generic;
-    }
-    
-    bvr_mesh_buffer_t vertices_buffer;
-    vertices_buffer.data = (char*) vertices;
-    vertices_buffer.type = BVR_INT32;
-    vertices_buffer.count = vertex_count;
-
-    bvr_mesh_buffer_t element_buffer;
-    element_buffer.data = (char*) NULL;
-    element_buffer.type = BVR_UNSIGNED_INT32;
-    element_buffer.count = vertex_count;
-
-    bvr_create_meshv(&landscape->mesh, &vertices_buffer, &element_buffer, BVR_MESH_ATTRIB_SINGLE);
-    
-    // TODO: avoid recreating pool
-    bvr_destroy_pool(&landscape->mesh.vertex_groups);
-    bvr_create_pool(&landscape->mesh.vertex_groups, sizeof(bvr_vertex_group_t), landscape->dimension.layers);
-    for (size_t i = 0; i < landscape->dimension.layers; i++)
-    {
-        bvr_vertex_group_t* group = bvr_pool_alloc(&landscape->mesh.vertex_groups);
-        group->name.length = 0;
-        group->name.string = NULL;
-        group->element_offset = (vertex_count / landscape->dimension.layers) * i;
-        group->element_count = (vertex_count / landscape->dimension.layers);
-        group->texture = 0;
-
-        BVR_IDENTITY_MAT4(group->matrix);
-    }
-
-    free(vertices);
-}
-
 void bvr_create_actor(struct bvr_actor_s* actor, const char* name, int flags, bvr_actor_event_t event){
     BVR_ASSERT(actor);
 
@@ -338,7 +286,11 @@ void bvr_create_actor(struct bvr_actor_s* actor, const char* name, int flags, bv
         break;
 
     case BVR_LANDSCAPE_ACTOR:
-        bvri_create_landscape((bvr_landscape_actor_t*)actor, flags);
+        {
+            // copy mesh reference.
+            bvr_landscape_actor_t* landscape = (bvr_landscape_actor_t*)actor;
+            landscape->landscape.mesh = &landscape->mesh;
+        }
         break;
 
     default:
@@ -390,7 +342,8 @@ void bvr_destroy_actor(struct bvr_actor_s* actor){
         {
             bvr_destroy_mesh(&((bvr_landscape_actor_t*)actor)->mesh);
             bvr_destroy_shader(&((bvr_landscape_actor_t*)actor)->shader);
-            bvr_destroy_texture(&((bvr_landscape_actor_t*)actor)->atlas);
+            bvr_destroy_texture(&((bvr_landscape_actor_t*)actor)->tileset);
+            bvr_destroy_landscape(&((bvr_landscape_actor_t*)actor)->landscape);
         }
         break;
     default:

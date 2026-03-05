@@ -9,6 +9,7 @@
 #include <bvr/common.h>
 #include <bvr/window.h>
 #include <bvr/actors.h>
+#include <bvr/landscape.h>
 
 #include <bvr/assets.h>
 #include <bvr/assets.book.h>
@@ -39,7 +40,7 @@ static void bvri_load_landscape(bvr_string_t* path){
     BVR_PRINTF("load map %s", path->string);
 
     bvr_landscape_actor_t* actor = (bvr_landscape_actor_t*)__editor->inspector_cmd.object;
-    bvr_landscape_load(path->string, actor);
+    bvr_create_landscape(&actor->landscape, path->string);
 }
 
 static void bvri_editor_import_asset(bvr_string_t* string){

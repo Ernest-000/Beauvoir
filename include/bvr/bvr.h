@@ -6,6 +6,7 @@
 #include <bvr/math.h>
 
 #include <bvr/scene.h>
+#include <bvr/landscape.h>
 #include <bvr/assets.h>
 #include <bvr/assets.book.h>
 

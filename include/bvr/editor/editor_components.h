@@ -495,13 +495,13 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
         vec3 center;
         float distance;
 
-        center[0] = actor->dimension.resolution[0] * actor->dimension.count[0] / 2;
-        center[1] = -actor->dimension.resolution[1] * actor->dimension.count[1] / 2;
+        center[0] = actor->landscape.grid.tile_size[0] * actor->landscape.grid.tile_per_row / 2;
+        center[1] = -actor->landscape.grid.tile_size[1] * actor->landscape.grid.tile_per_column / 2;
         center[2] = 0.0f;
 
         vec3_add(center, actor->self.transform.position, center);
 
-        distance = actor->dimension.resolution[1] * actor->dimension.count[1];
+        distance = actor->landscape.grid.tile_size[1] * actor->landscape.grid.tile_per_column;
         distance /= 2 * tanf((camera->framebuffer->height / 2.0 / camera->field_of_view.scale / 2.0) / 2.0);
 
         camera->field_of_view.scale = distance / camera->framebuffer->height;
@@ -509,7 +509,7 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
         vec3_copy(camera->transform.position, center);
     }
 
-    bvr_nk_view_image(context, &actor->atlas, false);
+    bvr_nk_view_image(context, &actor->tileset, false);
 
     {
         // interactible tileset
@@ -517,30 +517,32 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
         struct nk_style_button button_state = context->context.style.button;
         struct nk_image image;
 
-        context->context.style.button.border = 0;
+        context->context.style.button.border = 1;
+        context->context.style.button.rounding = 1;
         context->context.style.button.padding = nk_vec2(0, 0);
 
         nk_layout_row_dynamic(&context->context, 
-            actor->atlas.tiles.height * actor->atlas.tiles.tile_per_column * BVR_TILESET_SCALE, 1);
+            actor->tileset.tiles.height * actor->tileset.tiles.tile_per_column * BVR_TILESET_SCALE, 1
+        );
 
-        if (nk_group_begin(&context->context, "#tileset", BVR_NK_WINDOW_DEFAULT | NK_WINDOW_SCALABLE))
+        if (nk_group_begin(&context->context, "tileset", BVR_NK_WINDOW_DEFAULT))
         {
             nk_layout_row_static(
-                &context->context, actor->atlas.tiles.height * BVR_TILESET_SCALE, actor->atlas.tiles.width * BVR_TILESET_SCALE,
-                actor->atlas.tiles.tile_per_row
+                &context->context, actor->tileset.tiles.height * BVR_TILESET_SCALE, actor->tileset.tiles.width * BVR_TILESET_SCALE,
+                actor->tileset.tiles.tile_per_row
             );
 
-            for (size_t y = 0; y < actor->atlas.tiles.tile_per_row; y++)
+            for (size_t y = 0; y < actor->tileset.tiles.tile_per_column; y++)
             {
-                for (size_t x = 0; x < actor->atlas.tiles.tile_per_column; x++)
+                for (size_t x = 0; x < actor->tileset.tiles.tile_per_row; x++)
                 {
-                    int tile = y * actor->atlas.tiles.tile_per_row + x;
-                    int id = (actor->atlas.id << 16) | (tile & 0xFFFF);
+                    int tile = y * actor->tileset.tiles.tile_per_row + x;
+                    int id = (actor->tileset.id << 16) | (tile & 0xFFFF);
                     image = nk_image_id(-id);
 
                     if (nk_button_image(&context->context, image))
                     {
-                        actor->atlas.tiles.brush = tile;
+                        actor->tileset.tiles.brush = tile;
                     }
                 }
             }

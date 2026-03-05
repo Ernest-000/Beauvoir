@@ -78,6 +78,22 @@
 #define BVR_LAYER_CLIPPED   0x01
 #define BVR_LAYER_Y_SORTED  0x02
 
+#if !defined(BVR_CREATE_ATLAS_TILE_SIZE)
+    #define BVR_CREATE_ATLAS_TILE_SIZE(desc, width, height) \
+        desc.tile_width = (width); \
+        desc.tile_height = (height);\
+        desc.tile_per_row = 0; \
+        desc.tile_per_column = 0;
+#endif
+
+#if !defined(BVR_CREATE_ATLAS_TILE_COUNT)
+    #define BVR_CREATE_ATLAS_TILE_COUNT(desc, tile_per_row, tile_per_column) \
+        desc.tile_width = 0; \
+        desc.tile_height = 0;\
+        desc.tile_per_row = tile_per_row; \
+        desc.tile_per_column = tile_per_column;
+#endif
+
 typedef enum bvr_layer_blend_mode_e {
     BVR_LAYER_BLEND_PASSTHROUGH,
     BVR_LAYER_BLEND_NORMAL,
@@ -232,11 +248,12 @@ void bvr_flip_image_vertically(bvr_image_t* image);
 */
 int bvr_image_copy_channel(bvr_image_t* image, int channel, uint8* buffer);
 
+// DEPRECIATE
 /*
     Create a raw OpenGL texture from another texture.
     This function returns the new texture's id.
 */
-int bvr_create_view_texture(const bvr_composite_t* compose, bvr_texture_t* origin, bvr_texture_t* dest, const uint32 layer);
+//int bvr_create_view_texture(const bvr_composite_t* compose, bvr_texture_t* origin, bvr_texture_t* dest, const uint32 layer);
 
 void bvr_destroy_image(bvr_image_t* image);
 

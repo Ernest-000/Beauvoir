@@ -185,28 +185,28 @@ BVR_H_FUNC int bvr_shader_set_texture_raw(bvr_shader_uniform_t* uniform, void* t
  */
 int bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data);
 
+// DEPRECIATE
+// /**
+//  * @brief Bind a float value to an uniform
+//  * @param shader
+//  * @param name the name of a previously registered uniform
+//  * @param data a pointer to the data that will be referenced as uniform's value
+//  * @return 
+//  */
+// BVR_H_FUNC int bvr_shader_set_uniform_f(bvr_shader_t* shader, const char* name, float value){
+//     return bvr_shader_set_uniform(shader, name, &value);
+// }// 
 
-/**
- * @brief Bind a float value to an uniform
- * @param shader
- * @param name the name of a previously registered uniform
- * @param data a pointer to the data that will be referenced as uniform's value
- * @return 
- */
-BVR_H_FUNC int bvr_shader_set_uniform_f(bvr_shader_t* shader, const char* name, float value){
-    return bvr_shader_set_uniform(shader, name, &value);
-}
-
-/**
- * @brief Bind an int value to an uniform
- * @param shader
- * @param name the name of a previously registered uniform
- * @param data a pointer to the data that will be referenced as uniform's value
- * @return 
- */
-BVR_H_FUNC int bvr_shader_set_uniform_i(bvr_shader_t* shader, const char* name, int value){
-    return bvr_shader_set_uniform(shader, name, &value);
-}
+// /**
+//  * @brief Bind an int value to an uniform
+//  * @param shader
+//  * @param name the name of a previously registered uniform
+//  * @param data a pointer to the data that will be referenced as uniform's value
+//  * @return 
+//  */
+// BVR_H_FUNC int bvr_shader_set_uniform_i(bvr_shader_t* shader, const char* name, int value){
+//     return bvr_shader_set_uniform(shader, name, &value);
+// }
 
 BVR_H_FUNC int bvr_shader_set_texture(bvr_shader_t* shader, const char* name, void* texture){
     return bvr_shader_set_uniform_raw(bvr_find_uniform(shader, name), texture);

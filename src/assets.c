@@ -339,7 +339,7 @@ void bvr_write_book_dataf(FILE* file, bvr_book_t* book){
                     bvr_landscape_actor_t* landscape = (bvr_landscape_actor_t*)actor;
                     uint32 landscape_byte_length = landscape->mesh.vertex_count * sizeof(int);
 
-                    fwrite(&landscape->dimension, sizeof(landscape->dimension), 1, file);
+                    fwrite(&landscape->landscape, sizeof(landscape->landscape), 1, file);
                     fwrite(&landscape_byte_length, sizeof(uint32), 1, file);
                     
                     glBindBuffer(GL_ARRAY_BUFFER, landscape->mesh.vertex_buffer);
@@ -577,11 +577,13 @@ void bvr_open_book_dataf(FILE* file, bvr_book_t* book){
                     bvr_landscape_actor_t* landscape = (bvr_landscape_actor_t*)target;
 
                     // landscape's dimensions
-                    landscape->dimension.count[0] = bvr_fread32_le(file);
-                    landscape->dimension.count[1] = bvr_fread32_le(file);
-                    landscape->dimension.resolution[0] = bvr_fread32_le(file);
-                    landscape->dimension.resolution[1] = bvr_fread32_le(file);
-                    landscape->dimension.layers = bvr_fread32_le(file);
+                    landscape->landscape.grid.tile_per_row = bvr_fread32_le(file);
+                    landscape->landscape.grid.tile_per_column = bvr_fread32_le(file);
+                    landscape->landscape.grid.tile_size[0] = bvr_fread32_le(file);
+                    landscape->landscape.grid.tile_size[0] = bvr_fread32_le(file);
+
+                    landscape->landscape.grid.layers.elemsize = sizeof(struct bvr_landscape_layer_s);
+                    landscape->landscape.grid.layers.size = bvr_fread32_le(file) * sizeof(struct bvr_landscape_layer_s);
 
                     // size of the landscape buffer
                     uint32 landscape_bytes_length = bvr_fread32_le(file);
@@ -589,18 +591,7 @@ void bvr_open_book_dataf(FILE* file, bvr_book_t* book){
                     // clamp byte size
                     landscape_bytes_length = MIN(landscape_bytes_length, landscape->mesh.vertex_count * sizeof(int));
                     
-                    if(landscape->mesh.array_buffer && landscape->mesh.vertex_buffer){
-                        glBindBuffer(GL_ARRAY_BUFFER, landscape->mesh.vertex_buffer);
-                        int* map = glMapBufferRange(GL_ARRAY_BUFFER, 0, landscape_bytes_length, GL_MAP_WRITE_BIT);
-                        
-                        if(map){
-                            fread(map, sizeof(char), landscape_bytes_length, file);
-
-                            glUnmapBuffer(GL_ARRAY_BUFFER);
-                        }
-
-                        glBindBuffer(GL_ARRAY_BUFFER, 0);
-                    }
+                    BVR_ASSERT(0 && "not implemented");
 
                 }
             default:

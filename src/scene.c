@@ -39,7 +39,7 @@ int bvr_create_book(bvr_book_t *book)
 
     book->pipeline.rendering_pass.blending = BVR_BLEND_FUNC_ALPHA_ONE_MINUS;
     book->pipeline.rendering_pass.depth = BVR_DEPTH_FUNC_LESS;
-    book->pipeline.rendering_pass.flags = 0;
+    book->pipeline.rendering_pass.flags = BVR_FACE_CULLING_ENABLE | BVR_WIREFRAME_ENABLE;
 
     book->pipeline.gui_pass.blending = BVR_BLEND_FUNC_ALPHA_ADD;
     book->pipeline.gui_pass.depth = BVR_DEPTH_TEST_DISABLE;
@@ -206,7 +206,7 @@ void bvr_flush(bvr_book_t *book)
     // draw each command
     for (uint64 i = 0; i < book->pipeline.command_count; i++)
     {
-        bvr_pipeline_do_draw_cmd(&book->pipeline.commands[i]);
+        bvr_pipeline_do_draw_cmd(&book->pipeline.rendering_pass, &book->pipeline.commands[i]);
     }
 
     book->pipeline.command_count = 0;

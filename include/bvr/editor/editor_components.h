@@ -7,16 +7,34 @@
 
 #ifndef BVR_NO_NUKLEAR
 
-#define BVR_NK_WINDOW_DEFAULT (NK_WINDOW_BORDER | NK_WINDOW_TITLE)
+#define BVR_NK_WINDOW_DEFAULT (NK_WINDOW_BORDER | NK_WINDOW_TITLE | NK_WINDOW_SCALABLE)
 #define BVR_ROW_HEIGHT (15)
 #define BVR_TILESET_SCALE (1.5)
 
 #define BVR_NK_SEPARATOR(context) nk_label(context, "~~~~~~~~~~~~~~~~~~~~~", NK_TEXT_CENTERED)
 
+#define BVR_NK_RECT(rect) nk_rect(rect.coords[0], rect.coords[1], rect.width, rect.height)
+
 #define BVR_NK_COMBO(value, e, name) int f ## ##e = value == e;\
-    if(nk_checkbox_label(&__editor->gui.context, name, &(f ## ##e))){\
+    if(nk_checkbox_label(&bvr_get_editor_instance()->gui.context, name, &(f ## ##e))){\
         value = e;\
     }
+
+#define BVR_NK_CHECKBOX(value, flag, name) int f ## ##flag = BVR_HAS_FLAG(value, flag);\
+    if(nk_checkbox_label(&bvr_get_editor_instance()->gui.context, name, &(f ## ##flag))){\
+        value |= flag;\
+    } else { value &= ~flag; }
+
+static int bvr_nk_mouse_hover_panels(bvr_editor_t* editor){
+    int hover = 0;
+
+    struct nk_rect inspector = BVR_NK_RECT(editor->inspector.viewport);
+    struct nk_rect hierarchy = BVR_NK_RECT(editor->hierarchy.viewport);
+
+    hover |= nk_input_is_mouse_hovering_rect(&editor->gui.context.input, inspector);
+    hover |= nk_input_is_mouse_hovering_rect(&editor->gui.context.input, hierarchy);
+    return hover;
+}
 
 /* Generic components */
 static void bvr_nk_draw_actor_component(bvr_canvas_t* context, void* user);
@@ -199,9 +217,9 @@ static void bvr_nk_draw_transform_component(bvr_canvas_t* context, void* user){
 
     if(nk_tree_push(&context->context, NK_TREE_NODE, "transform", NK_MAXIMIZED)){
         nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 3);
-        nk_property_float(&context->context, "#x", -100000.0f, &transform->position[0], 100000.0f, 0.1f, 0.1f);
-        nk_property_float(&context->context, "#y", -100000.0f, &transform->position[1], 100000.0f, 0.1f, 0.1f);
-        nk_property_float(&context->context, "#z", -100000.0f, &transform->position[2], 100000.0f, 0.1f, 0.1f);
+        nk_property_float(&context->context, "#x", -100000.0f, &transform->position[0], 100000.0f, 10.0f, 10.0f);
+        nk_property_float(&context->context, "#y", -100000.0f, &transform->position[1], 100000.0f, 10.0f, 10.0f);
+        nk_property_float(&context->context, "#z", -100000.0f, &transform->position[2], 100000.0f, 10.0f, 10.0f);
         nk_property_float(&context->context, "#r", -100000.0f, &transform->rotation[0], 100000.0f, 1.0f, 1.0f);
         nk_property_float(&context->context, "#p", -100000.0f, &transform->rotation[1], 100000.0f, 1.0f, 1.0f);
         nk_property_float(&context->context, "#y", -100000.0f, &transform->rotation[2], 100000.0f, 1.0f, 1.0f);
@@ -399,7 +417,12 @@ static void bvr_nk_draw_camera_component(bvr_canvas_t* context, void* user){
 }
 
 static void bvr_nk_draw_gpipeline_component(bvr_canvas_t* context, void* user){
+    BVR_ASSERT(user);
 
+    bvr_pipeline_t* pipeline = (bvr_pipeline_t*)user;
+
+    nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
+    BVR_NK_CHECKBOX(pipeline->rendering_pass.flags, BVR_WIREFRAME_ENABLE, "wireframe");
 }
 
 static void bvr_nk_draw_global_illumination_component(bvr_canvas_t* context, void* user){
@@ -554,6 +577,67 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
         nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
         context->context.style.button = button_state;
     }
+
+    // tilemap editor behaviour
+    {
+        int id = 0;
+        int layer = 0;
+        vec2 screen, tile;
+        vec3 world, local_world;
+        BVR_SCALE_VEC3(screen, 0);
+        
+        bvr_mouse_position(&screen[0], &screen[1]);
+        bvr_screen_to_world(&bvr_get_instance()->page->camera, screen, world);
+    
+
+        // draw tile gizmo
+        {
+            vec2 t_pos;
+            
+            // snap to grid
+            t_pos[0] = ((int)world[0] + actor->landscape.grid.tile_size[0] / 2) / actor->landscape.grid.tile_size[0] * actor->landscape.grid.tile_size[0];
+            t_pos[1] = ((int)world[1] + actor->landscape.grid.tile_size[1] / 2) / actor->landscape.grid.tile_size[1] * actor->landscape.grid.tile_size[1];
+            
+            // center
+            t_pos[0] -= actor->landscape.grid.tile_size[0] / 2;
+            t_pos[1] -= actor->landscape.grid.tile_size[1] / 2;
+
+            // snap with landscape transform
+            t_pos[0] += ((int)actor->self.transform.position[0] % (actor->landscape.grid.tile_size[0] / 2));
+            t_pos[1] += ((int)actor->self.transform.position[1] % (actor->landscape.grid.tile_size[1] / 2));
+
+            // set draw color
+            BVR_CREATE_VEC3(bvr_get_editor_instance()->draw_cmd.color, 0.0f, 1.0f, 0.0f);
+        
+            float vertices[] = {
+                t_pos[0] + actor->landscape.grid.tile_size[0] * -0.5f, t_pos[1] + actor->landscape.grid.tile_size[0] * +0.5f, 0.1f,
+                t_pos[0] + actor->landscape.grid.tile_size[0] * +0.5f, t_pos[1] + actor->landscape.grid.tile_size[0] * +0.5f, 0.1f,
+                t_pos[0] + actor->landscape.grid.tile_size[0] * +0.5f, t_pos[1] + actor->landscape.grid.tile_size[0] * -0.5f, 0.1f,
+                t_pos[0] + actor->landscape.grid.tile_size[0] * -0.5f, t_pos[1] + actor->landscape.grid.tile_size[0] * -0.5f, 0.1f,
+                t_pos[0] + actor->landscape.grid.tile_size[0] * -0.5f, t_pos[1] + actor->landscape.grid.tile_size[0] * +0.5f, 0.1f,
+            };
+
+            bvr_editor_draw_vertex_buffer(vertices, 0, sizeof(vertices) / sizeof(vec3), 3, BVR_DRAWMODE_LINE_STRIPE);
+        }
+
+        if(bvr_button_down(BVR_MOUSE_BUTTON_LEFT) && !bvr_nk_mouse_hover_panels(bvr_get_editor_instance())){
+            vec3_sub(tile, world, actor->self.transform.position);
+        
+            // coords to tile
+            tile[0] /= actor->landscape.grid.tile_size[0];
+            tile[1] /= actor->landscape.grid.tile_size[1];
+
+            tile[0] = MAX(0, MIN(tile[0], actor->landscape.grid.tile_per_row - 1));
+            tile[1] = MAX(0, MIN(tile[1], actor->landscape.grid.tile_per_column - 1));
+
+            struct bvr_tile_s prev_tile = bvr_landscape_get_tile(&actor->landscape, tile[0], tile[1], layer);
+            prev_tile.texture = actor->tileset.tiles.brush;
+            
+            bvr_landscape_set_tile(&actor->landscape, tile[0], tile[1], layer, prev_tile);
+        }
+    }
+
+    
 }
 
 #endif

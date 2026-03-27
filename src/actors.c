@@ -429,7 +429,7 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
         cmd.vertex_group = *(bvr_vertex_group_t*)actor->mesh.vertex_groups.blocks[0].data;
         cmd.vertex_group.texture = actor->texture.id;
 
-        bvr_pipeline_do_draw_cmd(&cmd);
+        bvr_pipeline_do_draw_cmd(&bvr_get_instance()->pipeline.rendering_pass, &cmd);
     }
 
     // disable composite and target the renderbuffer

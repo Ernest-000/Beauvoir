@@ -1,4 +1,5 @@
 #include <bvr/editor/editor.h>
+#include <bvr/editor/editor_style.h>
 #include <bvr/editor/editor_flags.h>
 #include <bvr/editor/editor_components.h>
 #include <bvr/editor/editor_landscape.h>
@@ -21,7 +22,7 @@
 
 #define BVR_EDITOR_VERTEX_BUFFER_SIZE 1000
 
-#define BVR_RECT(rect) nk_rect(rect.coords[0], rect.coords[1], rect.width, rect.height)
+#define BVR_NK_RECT(rect) nk_rect(rect.coords[0], rect.coords[1], rect.width, rect.height)
 
 // global functionalities
 static void bvri_editor_import_asset(bvr_string_t* string);
@@ -66,6 +67,8 @@ void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book){
     
     __editor = editor;
 
+    struct nk_style* style = &editor->gui.context.style;
+
     editor->book = book;
     editor->callback = NULL;
     editor->state = BVR_EDITOR_STATE_HANDLE;
@@ -78,17 +81,15 @@ void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book){
     editor->draw_cmd.element_offset = 0;
     editor->draw_cmd.element_count = 0;
 
-    editor->device.hierarchy_viewport.width = 200.0f / BVR_EDITOR_SCALE;
-    editor->device.hierarchy_viewport.height = 450.0f / BVR_EDITOR_SCALE;
-    editor->device.hierarchy_viewport.coords[0] = 0.0f;
-    editor->device.hierarchy_viewport.coords[1] = 0.0f;
+    editor->hierarchy.viewport.width = 200.0f / BVR_EDITOR_SCALE;
+    editor->hierarchy.viewport.height = book->window.framebuffer.height * 0.8f / BVR_EDITOR_SCALE;
+    editor->hierarchy.viewport.coords[0] = 2.0;
+    editor->hierarchy.viewport.coords[1] = 2.0;
     
-    editor->device.inspector_viewport.width = 350.0f / BVR_EDITOR_SCALE;
-    editor->device.inspector_viewport.height = 400.0f / BVR_EDITOR_SCALE;
-    editor->device.inspector_viewport.coords[0] = book->window.framebuffer.width - editor->device.inspector_viewport.width;
-    editor->device.inspector_viewport.coords[1] = 0.0f;
-
-    memset(&editor->memory, 0, sizeof(editor->memory));
+    editor->inspector.viewport.width = 350.0f / BVR_EDITOR_SCALE;
+    editor->inspector.viewport.height = book->window.framebuffer.height * 0.8f / BVR_EDITOR_SCALE;
+    editor->inspector.viewport.coords[0] = book->window.framebuffer.width - editor->inspector.viewport.width;
+    editor->inspector.viewport.coords[1] = 2.0;
 
     {
         const char* vertex_shader = 
@@ -111,12 +112,12 @@ void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book){
         
         const char* shaders[2] = { vertex_shader, fragment_shader };
         BVR_ASSERT(bvr_create_shader_raw(&editor->device.shader, shaders, BVR_VERTEX_SHADER | BVR_FRAGMENT_SHADER));
-        BVR_ASSERT(bvr_shader_register_uniform(&editor->device.shader, BVR_VEC3, 1, 0, "bvr_color"));
+        BVR_ASSERT(bvr_shader_register_uniform(&editor->device.shader, BVR_VEC3, 0, 1, "bvr_color"));
 
-        vec3 color = {0.0f, 1.0f, 0.0f};
         BVR_IDENTITY_MAT4(editor->device.transform);
+        BVR_IDENTITY_VEC3(editor->draw_cmd.color);
         
-        bvr_shader_set_uniform_raw(&editor->device.shader.uniforms[1], &color);
+        bvr_shader_set_uniform(&editor->device.shader, "bvr_color", &editor->draw_cmd.color);
     }
 
     if(!bvri_create_editor_render_buffers(
@@ -128,7 +129,9 @@ void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book){
     }
     
     bvr_create_string(&editor->inspector_cmd.name, NULL);
+    
     bvr_create_canvas(&editor->gui, book);
+    bvr_nk_style(&editor->gui.context);
 }
 
 bvr_editor_t* bvr_get_editor_instance(){
@@ -172,8 +175,8 @@ void bvr_editor_draw_page_hierarchy(){
 
     struct nk_context* p_context = &__editor->gui.context;
 
-    if(nk_begin(p_context, BVR_FORMAT("scene '%s'", __editor->book->page->name.string), BVR_RECT(__editor->device.hierarchy_viewport), 
-        NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE)){
+    if(nk_begin(p_context, BVR_FORMAT("scene '%s'", __editor->book->page->name.string), BVR_NK_RECT(__editor->hierarchy.viewport), 
+        BVR_NK_WINDOW_DEFAULT)){
         
         nk_layout_space_begin(p_context, NK_DYNAMIC, 1, 1);
         
@@ -209,10 +212,10 @@ void bvr_editor_draw_page_hierarchy(){
         __editor->device.is_gui_hovered |= nk_window_is_hovered(p_context);
 
         struct nk_rect bounds = nk_window_get_bounds(p_context);
-        __editor->device.hierarchy_viewport.width = bounds.w;
-        __editor->device.hierarchy_viewport.height = bounds.h;
-        __editor->device.hierarchy_viewport.coords[0] = bounds.x;
-        __editor->device.hierarchy_viewport.coords[1] = bounds.y;
+        __editor->hierarchy.viewport.width = bounds.w;
+        __editor->hierarchy.viewport.height = bounds.h;
+        __editor->hierarchy.viewport.coords[0] = bounds.x;
+        __editor->hierarchy.viewport.coords[1] = bounds.y;
 
         nk_end(p_context);
     }
@@ -226,8 +229,8 @@ void bvr_editor_draw_inspector(){
     BVR_ASSERT(__editor->state == BVR_EDITOR_STATE_DRAWING);
 
     if(nk_begin(&__editor->gui.context, BVR_FORMAT("inspector '%s'", __editor->inspector_cmd.name.string), 
-        BVR_RECT(__editor->device.inspector_viewport), 
-        NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE)){
+        BVR_NK_RECT(__editor->inspector.viewport), 
+        BVR_NK_WINDOW_DEFAULT | NK_WINDOW_MOVABLE)){
     
         __editor->draw_cmd.drawmode = 0;
         __editor->draw_cmd.element_offset = 0;
@@ -238,10 +241,10 @@ void bvr_editor_draw_inspector(){
         BVR_CALL(__editor->inspector_cmd.component, &__editor->gui, __editor->inspector_cmd.object);
 
         struct nk_rect bounds = nk_window_get_bounds(&__editor->gui.context);
-        __editor->device.inspector_viewport.width = bounds.w;
-        __editor->device.inspector_viewport.height = bounds.h;
-        __editor->device.inspector_viewport.coords[0] = bounds.x;
-        __editor->device.inspector_viewport.coords[1] = bounds.y;
+        __editor->inspector.viewport.width = bounds.w;
+        __editor->inspector.viewport.height = bounds.h;
+        __editor->inspector.viewport.coords[0] = bounds.x;
+        __editor->inspector.viewport.coords[1] = bounds.y;
 
         nk_end(&__editor->gui.context);
     }
@@ -268,6 +271,23 @@ void bvr_editor_render(){
 
     bvr_canvas_render(&__editor->gui);
 }
+
+void bvr_editor_draw_vertex_buffer(float* vertices, uint32 offset, uint32 vertices_count, uint8 stride, int drawmode){
+    BVR_ASSERT(vertices);
+    BVR_ASSERT(vertices_count > 0);
+
+    BVR_ASSERT(__editor);
+
+    bvri_bind_editor_buffers(__editor->device.array_buffer, __editor->device.vertex_buffer);
+    bvri_set_editor_buffers(vertices, vertices_count, stride);
+    bvri_bind_editor_buffers(0, 0);
+
+    __editor->draw_cmd.drawmode = drawmode;
+    __editor->draw_cmd.element_offset = offset;
+    __editor->draw_cmd.element_count = vertices_count - offset;
+}
+
+void bvr_editor_draw_element_buffer(float* vertices, uint32 vertices_count, uint8 stride);
 
 void bvr_destroy_editor(bvr_editor_t* editor){
     bvr_destroy_string(&editor->inspector_cmd.name);

@@ -30,12 +30,19 @@ enum bvr_editor_state_e {
 typedef void (*_bvr_editor_callback)(bvr_canvas_t* context, bvr_book_t* book);
 typedef void (*_bvr_editor_component_draw_callback)(bvr_canvas_t* context, void* user);
 
+struct bvri_editor_window_s {
+    struct bvr_bounds_s viewport;
+};
+
 typedef struct bvr_editor_s {
     bvr_canvas_t gui;
     bvr_book_t* book;
 
     enum bvr_editor_state_e state;
     _bvr_editor_callback callback;
+
+    struct bvri_editor_window_s inspector;
+    struct bvri_editor_window_s hierarchy;
 
     struct {
         bvr_shader_t shader;
@@ -44,9 +51,6 @@ typedef struct bvr_editor_s {
         uint32 vertex_buffer;
 
         mat4x4 transform;
-
-        struct bvr_bounds_s hierarchy_viewport;
-        struct bvr_bounds_s inspector_viewport;
         
         bool is_gui_hovered;
     } device;
@@ -59,24 +63,13 @@ typedef struct bvr_editor_s {
 
         _bvr_editor_component_draw_callback component;
     } inspector_cmd;
-
-    /*
-        contains specific user data for each 
-        necessary editor's components
-    */
-    union {
-        // landscape buffer
-        struct {
-            uint32 cursor[2];
-            uint32 taget;
-        } landscape;
-    } memory;
     
     struct {
         int drawmode;
 
         uint32 element_offset;
         uint32 element_count;
+        vec3 color;
     } draw_cmd;
 
 } bvr_editor_t;
@@ -113,6 +106,14 @@ void bvr_editor_draw_inspector();
 */
 void bvr_editor_render();
 
+/**
+ * Update editor's draw command buffer.
+ */
+void bvr_editor_draw_vertex_buffer(
+    float* vertices, uint32 offset, 
+    uint32 vertices_count, uint8 stride, int drawmode
+);
+
 void bvr_destroy_editor(bvr_editor_t* editor);
 
-#endif
+#endif 

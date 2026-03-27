@@ -55,8 +55,14 @@ BVR_H_FUNC int bvr_create_landscape(bvr_landscape_t* landscape, const char* path
 int bvr_create_landscape_empty(bvr_landscape_t* landscape, 
     uint16 tile_per_row, uint16 tile_per_column, vec2 tile_size, uint8 layer_count);
 
-BVR_H_FUNC int bvr_landscape_tile_id(bvr_landscape_t* landscape, int id){
-    return (id - (3 * (id / landscape->grid.tile_per_row * 2 + 3))) / 2 - 1;
+void bvr_landscape_set_tile(bvr_landscape_t* landscape, uint32 x, uint32 y, uint8 layer, struct bvr_tile_s tile);
+
+BVR_H_FUNC struct bvr_tile_s bvr_landscape_get_tile(bvr_landscape_t* landscape, uint32 x, uint32 y, uint8 layer){
+    uint64 tiles_per_layer = landscape->grid.tile_count / BVR_BUFFER_COUNT(landscape->grid.layers);
+    uint64 vert_per_row = landscape->grid.tile_per_row * 2 + 3;
+
+    uint32 id = y * vert_per_row + clampi(x * 2, 0, vert_per_row - 2) + 3;
+    return landscape->grid.tiles[tiles_per_layer * layer + id];
 }
 
 void bvr_destroy_landscape(bvr_landscape_t* landscape);

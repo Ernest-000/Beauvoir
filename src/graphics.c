@@ -19,13 +19,17 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
     // flags
     glDisable(GL_SCISSOR_TEST);
     glDisable(GL_CULL_FACE);
-    
+
     if(BVR_HAS_FLAG(state->flags, BVR_SCISSORS_ENABLE)){
         glEnable(GL_SCISSOR_TEST);
     }
+
+    if(BVR_HAS_FLAG(state->flags, BVR_FACE_CULLING_ENABLE)){
+        glEnable(GL_CULL_FACE);
+    }
 }
 
-void bvr_pipeline_do_draw_cmd(struct bvr_draw_command_s* cmd){
+void bvr_pipeline_do_draw_cmd(struct bvr_pipeline_state_s* state, struct bvr_draw_command_s* cmd){
     // try to apply local uniform
     bvr_shader_set_uniform_raw(
         bvr_find_uniform_tag(cmd->shader, BVR_UNIFORM_LOCAL_TRANSFORM), 
@@ -43,6 +47,10 @@ void bvr_pipeline_do_draw_cmd(struct bvr_draw_command_s* cmd){
         glEnableVertexAttribArray(i);
     }
     
+    if(BVR_HAS_FLAG(state->flags, BVR_WIREFRAME_ENABLE)){
+        cmd->draw_mode = GL_LINE_STRIP_ADJACENCY;      
+    }
+
     // if use element 
     if(cmd->element_buffer){ 
         glDrawRangeElements(

@@ -34,6 +34,12 @@
 #define BVR_SCISSORS_DISABLE 0x00
 #define BVR_SCISSORS_ENABLE 0x01
 
+#define BVR_FACE_CULLING_DISABLE 0x02
+#define BVR_FACE_CULLING_ENABLE 0x04
+
+#define BVR_WIREFRAME_DISABLE 0x08
+#define BVR_WIREFRAME_ENABLE 0x10
+
 #if !defined(BVR_MAX_DRAW_COMMAND)
     #define BVR_MAX_DRAW_COMMAND 258
 #endif
@@ -132,7 +138,7 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state);
  * @param bvr_draw_command_s
  * @return (void)
  */
-void bvr_pipeline_do_draw_cmd(struct bvr_draw_command_s* cmd);
+void bvr_pipeline_do_draw_cmd(struct bvr_pipeline_state_s* state, struct bvr_draw_command_s* cmd);
 
 /**
  * @brief Add a draw command to the draw queue. The command will be sorted and drawn when the 

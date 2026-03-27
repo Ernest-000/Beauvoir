@@ -60,19 +60,20 @@ void bvr_screen_to_world(bvr_camera_t* camera, vec2 p_screen, vec3 p_world){
         bvr_uniform_buffer_close();
         bvr_enable_uniform_buffer(0);
 
-        screen[0] = 2.0f * (p_screen[0] / (camera->framebuffer->width)) - 1.0f;
+        screen[0] = 2.0f * (p_screen[0] / camera->framebuffer->width) - 1.0f;
         screen[1] = 1.0f - 2.0f * (p_screen[1] / (camera->framebuffer->height));
-        screen[2] = 0.0f;
+        screen[2] = -1.0f;
         screen[3] = 1.0f;
         
         mat4_mul(projection, projection, view);
         mat4_inv(inv, projection);
+
         mat4_mul_vec4(world, inv, screen);
 
-        p_world[3] = 1.0f / world[3] * 2.0f;
-        p_world[0] = world[0] * world[3];
-        p_world[1] = world[1] * world[3];
-        p_world[2] = world[2] * world[3];
+        p_world[0] = world[0] * world[3] / 2;
+        p_world[1] = world[1] * world[3] / 2;
+        p_world[2] = world[2] * world[3] / 2;
+        
         return;
     }
 

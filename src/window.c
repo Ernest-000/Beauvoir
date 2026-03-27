@@ -54,27 +54,27 @@ void static bvr_error_callback(GLenum source, GLenum type, GLuint id,
     {
         case GL_DEBUG_SEVERITY_HIGH:
             BVR_STRCPY(error, "fatal error", 12);
+            BVR_PRINTF("catch a new %s(%i) from %s! '%s'", error, id, src, message);
             break;
 
-        case GL_DEBUG_SEVERITY_MEDIUM:
-            BVR_STRCPY(error, "medium error", 13);
-            break;
-        
-        case GL_DEBUG_SEVERITY_LOW:
-            BVR_STRCPY(error, "warning", 8);
-            break;
-        
+        // case GL_DEBUG_SEVERITY_MEDIUM:
+        //     BVR_STRCPY(error, "medium error", 13);
+        //     break;
+        // 
+        // case GL_DEBUG_SEVERITY_LOW:
+        //     BVR_STRCPY(error, "warning", 8);
+        //     break;
+        // 
         // case GL_DEBUG_SEVERITY_NOTIFICATION:
         //     BVR_STRCPY(error, "notification", 13);
         //     break;
         
         default:
-            BVR_STRCPY(error, "other", 6);
+            //BVR_STRCPY(error, "unknown", 6);
             break;
         
     };
 
-    BVR_PRINTF("catch a new %s(%i) from %s! '%s'", error, id, src, message);
 }
 
 int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 height, const char* title, const int flags){

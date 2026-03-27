@@ -66,6 +66,8 @@ int bvr_create_landscape_empty(bvr_landscape_t* landscape,
     element_buffer.type = BVR_UNSIGNED_INT32;
     element_buffer.count = landscape->grid.tile_count;
 
+    BVR_PRINTF("%i %i", 0, landscape->grid.tile_count);
+
     if(!bvr_create_meshv(landscape->mesh, &vertex_buffer, &element_buffer, BVR_MESH_ATTRIB_SINGLE)){
         return BVR_FALSE;
     }
@@ -90,7 +92,7 @@ int bvr_create_landscape_empty(bvr_landscape_t* landscape,
     return BVR_TRUE;
 }
 
-static int bvri_landscapejson(bvr_landscape_t* landscape, FILE* file){
+static int bvri_load_landscapejson(bvr_landscape_t* landscape, FILE* file){
     json_object* json_root = NULL;
     json_object* json_width = NULL;
     json_object* json_height = NULL;
@@ -140,7 +142,7 @@ static int bvri_landscapejson(bvr_landscape_t* landscape, FILE* file){
             json_object_get_int(json_width), 
             json_object_get_int(json_height), 
             (vec2){json_object_get_int(json_tilewidth), json_object_get_int(json_tileheight)}, 
-            json_object_get_int(json_layers)
+            json_object_array_length(json_layers)
         );
     }
 
@@ -196,21 +198,32 @@ static int bvri_landscapejson(bvr_landscape_t* landscape, FILE* file){
 
         // copy data
         if(buffer.string){
-            uint32 target = 0;
-            const uint32 vertices_per_row = landscape->grid.tile_per_row * 2.0f + 3.0f;
-            
-            for (size_t id = 0; id < landscape->grid.tile_count; id++)
-            {                
-                target = bvr_landscape_tile_id(landscape, id);
+            const int vert_per_row = landscape->grid.tile_per_row * 2 + 3;
+            const int vert_per_layer = landscape->grid.tile_count / BVR_BUFFER_COUNT(landscape->grid.layers);
 
-                // trying to not overflow
-                target = MIN(target, buffer.length);
+            for (size_t i = 0; i < BVR_BUFFER_COUNT(landscape->grid.layers); i++)
+            {
+                for (size_t y = 0; y < landscape->grid.tile_per_column; y++)
+                {
+                    for (size_t x = 0; x < landscape->grid.tile_per_row; x++)
+                    {
+                        int texid = MIN(y * landscape->grid.tile_per_row + x, buffer.length);
 
-                landscape->grid.tiles[id + 1].altitude = 0;
-                landscape->grid.tiles[id + 1].texture = ((unsigned int*)buffer.string)[target] - 1;
-                landscape->grid.tiles[id + 1].norm_x = 0;
-                landscape->grid.tiles[id + 1].norm_y = 0;
-            }       
+                        int tile = y * vert_per_row + clampi(x * 2, 0, vert_per_row - 2) + 3;
+                        tile += i * vert_per_layer;
+
+                        landscape->grid.tiles[tile].texture = buffer.string[texid];
+                        landscape->grid.tiles[tile].altitude = 0;
+                        landscape->grid.tiles[tile].norm_x = 0;
+                        landscape->grid.tiles[tile].norm_y = 0;
+
+                        landscape->grid.tiles[tile + 1].texture = buffer.string[texid];
+                        landscape->grid.tiles[tile + 1].altitude = 0;
+                        landscape->grid.tiles[tile + 1].norm_x = 0;
+                        landscape->grid.tiles[tile + 1].norm_y = 0;
+                    }
+                }
+            }
         }
 
         bvr_destroy_string(&buffer);
@@ -235,7 +248,11 @@ int bvr_create_landscapef(bvr_landscape_t* landscape, FILE* file){
 
     // if this is a json file
     if(header == '{'){
-        status |= bvri_landscapejson(landscape, file);
+        status |= bvri_load_landscapejson(landscape, file);
+    }
+    else if(header == '<'){
+        BVR_PRINT("xml tilemap are not supported!");
+        return false;    
     }
     else {
         BVR_PRINT("invalid landscape format. file might be corrupted or the format is unknown...");
@@ -243,6 +260,19 @@ int bvr_create_landscapef(bvr_landscape_t* landscape, FILE* file){
     }
 
     return status;
+}
+
+void bvr_landscape_set_tile(bvr_landscape_t* landscape, uint32 x, uint32 y, uint8 layer, struct bvr_tile_s tile){
+    BVR_ASSERT(landscape);
+
+    int vert_per_row = landscape->grid.tile_per_row * 2 + 3;
+    int id = y * vert_per_row + clampi(x * 2, 0, vert_per_row - 2) + 3;
+
+    landscape->grid.tiles[id] = tile;
+
+    BVR_PRINTF("selected tile %i %i", x, y);
+
+    bvri_update_landscape_buffers(landscape, layer);
 }
 
 void bvr_destroy_landscape(bvr_landscape_t* landscape){
@@ -253,92 +283,3 @@ void bvr_destroy_landscape(bvr_landscape_t* landscape){
     landscape->grid.tiles = NULL;
     landscape->grid.layers.data = NULL;
 }
-
-/*
-void bvr_create_landscape_grid(bvr_landscape_actor_t* actor, struct bvr_landscape_grid_s* grid){
-    BVR_ASSERT(actor);
-    BVR_ASSERT(grid);
-
-    struct bvr_tile_s generic_tile;
-    generic_tile.texture = 1;
-    generic_tile.altitude = 0;
-    generic_tile.norm_x = 0;
-    generic_tile.norm_y = 0;
-
-    grid->tile_count = grid->count[0] * grid->count[1] * 2 + grid->count[1] * 3;
-    grid->tile_count *= MAX(1, grid->layers);
-
-    // if the actor's grid is not the same we copy it
-    if(&actor->grid != grid){
-        actor->grid = *grid;
-    }
-
-    actor->grid.tiles = malloc(grid->tile_count * sizeof(struct bvr_tile_s));
-    BVR_ASSERT(actor->grid.tiles);
-
-    // set all tiles to zero
-    for (size_t i = 0; i < actor->grid.tile_count; i++)
-    {
-        actor->grid.tiles[i] = generic_tile;
-    }
-    
-    bvr_mesh_buffer_t vertices_buffer;
-    vertices_buffer.data = (char*) actor->grid.tiles;
-    vertices_buffer.type = BVR_INT32;
-    vertices_buffer.count = actor->grid.tile_count;
-
-    bvr_mesh_buffer_t element_buffer;
-    element_buffer.data = (char*) NULL;
-    element_buffer.type = BVR_UNSIGNED_INT32;
-    element_buffer.count = actor->grid.tile_count;
-
-    bvr_create_meshv(&actor, &vertices_buffer, &element_buffer, BVR_MESH_ATTRIB_SINGLE);
-
-    // create layers
-    bvr_destroy_pool(&actor->mesh.vertex_groups);
-    bvr_create_pool(&actor->mesh.vertex_groups, sizeof(bvr_vertex_group_t), actor->grid.layers);
-    for (size_t i = 0; i < actor->grid.layers; i++)
-    {
-        bvr_vertex_group_t* group = bvr_pool_alloc(&actor->mesh.vertex_groups);
-        group->name.length = 0;
-        group->name.string = NULL;
-        group->element_offset = (actor->grid.tile_count / actor->grid.layers) * i;
-        group->element_count = (actor->grid.tile_count / actor->grid.layers);
-        group->texture = 0;
-
-        BVR_IDENTITY_MAT4(group->matrix);
-    }
-}
-
-
-
-int bvr_landscape_loadf(bvr_landscape_actor_t* actor, FILE* file){
-    BVR_ASSERT(actor);
-    BVR_ASSERT(file);
-
-    if(!actor->mesh.vertex_buffer){
-        BVR_PRINT("landscape should be intialized before !");
-        return BVR_FALSE;
-    }
-
-    fseek(file, 0, SEEK_SET);
-    
-    char header = bvr_freadu8_le(file);
-    
-    if(header == '{'){
-        bvri_landscapejson(actor, file);
-    }
-    else {
-        BVR_PRINT("file might be corrupted or use an unknown format!");
-        return BVR_FALSE;
-    }
-
-    return BVR_TRUE;
-}
-
-void bvr_destroy_landscape(struct bvr_landscape_grid_s* grid){
-    BVR_ASSERT(grid);
-
-    free(grid->tiles);
-    grid->tiles = NULL;
-}*/

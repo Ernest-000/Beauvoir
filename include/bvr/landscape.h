@@ -18,11 +18,16 @@
 /*
     landscape tile's informations
 */
+//struct bvr_tile_s {
+//    uint8 altitude;
+//    uint8 texture;
+//    uint8 norm_x;
+//    uint8 norm_y;
+//};
+
 struct bvr_tile_s {
-    uint8 altitude;
-    uint8 texture;
-    uint8 norm_x;
-    uint8 norm_y;
+    uint16 altitude;
+    uint16 texture;
 };
 
 struct bvr_landscape_layer_s {
@@ -49,7 +54,7 @@ BVR_H_FUNC int bvr_create_landscape(bvr_landscape_t* landscape, const char* path
     FILE* file = fopen(path, "rb");
     int status = bvr_create_landscapef(landscape, file);
     fclose(file);
-    return status;
+    return status; 
 }
 
 int bvr_create_landscape_empty(bvr_landscape_t* landscape, 

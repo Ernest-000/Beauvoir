@@ -66,7 +66,7 @@
 /**
  * Return the number of element of a generic buffer.
  */
-#define BVR_BUFFER_COUNT(buffer) (((uint64)(buffer.size / buffer.elemsize)))
+#define BVR_BUFFER_COUNT(buffer) ((uint64)(buffer.size / buffer.elemsize))
 
 #ifndef BVR_NO_GROWTH
     #define BVR_GROWTH_FACTOR 2

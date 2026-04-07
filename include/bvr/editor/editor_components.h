@@ -5,6 +5,8 @@
 
 #include <bvr/common.h>
 
+#include <stdlib.h>
+
 #ifndef BVR_NO_NUKLEAR
 
 #define BVR_NK_WINDOW_DEFAULT (NK_WINDOW_BORDER | NK_WINDOW_TITLE | NK_WINDOW_SCALABLE)
@@ -22,8 +24,8 @@
 
 #define BVR_NK_CHECKBOX(value, flag, name) int f ## ##flag = BVR_HAS_FLAG(value, flag);\
     if(nk_checkbox_label(&bvr_get_editor_instance()->gui.context, name, &(f ## ##flag))){\
-        value |= flag;\
-    } else { value &= ~flag; }
+        value ^= flag;\
+    }
 
 static int bvr_nk_mouse_hover_panels(bvr_editor_t* editor){
     int hover = 0;
@@ -621,19 +623,20 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
         }
 
         if(bvr_button_down(BVR_MOUSE_BUTTON_LEFT) && !bvr_nk_mouse_hover_panels(bvr_get_editor_instance())){
-            vec3_sub(tile, world, actor->self.transform.position);
+            struct bvr_tile_s p_tile;
+            vec2_sub(tile, world, actor->self.transform.position);
         
             // coords to tile
             tile[0] /= actor->landscape.grid.tile_size[0];
             tile[1] /= actor->landscape.grid.tile_size[1];
 
-            tile[0] = MAX(0, MIN(tile[0], actor->landscape.grid.tile_per_row - 1));
-            tile[1] = MAX(0, MIN(tile[1], actor->landscape.grid.tile_per_column - 1));
+            tile[0] = abs(MIN(tile[0], actor->landscape.grid.tile_per_row - 1));
+            tile[1] = abs(MIN(tile[1], actor->landscape.grid.tile_per_column - 1));
 
-            struct bvr_tile_s prev_tile = bvr_landscape_get_tile(&actor->landscape, tile[0], tile[1], layer);
-            prev_tile.texture = actor->tileset.tiles.brush;
-            
-            bvr_landscape_set_tile(&actor->landscape, tile[0], tile[1], layer, prev_tile);
+            p_tile = bvr_landscape_get_tile(&actor->landscape, tile[0], tile[1], layer);
+            p_tile.texture = actor->tileset.tiles.brush;
+
+            bvr_landscape_set_tile(&actor->landscape, tile[0], tile[1], layer, p_tile);
         }
     }
 

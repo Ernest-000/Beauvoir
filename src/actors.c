@@ -10,7 +10,7 @@
 #include <math.h>
 #include <memory.h>
 
-#include <glad/glad.h>
+#include <bvr/gl.h>
 
 /*
     calculate actor's transformation matrix

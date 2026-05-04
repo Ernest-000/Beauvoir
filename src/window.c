@@ -2,11 +2,10 @@
 
 #include <bvr/common.h>
 #include <bvr/scene.h>
+#include <bvr/gl.h>
 
 #include <string.h>
 #include <memory.h>
-
-#include <glad/glad.h>
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_dialog.h>
@@ -54,7 +53,8 @@ void static bvr_error_callback(GLenum source, GLenum type, GLuint id,
     {
         case GL_DEBUG_SEVERITY_HIGH:
             BVR_STRCPY(error, "fatal error", 12);
-            BVR_PRINTF("catch a new %s(%i) from %s! '%s'", error, id, src, message);
+            BVR_PRINTF("catch a new %s (%i) from OGL %s! '%s'", error, id, src, message);
+            BVR_ASSERT(0);
             break;
 
         // case GL_DEBUG_SEVERITY_MEDIUM:
@@ -84,11 +84,22 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     // doesn't init SDL_INIT_VIDEO, otherwise Nuklear doesn't work :/
     BVR_ASSERT(SDL_Init(SDL_INIT_EVENTS | SDL_INIT_AUDIO) == BVR_TRUE);
 
+    // setup gl context
+#if BVR_USE_GLES
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+
+    SDL_SetHint(SDL_HINT_OPENGL_ES_DRIVER, "1");
+#else 
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+#endif
     
+    // setup sdl window framebuffer
     SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
@@ -135,20 +146,16 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     SDL_GetMouseState(&window->inputs.mouse[0], &window->inputs.mouse[1]);
 
     // initialize GLAD
-    BVR_ASSERT(gladLoadGLES2Loader((GLADloadproc)SDL_GL_GetProcAddress));
-    
+    BVR_ASSERT(bvr_load_gl((GLADloadproc)SDL_GL_GetProcAddress));
+
     // set vendor informations
     BVR_STRCPY(window->vendor.version, "Beauvoir " BVR_VERSION, 31);
     BVR_STRCPY(window->vendor.name, glGetString(GL_VENDOR), 31);
     BVR_STRCPY(window->vendor.gl_version, glGetString(GL_VERSION), 31);
     BVR_STRCPY(window->vendor.glsl_version, glGetString(GL_SHADING_LANGUAGE_VERSION), 31);
 
-    BVR_LOAD_GL_EXT(GL_EXT_copy_image);
-    BVR_LOAD_GL_EXT(GL_EXT_texture_view);
-    BVR_LOAD_GL_EXT(GL_KHR_debug);
-
     // enable debugging
-    if(GLAD_GL_KHR_debug){
+    if(glad_glDebugMessageCallback){
         glEnable(GL_DEBUG_OUTPUT);
         glDebugMessageCallback(bvr_error_callback, NULL);
     }

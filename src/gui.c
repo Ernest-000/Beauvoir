@@ -2,7 +2,7 @@
 #include <bvr/file.h>
 
 #include <SDL3/SDL.h>
-#include <glad/glad.h>
+#include <bvr/gl.h>
 
 #include <malloc.h>
 

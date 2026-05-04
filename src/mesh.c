@@ -8,7 +8,7 @@
 #include <string.h>
 #include <memory.h>
 
-#include <glad/glad.h>
+#include <bvr/gl.h>
 
 #ifndef BVR_NO_OBJ
     #include <ctype.h>

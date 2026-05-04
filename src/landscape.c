@@ -4,7 +4,7 @@
 #include <bvr/file.h>
 
 #include <zlib.h>
-#include <glad/glad.h>
+#include <bvr/gl.h>
 #include <json-c/json.h>
 
 #define BVR_VERTEX_PER_TILE 2.0f

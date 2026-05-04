@@ -9,7 +9,7 @@
 #include <malloc.h>
 #include <unistd.h>
 
-#include <glad/glad.h>
+#include <bvr/gl.h>
 
 #define BVR_FILE_SIG "BVRB"
 #define BVR_PAGE_SIG "PAJ"

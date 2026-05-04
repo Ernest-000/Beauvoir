@@ -2,7 +2,7 @@
 set -e
 
 # Configuration
-BVR_GENERATOR="Unix Makefiles"
+BVR_GENERATOR="MinGW Makefiles"
 BVR_CC="gcc"
 BVR_CXX="g++"
 

@@ -52,6 +52,8 @@
 #include <string.h>
 #include <wchar.h>
 
+#include <SDL3/SDL_begin_code.h>
+
 /* Most everything except Visual Studio 2008 and earlier has stdint.h now */
 #if defined(_MSC_VER) && (_MSC_VER < 1600)
 typedef signed __int8 int8_t;
@@ -237,6 +239,8 @@ void *alloca(size_t);
        typedef int SDL_compile_time_assert_ ## name[(x) * 2 - 1]
 #endif
 
+#ifdef SDL_WIKI_DOCUMENTATION_SECTION
+
 /**
  * The number of elements in a static array.
  *
@@ -249,7 +253,15 @@ void *alloca(size_t);
  *
  * \since This macro is available since SDL 3.2.0.
  */
+#define SDL_arraysize(array) (sizeof(array)/sizeof(array[0]))  /* or `_Countof(array)` on recent gcc and clang */
+
+#else
+#if (defined(__GNUC__) && __GNUC__ >= 16) || SDL_HAS_EXTENSION(c_countof)
+#define SDL_arraysize(array) _Countof(array)
+#else
 #define SDL_arraysize(array) (sizeof(array)/sizeof(array[0]))
+#endif
+#endif
 
 /**
  * Macro useful for building other macros with strings in them.
@@ -1209,7 +1221,6 @@ SDL_COMPILE_TIME_ASSERT(enum, sizeof(SDL_DUMMY_ENUM) == sizeof(int));
 #endif /* DOXYGEN_SHOULD_IGNORE_THIS */
 /** \endcond */
 
-#include <SDL3/SDL_begin_code.h>
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
@@ -1728,7 +1739,7 @@ extern SDL_DECLSPEC const char * SDLCALL SDL_GetEnvironmentVariable(SDL_Environm
  *
  * \sa SDL_GetEnvironment
  * \sa SDL_CreateEnvironment
- * \sa SDL_GetEnvironmentVariables
+ * \sa SDL_GetEnvironmentVariable
  * \sa SDL_SetEnvironmentVariable
  * \sa SDL_UnsetEnvironmentVariable
  */
@@ -1796,6 +1807,8 @@ extern SDL_DECLSPEC void SDLCALL SDL_DestroyEnvironment(SDL_Environment *env);
 /**
  * Get the value of a variable in the environment.
  *
+ * The name of the variable is case sensitive on all platforms.
+ *
  * This function uses SDL's cached copy of the environment and is thread-safe.
  *
  * \param name the name of the variable to get.
@@ -1813,6 +1826,11 @@ extern SDL_DECLSPEC const char * SDLCALL SDL_getenv(const char *name);
  *
  * This function bypasses SDL's cached copy of the environment and is not
  * thread-safe.
+ *
+ * On some platforms, this may make case-insensitive matches, while other
+ * platforms are case-sensitive. It is best to be precise with strings used
+ * for queries through this interface. SDL_getenv is always case-sensitive,
+ * however.
  *
  * \param name the name of the variable to get.
  * \returns a pointer to the value of the variable or NULL if it can't be
@@ -3016,7 +3034,7 @@ extern SDL_DECLSPEC long SDLCALL SDL_wcstol(const wchar_t *str, wchar_t **endp, 
  * If you need the length of a UTF-8 string, consider using SDL_utf8strlen().
  *
  * \param str The null-terminated string to read. Must not be NULL.
- * \returns the length (in bytes, excluding the null terminator) of `src`.
+ * \returns the length (in bytes, excluding the null terminator) of `str`.
  *
  * \threadsafety It is safe to call this function from any thread.
  *
@@ -3205,7 +3223,7 @@ extern SDL_DECLSPEC char * SDLCALL SDL_strrev(char *str);
  * Convert a string to uppercase.
  *
  * **WARNING**: Regardless of system locale, this will only convert ASCII
- * values 'A' through 'Z' to uppercase.
+ * values 'a' through 'z' to uppercase.
  *
  * This function operates on a null-terminated string of bytes--even if it is
  * malformed UTF-8!--and converts ASCII characters 'a' through 'z' to their
@@ -3989,7 +4007,7 @@ extern SDL_DECLSPEC char * SDLCALL SDL_strpbrk(const char *str, const char *brea
  * NULL-terminated, as the function will blindly read until it sees the NULL
  * char.
  *
- * if `*pslen` is zero, it assumes the end of string is reached and returns a
+ * If `*pslen` is zero, it assumes the end of string is reached and returns a
  * zero codepoint regardless of the contents of the string buffer.
  *
  * If the resulting codepoint is zero (a NULL terminator), or `*pslen` is
@@ -4353,7 +4371,7 @@ extern SDL_DECLSPEC float SDLCALL SDL_randf(void);
 /**
  * Generate 32 pseudo-random bits.
  *
- * You likely want to use SDL_rand() to get a psuedo-random number instead.
+ * You likely want to use SDL_rand() to get a pseudo-random number instead.
  *
  * There are no guarantees as to the quality of the random sequence produced,
  * and this should not be used for security (cryptography, passwords) or where
@@ -4411,9 +4429,6 @@ extern SDL_DECLSPEC Sint32 SDLCALL SDL_rand_r(Uint64 *state, Sint32 n);
 /**
  * Generate a uniform pseudo-random floating point number less than 1.0
  *
- * If you want reproducible output, be sure to initialize with SDL_srand()
- * first.
- *
  * There are no guarantees as to the quality of the random sequence produced,
  * and this should not be used for security (cryptography, passwords) or where
  * money is on the line (loot-boxes, casinos). There are many random number
@@ -4438,7 +4453,7 @@ extern SDL_DECLSPEC float SDLCALL SDL_randf_r(Uint64 *state);
 /**
  * Generate 32 pseudo-random bits.
  *
- * You likely want to use SDL_rand_r() to get a psuedo-random number instead.
+ * You likely want to use SDL_rand_r() to get a pseudo-random number instead.
  *
  * There are no guarantees as to the quality of the random sequence produced,
  * and this should not be used for security (cryptography, passwords) or where
@@ -4677,7 +4692,7 @@ extern SDL_DECLSPEC float SDLCALL SDL_atanf(float x);
  *
  * Domain: `-INF <= x <= INF`, `-INF <= y <= INF`
  *
- * Range: `-Pi <= y <= Pi`
+ * Range: `-Pi <= z <= Pi`
  *
  * This function operates on double-precision floating point values, use
  * SDL_atan2f for single-precision floats.
@@ -4691,8 +4706,8 @@ extern SDL_DECLSPEC float SDLCALL SDL_atanf(float x);
  *
  * \param y floating point value of the numerator (y coordinate).
  * \param x floating point value of the denominator (x coordinate).
- * \returns arc tangent of of `y / x` in radians, or, if `x = 0`, either
- *          `-Pi/2`, `0`, or `Pi/2`, depending on the value of `y`.
+ * \returns arc tangent of `y / x` in radians, or, if `x = 0`, either `-Pi/2`,
+ *          `0`, or `Pi/2`, depending on the value of `y`.
  *
  * \threadsafety It is safe to call this function from any thread.
  *
@@ -5815,6 +5830,8 @@ typedef struct SDL_iconv_data_t *SDL_iconv_t;
  * \returns a handle that must be freed with SDL_iconv_close, or
  *          SDL_ICONV_ERROR on failure.
  *
+ * \threadsafety It is safe to call this function from any thread.
+ *
  * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_iconv
@@ -5829,6 +5846,8 @@ extern SDL_DECLSPEC SDL_iconv_t SDLCALL SDL_iconv_open(const char *tocode,
  *
  * \param cd The character set conversion handle.
  * \returns 0 on success, or -1 on failure.
+ *
+ * \threadsafety It is safe to call this function from any thread.
  *
  * \since This function is available since SDL 3.2.0.
  *
@@ -5868,6 +5887,8 @@ extern SDL_DECLSPEC int SDLCALL SDL_iconv_close(SDL_iconv_t cd);
  * \param outbytesleft The number of bytes in the output buffer.
  * \returns the number of conversions on success, or a negative error code.
  *
+ * \threadsafety Do not use the same SDL_iconv_t from two threads at once.
+ *
  * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_iconv_open
@@ -5903,6 +5924,8 @@ extern SDL_DECLSPEC size_t SDLCALL SDL_iconv(SDL_iconv_t cd, const char **inbuf,
  * \param inbytesleft the size of the input string _in bytes_.
  * \returns a new string, converted to the new encoding, or NULL on error.
  *
+ * \threadsafety It is safe to call this function from any thread.
+ *
  * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_iconv_open
@@ -5926,6 +5949,8 @@ extern SDL_DECLSPEC char * SDLCALL SDL_iconv_string(const char *tocode,
  * \param S the string to convert.
  * \returns a new string, converted to the new encoding, or NULL on error.
  *
+ * \threadsafety It is safe to call this macro from any thread.
+ *
  * \since This macro is available since SDL 3.2.0.
  */
 #define SDL_iconv_utf8_locale(S)    SDL_iconv_string("", "UTF-8", S, SDL_strlen(S)+1)
@@ -5939,6 +5964,8 @@ extern SDL_DECLSPEC char * SDLCALL SDL_iconv_string(const char *tocode,
  *
  * \param S the string to convert.
  * \returns a new string, converted to the new encoding, or NULL on error.
+ *
+ * \threadsafety It is safe to call this macro from any thread.
  *
  * \since This macro is available since SDL 3.2.0.
  */
@@ -5954,6 +5981,8 @@ extern SDL_DECLSPEC char * SDLCALL SDL_iconv_string(const char *tocode,
  * \param S the string to convert.
  * \returns a new string, converted to the new encoding, or NULL on error.
  *
+ * \threadsafety It is safe to call this macro from any thread.
+ *
  * \since This macro is available since SDL 3.2.0.
  */
 #define SDL_iconv_utf8_ucs4(S)      SDL_reinterpret_cast(Uint32 *, SDL_iconv_string("UCS-4", "UTF-8", S, SDL_strlen(S)+1))
@@ -5967,6 +5996,8 @@ extern SDL_DECLSPEC char * SDLCALL SDL_iconv_string(const char *tocode,
  *
  * \param S the string to convert.
  * \returns a new string, converted to the new encoding, or NULL on error.
+ *
+ * \threadsafety It is safe to call this macro from any thread.
  *
  * \since This macro is available since SDL 3.2.0.
  */

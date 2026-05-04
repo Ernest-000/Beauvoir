@@ -153,14 +153,17 @@ BVR_H_FUNC void bvr_nk_view_image(bvr_canvas_t* context, bvr_texture_t* texture,
     if(nk_tree_push(&context->context, NK_TREE_NODE, "view", NK_MAXIMIZED)){
        
         // if texture has tiles
-        if(texture->tiles.tile_per_column > 1 || texture->tiles.tile_per_row > 1){
+        if(!draw_has_tileset && (texture->tiles.tile_per_column > 1 || texture->tiles.tile_per_row > 1)){
             rect.w = texture->tiles.width;
             rect.h = texture->tiles.height;
 
             int tile = texture->tiles.brush;
 
-            if (draw_has_tileset)
+            if (false)
             {
+                //TODO: remove
+                // this part is disable
+
                 // draw tile atlas as a tileset.
                 // each tile is shown in a sheet
 
@@ -175,7 +178,7 @@ BVR_H_FUNC void bvr_nk_view_image(bvr_canvas_t* context, bvr_texture_t* texture,
                     {
                         tile = y * texture->tiles.tile_per_row + x;
                         long long id = (texture->id << 16) | (tile & 0xFFFF);
-                        image = nk_image_ptr((void*)-id);
+                        image = nk_image_ptr((void*)texture->id);
 
                         nk_image(&context->context, image);
                     }
@@ -192,7 +195,7 @@ BVR_H_FUNC void bvr_nk_view_image(bvr_canvas_t* context, bvr_texture_t* texture,
                 );
 
                 int id = (texture->id << 16) | (tile & 0xFFFF);
-                image = nk_image_id(-id);
+                image = nk_image_id(texture->id);
 
                 nk_image(&context->context, image);
             }
@@ -561,13 +564,23 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
             {
                 for (size_t x = 0; x < actor->tileset.tiles.tile_per_row; x++)
                 {
-                    int tile = y * actor->tileset.tiles.tile_per_row + x;
-                    int id = (actor->tileset.id << 16) | (tile & 0xFFFF);
-                    image = nk_image_id(-id);
+                    struct nk_rect tile_rect = nk_rect(
+                        x * actor->tileset.tiles.width, 
+                        y * actor->tileset.tiles.height, 
+                        actor->tileset.tiles.width, 
+                        actor->tileset.tiles.height
+                    );
+                    image = nk_subimage_id(
+                        actor->tileset.id, 
+                        actor->tileset.image.width, 
+                        actor->tileset.image.height, 
+                        tile_rect
+                    );
 
                     if (nk_button_image(&context->context, image))
                     {
-                        actor->tileset.tiles.brush = tile;
+                        int tile = y * actor->tileset.tiles.tile_per_row + x;
+                        actor->tileset.tiles.brush = (actor->tileset.id << 16) | (tile & 0xFFFF);
                     }
                 }
             }

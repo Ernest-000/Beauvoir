@@ -1,6 +1,6 @@
 #include <bvr/graphics.h>
 
-#include <glad/glad.h>
+#include <bvr/gl.h>
 
 #include <bvr/math.h>
 #include <bvr/common.h>
@@ -27,6 +27,12 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
     if(BVR_HAS_FLAG(state->flags, BVR_FACE_CULLING_ENABLE)){
         glEnable(GL_CULL_FACE);
     }
+
+    // stuck the ogl to use the first vertex for
+    // geometry shaders (only for ogl desktop)
+#ifdef BVR_USE_GLDESK
+    glProvokingVertex(GL_FIRST_VERTEX_CONVENTION);
+#endif
 }
 
 void bvr_pipeline_do_draw_cmd(struct bvr_pipeline_state_s* state, struct bvr_draw_command_s* cmd){

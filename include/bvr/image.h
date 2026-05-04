@@ -167,14 +167,15 @@ typedef struct bvr_image_s {
  * Contains atlas informations
  */
 struct bvr_atlas_s {
+    int tile_per_row;
+    int tile_per_column;
+    
+    int width, height;
+
     /**
      * Currently rendered tile's id
      */
     uint32 brush;
-
-    uint16 width, height;
-    uint16 tile_per_row;
-    uint16 tile_per_column;
 
     uint16 padding[4];
 };

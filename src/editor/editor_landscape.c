@@ -6,7 +6,7 @@
 #include <bvr/file.h>
 #include <bvr/window.h>
 
-#include <glad/glad.h>
+#include <bvr/gl.h>
 
 /*int bvri_landscape_process_selection(struct bvr_editor_s *editor, bvr_landscape_actor_t *actor)
 {

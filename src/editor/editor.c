@@ -15,7 +15,7 @@
 #include <bvr/assets.h>
 #include <bvr/assets.book.h>
 
-#include <glad/glad.h>
+#include <bvr/gl.h>
 
 #include <limits.h>
 #include <float.h>

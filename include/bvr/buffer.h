@@ -81,6 +81,16 @@
     #define BVR_BUFFER_REALLOC(buffer, _size) BVR_BUFFER_CONST_REALLOC(buffer, _size)
 #endif
 
+#ifdef _WIN32
+/**
+ * Safer way to copy a raw C string. 
+ * This macro will add a null terminated char at the end of the string
+ */
+#define BVR_STRCPY(_dst, _src, _length) { \
+    *_dst = '\0'; \
+    strncat(_dst, _src, _length + 1); \
+}
+#else
 /**
  * Safer way to copy a raw C string. 
  * This macro will add a null terminated char at the end of the string
@@ -89,6 +99,7 @@
     *_dst = '\0'; \
     strlcat(_dst, _src, _length + 1); \
 }
+#endif
 
 /**
  * return 1 if two strings are equals

@@ -1805,6 +1805,7 @@ typedef struct SDL_GPUBufferCreateInfo
  *
  * \since This struct is available since SDL 3.2.0.
  *
+ * \sa SDL_GPUTransferBufferUsage
  * \sa SDL_CreateGPUTransferBuffer
  */
 typedef struct SDL_GPUTransferBufferCreateInfo
@@ -1872,6 +1873,7 @@ typedef struct SDL_GPUMultisampleState
  * \since This struct is available since SDL 3.2.0.
  *
  * \sa SDL_GPUGraphicsPipelineCreateInfo
+ * \sa SDL_GPUStencilOpState
  */
 typedef struct SDL_GPUDepthStencilState
 {
@@ -4581,11 +4583,13 @@ extern SDL_DECLSPEC SDL_GPUTextureFormat SDLCALL SDL_GetGPUTextureFormatFromPixe
 #ifdef SDL_PLATFORM_GDK
 
 /**
- * Call this to suspend GPU operation on Xbox when you receive the
+ * Call this to suspend GPU operation on Xbox after receiving the
  * SDL_EVENT_DID_ENTER_BACKGROUND event.
  *
  * Do NOT call any SDL_GPU functions after calling this function! This must
  * also be called before calling SDL_GDKSuspendComplete.
+ *
+ * This function MUST be called from the application's render thread.
  *
  * \param device a GPU context.
  *
@@ -4596,11 +4600,13 @@ extern SDL_DECLSPEC SDL_GPUTextureFormat SDLCALL SDL_GetGPUTextureFormatFromPixe
 extern SDL_DECLSPEC void SDLCALL SDL_GDKSuspendGPU(SDL_GPUDevice *device);
 
 /**
- * Call this to resume GPU operation on Xbox when you receive the
+ * Call this to resume GPU operation on Xbox after receiving the
  * SDL_EVENT_WILL_ENTER_FOREGROUND event.
  *
  * When resuming, this function MUST be called before calling any other
  * SDL_GPU functions.
+ *
+ * This function MUST be called from the application's render thread.
  *
  * \param device a GPU context.
  *

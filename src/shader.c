@@ -7,7 +7,7 @@
 #include <memory.h>
 #include <malloc.h>
 
-#include <glad/glad.h>
+#include <bvr/gl.h>
 
 #define BVR_MAX_GLSL_HEADER_SIZE 100
 

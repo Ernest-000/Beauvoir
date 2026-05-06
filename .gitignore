@@ -1,0 +1,45 @@
+# files
+*.dll
+*.a
+*.exe
+*.pdb
+*.lib
+*.c.txt
+*.cmake
+*.vcxproj
+*vcxproj.user
+*.filters
+*.sln
+*.trace
+*.ninja_deps
+*.ninja_log
+Makefile
+CMakeCache.txt
+compile_commands.json
+
+bin/*.exe
+!bin/*.dll
+
+# folders
+.vscode/
+.vs/
+.idea/
+.cmake/
+build/
+bin/
+lib/
+share/
+intern/
+CMakeFiles/
+licenses/
+cmake/
+pkgconfig/
+x64/
+Testing/
+*.dir/
+
+# Beauvoir in-dev folders and files
+res/
+dev/
+*.bin
+doxygen.py

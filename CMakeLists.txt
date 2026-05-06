@@ -6,28 +6,30 @@ set(BVR_TARGET_SHARED ON)
 set(BVR_DEBUG OFF)
 
 set(BVRS_SOURCE_PATH "${CMAKE_SOURCE_DIR}/src")
+set(BVRS_INCLUDE_PATH "${CMAKE_SOURCE_DIR}/includes")
 set(TCC_SOURCE_PATH "${CMAKE_SOURCE_DIR}/tinycc")
 
 ##
 # SETUP TCC
 ##
-add_library(libtcc STATIC
+add_library(tcc STATIC
     ${TCC_SOURCE_PATH}/libtcc.c
     ${TCC_SOURCE_PATH}/tccgen.c
+    ${TCC_SOURCE_PATH}/tccelf.c
     ${TCC_SOURCE_PATH}/tccpp.c
     ${TCC_PLATFORM_SRC}
 )
 
-target_include_directories(libtcc PUBLIC
+target_include_directories(tcc PUBLIC
     ${TCC_SOURCE_PATH}
 )
 
-target_compile_definitions(libtcc PRIVATE
+target_compile_definitions(tcc PRIVATE
     CONFIG_TCCDIR=""
     ONE_SOURCE
 )
 
-target_compile_options(libtcc PRIVATE -w)
+target_compile_options(tcc PRIVATE -w)
 
 ##
 # Set Sources
@@ -39,10 +41,11 @@ add_executable(Beauvoir_script ${TINYC_SOURCES} ${SOURCES})
 
 target_include_directories(Beauvoir_script PUBLIC
     ${BVRS_SOURCE_PATH}
+    ${BVRS_INCLUDE_PATH}
     ${TCC_SOURCE_PATH}
 )
 
-target_link_libraries(Beauvoir_script PUBLIC libtcc)
+target_link_libraries(Beauvoir_script PUBLIC tcc)
 
 # target_link_libraries(demo PRIVATE beauvoir)
 # target_include_directories(demo PRIVATE "${BVR_PATH}/include/")
@@ -50,6 +53,12 @@ target_link_libraries(Beauvoir_script PUBLIC libtcc)
 ##
 # Define your project DLL path
 ##
+set_target_properties(tcc PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin"
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+)
+
 set_target_properties(Beauvoir_script PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin"
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"

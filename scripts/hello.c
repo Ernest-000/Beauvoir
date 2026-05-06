@@ -1,5 +1,11 @@
-#include "engine.h"
+#include "include/stdio.h"
+#include "include/time.h"
 
 int entry(void){
-    print("hello, world!");
+    time_t timestamp = time(NULL);
+
+    printf("hello, world!\n");
+    printf("time is %i\n", timestamp);
+
+    return 0;
 }

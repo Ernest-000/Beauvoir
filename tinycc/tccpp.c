@@ -3669,7 +3669,7 @@ static void tcc_predefs(TCCState *s1, CString *cs, int is_asm)
 #if CONFIG_TCC_PREDEFS
         "#include \"tccdefs.h\"" /* include as strings */
 #else
-        "#include <tccdefs.h>\n" /* load at runtime */
+        "" /* load at runtime */
 #endif
         , -1);
     }

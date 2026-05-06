@@ -1,0 +1,240 @@
+#pragma once
+
+#include <bvr/config.h>
+
+#include <stdio.h>
+
+#ifndef BVR_BUFFER_SIZE
+    #define BVR_BUFFER_SIZE 1024
+#endif
+
+#ifndef BVR_POOL_SIZE
+    #define BVR_POOL_SIZE 2048
+#endif
+
+#if !defined(SEEK_NEXT)
+    /* Seek from beginning of file. */
+    #define SEEK_SET 0
+
+    /* Seek from current position. */
+    #define SEEK_CUR 1
+
+    /* Set file pointer to EOF plus "offset" */
+    #define SEEK_END 2       
+
+    /* Seek to the next available memory block */
+    #define SEEK_NEXT 3 
+#endif
+
+#ifdef __GNUC__
+    /**
+     *  This macro creates a for loop that interates through a pool.
+     *  It will define each `_v` as a pointer to the current used value.
+     */
+    #define BVR_POOL_FOR_EACH(_v, _pool) for (struct bvr_pool_block_u* b = _pool.blocks; b->next; b++)\
+                                            if (b->data && (void*)memcpy(&_v, &b->data, sizeof(uint64)) != NULL)
+    // Clang specific macro
+#elif defined(__clang__) || defined(_MSC_VER)
+    /**
+     *  This macro creates a for loop that interates through a pool.
+     *  It will define each `_v` as the current used value.
+     */
+    #define BVR_POOL_FOR_EACH(_v, _pool) for (struct bvr_pool_block_u* b = _pool.blocks; b->next; b++)\
+                                            if (b->data && (void*)memcpy(&_v, &b->data, sizeof(uint64)) != NULL)
+#else
+    /**
+     *  This macro creates a for loop that interates through a pool.
+     *  It will define each `_v` as the current used value.
+     */
+    #define BVR_POOL_FOR_EACH(_v, _pool) for (struct bvr_pool_block_u* b = _pool.blocks; b->next; b++)\
+                                            if (b->data && (void*)memcpy(&_v, &b->data, sizeof(uint64)) != NULL)
+#endif
+
+/**
+ * Allocate _size bytes of memory for a generic buffer.
+ */
+#define BVR_BUFFER_MALLOC(buffer, _size) buffer.data = malloc(_size);
+
+/**
+ * Reallocates the given buffer and resize it to _size bytes.
+ */
+#define BVR_BUFFER_CONST_REALLOC(buffer, _size) { \
+    buffer.size = _size; \
+    buffer.data = realloc(buffer.data, buffer.size); \
+}
+
+/**
+ * Return the number of element of a generic buffer.
+ */
+#define BVR_BUFFER_COUNT(buffer) ((uint64)(buffer.size / buffer.elemsize))
+
+#ifndef BVR_NO_GROWTH
+    #define BVR_GROWTH_FACTOR 2
+
+    /**
+     * Reallocates the given buffer and add _size bytes by the Growth factor
+     */
+    #define BVR_BUFFER_REALLOC(buffer, _size) { \
+        buffer.size += (_size * BVR_GROWTH_FACTOR); \
+        buffer.data = realloc(buffer.data, buffer.size); }
+#else
+    #define BVR_BUFFER_REALLOC(buffer, _size) BVR_BUFFER_CONST_REALLOC(buffer, _size)
+#endif
+
+#ifdef _WIN32
+/**
+ * Safer way to copy a raw C string. 
+ * This macro will add a null terminated char at the end of the string
+ */
+#define BVR_STRCPY(_dst, _src, _length) { \
+    *_dst = '\0'; \
+    strncat(_dst, _src, _length + 1); \
+}
+#else
+/**
+ * Safer way to copy a raw C string. 
+ * This macro will add a null terminated char at the end of the string
+ */
+#define BVR_STRCPY(_dst, _src, _length) { \
+    *_dst = '\0'; \
+    strlcat(_dst, _src, _length + 1); \
+}
+#endif
+
+/**
+ * return 1 if two strings are equals
+ */
+#define BVR_STRCMP(_a, _b) (strcmp(_a, _b) == 0)
+
+/**
+ * return 1 if two strings are equals
+ */
+#define BVR_STRNCMP(_a, _b, _n) (strncmp(_a, _b, _n) == 0)
+
+/*
+    Generic data pointer
+*/
+struct bvr_buffer_s {
+    char* data;
+    uint64 size;
+    uint32 elemsize;
+};
+
+/**
+ * Memory stream
+ */
+typedef struct bvr_memstream_s {
+    void* data;
+    uint64 size;
+
+    char* cursor;
+    char* next;
+} bvr_memstream_t;
+
+/**
+ * Pascal typed string
+ */
+typedef struct bvr_string_s  { 
+    uint16 length;
+    char* string;
+} bvr_string_t;
+
+/**
+ * Chunck of memory in a pool
+ */
+struct bvr_pool_block_u {
+    void* data;
+    struct bvr_pool_block_u* next;
+};
+
+/**
+ * A constant list of equaly-sized generic objects.
+ * Each element is link to another.
+ */
+typedef struct bvr_pool_s {
+    char* data;
+    char* avail;
+
+    struct bvr_pool_block_u* blocks;
+    struct bvr_pool_block_u* next_block;
+
+    uint32 size;
+    uint32 elemsize;
+    uint32 count;
+    uint32 capacity;
+} bvr_pool_t;
+
+/*
+    Create a new memory stream which is a long pre-allocated memory space where things can be written.
+    Work like a FILE* but in-memory :D
+*/
+void bvr_create_memstream(bvr_memstream_t* stream, const uint64 size);
+
+char* bvr_memstream_write(bvr_memstream_t* stream, const void* data, const uint64 size);
+char* bvr_memstream_read(bvr_memstream_t* stream, void* dest, const uint64 size);
+char* bvr_memstream_seek(bvr_memstream_t* stream, uint64 position, int mode);
+void bvr_memstream_clear(bvr_memstream_t* stream);
+
+BVR_H_FUNC int bvr_memstream_eof(bvr_memstream_t* stream){
+    return stream->cursor - (char*)stream->data >= stream->size;
+}
+
+void bvr_destroy_memstream(bvr_memstream_t* stream);
+
+void bvr_create_string(bvr_string_t* string, const char* value);
+
+/*
+    Use an already created string to replace its value.
+    Returns BVR_FALSE if it had to create a new string, BVR_TRUE otherwise 
+*/
+int bvr_overwrite_string(bvr_string_t* string, const char* value, uint32 length);
+
+/*
+    Concatenate a string.
+    WARNING: function might be slow -> no growth factor :(
+*/
+void bvr_string_concat(bvr_string_t* string, const char* other);
+
+/*
+    Allocate a new string and copy other string's content.
+*/
+void bvr_string_create_and_copy(bvr_string_t* dest, bvr_string_t* source);
+
+/*
+    Insert a char array into a string.
+*/
+void bvr_string_insert(bvr_string_t* string, const uint64 offset, const char* value);
+
+/*
+    Return a constant pointer to string's char array.
+*/
+BVR_H_FUNC const char* bvr_string_get(bvr_string_t* string){
+    if(string){
+        return string->string;
+    }
+    return NULL;
+}
+
+/*
+    Free the string.
+*/
+void bvr_destroy_string(bvr_string_t* string);
+
+void bvr_create_pool(bvr_pool_t* pool, const uint64 size, const uint64 count);
+
+/*
+    Get a pointer to the next writable slot.
+*/
+void* bvr_pool_alloc(bvr_pool_t* pool);
+
+/**
+    Deallocate a memory block.
+*/
+void bvr_pool_free(bvr_pool_t* pool, void* ptr);
+
+/**
+ * Remove an element from the pool by using its value.
+ */
+void bvr_pool_remove(bvr_pool_t* pool, const void* value);
+
+void bvr_destroy_pool(bvr_pool_t* pool);

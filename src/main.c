@@ -1,9 +1,6 @@
-#include <stdio.h>
-#include <malloc.h>
+#include <bvr/scripts.h>
 
-#include <libtcc.h>
-
-static struct script_context_s {
+/*static struct script_context_s {
     TCCState* tcc;
     int (*entryp)(void);
 } __context;
@@ -42,7 +39,7 @@ int init_ctx(){
 
     tcc_set_output_type(__context.tcc, TCC_OUTPUT_MEMORY);
     tcc_add_include_path(__context.tcc, "include/");
-    
+
     tcc_set_lib_path(__context.tcc, "");
     tcc_define_symbol(__context.tcc, "CONFIG_TCCDIR", "\"\"");
 
@@ -61,7 +58,7 @@ int add_script(const char* path){
     if(path == NULL) {
         return 0;
     }
-
+t
     FILE* f = fopen(path, "rb");
     if(f == NULL) {
         return 0;
@@ -81,16 +78,15 @@ int add_script(const char* path){
 
     fclose(f);
     return 1;
-}
+}*/
 
 int main(void){
+    bvr_assembly_t assembly;
+    bvr_create_assembly(&assembly, "");
+    bvr_assembly_add(&assembly, "scripts/hello.c");
 
-    init_ctx();
-    add_script("scripts/hello.c");
+    bvr_run(&assembly);
 
-    if(__context.entryp){
-        __context.entryp();
-    }
 
-    free_ctx();
+    bvr_destroy_assembly(&assembly);
 }

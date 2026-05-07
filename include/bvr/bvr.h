@@ -1,0 +1,27 @@
+#ifndef BVR_H_IMPL
+#define BVR_H_IMPL
+
+#ifdef _cplusplus
+extern "C" {
+#endif
+
+#include <bvr/config.h>
+#include <bvr/common.h>
+#include <bvr/math.h>
+
+#include <bvr/scene.h>
+#include <bvr/landscape.h>
+#include <bvr/assets.h>
+#include <bvr/assets.book.h>
+
+#ifndef BVR_NO_NUKLEAR
+    #include <bvr/gui.h>
+    
+    #include <nuklear.h>
+#endif
+
+#ifdef _cplusplus
+}
+#endif
+
+#endif

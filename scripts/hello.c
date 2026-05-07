@@ -1,11 +1,7 @@
-#include "include/stdio.h"
-#include "include/time.h"
+#include "libbvr.h"
 
 int entry(void){
-    time_t timestamp = time(NULL);
-
-    printf("hello, world!\n");
-    printf("time is %i\n", timestamp);
-
+    BVR_PRINT("hello, world");
+    
     return 0;
 }

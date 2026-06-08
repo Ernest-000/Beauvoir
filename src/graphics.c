@@ -36,6 +36,9 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
 }
 
 void bvr_pipeline_do_draw_cmd(struct bvr_pipeline_state_s* state, struct bvr_draw_command_s* cmd){
+    // check for invalid buffer
+    BVR_ASSERT(cmd->array_buffer && cmd->vertex_buffer && cmd->element_buffer);
+
     // try to apply local uniform
     bvr_shader_set_uniform_raw(
         bvr_find_uniform_tag(cmd->shader, BVR_UNIFORM_LOCAL_TRANSFORM), 
@@ -53,6 +56,7 @@ void bvr_pipeline_do_draw_cmd(struct bvr_pipeline_state_s* state, struct bvr_dra
         glEnableVertexAttribArray(i);
     }
     
+    // overwrite drawmonde if wireframe is enabled
     if(BVR_HAS_FLAG(state->flags, BVR_WIREFRAME_ENABLE)){
         cmd->draw_mode = GL_LINE_STRIP_ADJACENCY;      
     }
@@ -68,7 +72,11 @@ void bvr_pipeline_do_draw_cmd(struct bvr_pipeline_state_s* state, struct bvr_dra
         );
     }
     else {
-        glDrawArrays(cmd->draw_mode, cmd->vertex_group.element_offset, cmd->vertex_group.element_count);
+        glDrawArrays(
+            cmd->draw_mode, 
+            cmd->vertex_group.element_offset, 
+            cmd->vertex_group.element_count
+        );
     }
 
     for (uint64 i = 0; i < cmd->attrib_count; i++)
@@ -76,9 +84,9 @@ void bvr_pipeline_do_draw_cmd(struct bvr_pipeline_state_s* state, struct bvr_dra
         glDisableVertexAttribArray(i);
     }
 
-    glBindVertexArray(cmd->array_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, cmd->vertex_buffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cmd->element_buffer);
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     bvr_shader_disable();
 }

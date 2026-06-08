@@ -1,86 +1,64 @@
 cmake_minimum_required(VERSION 3.16)
 project(beauvoir LANGUAGES C)
 
-##
-# Options
-##
-option(BVR_TARGET_SHARED "Build shared library" OFF)
+option(BVR_TARGET_SHARED "Build shared library" ON)
 option(BVR_TARGET_STATIC "Build static library" OFF)
 
-##
-# Paths
-##
+message(STATUS "BVR_TARGET_SHARED = ${BVR_TARGET_SHARED}")
+message(STATUS "BVR_TARGET_STATIC = ${BVR_TARGET_STATIC}")
+
 set(BVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(BVR_SOURCE_DIR ${BVR_ROOT_DIR}/src)
 set(BVR_INCLUDE_DIR ${BVR_ROOT_DIR}/include)
 set(BVR_LIB_DIR ${BVR_ROOT_DIR}/lib)
 set(BVR_BUILD_DIR ${BVR_ROOT_DIR}/build)
 set(BVR_BIN_DIR ${BVR_ROOT_DIR}/bin)
-set(BVR_DEMO_DIR ${BVR_ROOT_DIR}/dev)
+set(BVR_DEMO_DIR ${BVR_ROOT_DIR}/intern)
 
-##
-# Main file (executable only)
-##
 if(NOT BVR_TARGET_SHARED AND NOT BVR_TARGET_STATIC)
-    # set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/memory.c")
+    set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/main.c")
 endif()
 
-##
-# Third-party libraries
-##
 if(WIN32)
     if(CMAKE_C_COMPILER_ID MATCHES "Clang|MSVC")
-        set(BVR_THIRD_PARTY_LIBS
-            SDL3.lib zsd.lib libpng16d.lib libjson-c.lib)
+        set(BVR_THIRD_PARTY_NAMES SDL3 zsd libpng16d libjson-c)
     else()
-        set(BVR_THIRD_PARTY_LIBS
-            libSDL3.dll.a libz.dll.a libpng16.dll.a libjson-c.dll.a)
+        set(BVR_THIRD_PARTY_NAMES SDL3 z png16 json-c)
     endif()
 elseif(UNIX)
-    set(BVR_THIRD_PARTY_LIBS
-            libSDL3.so libz.so libpng16.so libjson-c.so)
+    set(BVR_THIRD_PARTY_NAMES SDL3 z png16 json-c)
 endif()
 
 set(BVR_THIRD_PARTY_MODULES "")
-foreach(lib ${BVR_THIRD_PARTY_LIBS})
-    if(EXISTS "${BVR_LIB_DIR}/${lib}")
-        list(APPEND BVR_THIRD_PARTY_MODULES "${BVR_LIB_DIR}/${lib}")
-        message("Found ${lib}")
+foreach(name ${BVR_THIRD_PARTY_NAMES})
+    find_library(LIB_${name} NAMES ${name} PATHS ${BVR_LIB_DIR} NO_DEFAULT_PATH REQUIRED)
+    if(LIB_${name})
+        list(APPEND BVR_THIRD_PARTY_MODULES ${LIB_${name}})
+        message(STATUS "Found ${name}: ${LIB_${name}}")
     else()
-        message(FATAL_ERROR "Missing third-party library: ${lib}")
+        message(FATAL_ERROR "Missing third-party library: ${name}")
     endif()
 endforeach()
 
-##
-# Packages
-##
-find_package(OpenGL REQUIRED)
-
-##
-# Target creation
-##
 if(BVR_TARGET_SHARED)
+    message(STATUS "Creating a new shared lib")
     add_library(beauvoir SHARED)
 elseif(BVR_TARGET_STATIC)
+    message(STATUS "Creating a new static lib")
     add_library(beauvoir STATIC)
 else()
+    message(STATUS "Creating a new executable")
     add_executable(beauvoir ${BVR_MAIN_FILE})
 endif()
 
-##
-# Sources
-##
+find_package(OpenGL REQUIRED)
+
 file(GLOB_RECURSE BVR_ENGINE_SOURCES "${BVR_SOURCE_DIR}/*.c")
-file(GLOB_RECURSE BVR_EDITOR_SOURCES "${BVR_SOURCE_DIR}/editor/*.c")
 
 target_sources(beauvoir PRIVATE
     ${BVR_ENGINE_SOURCES}
-    ${BVR_EDITOR_SOURCES}
 )
 
-##
-# Includes (BUILD/INSTALL interface)
-##
 target_include_directories(beauvoir
     PUBLIC
         $<BUILD_INTERFACE:${BVR_INCLUDE_DIR}>
@@ -88,9 +66,6 @@ target_include_directories(beauvoir
         $<INSTALL_INTERFACE:include>
 )
 
-##
-# Link libraries
-##
 target_link_libraries(beauvoir PUBLIC
     OpenGL::GL
     ${BVR_THIRD_PARTY_MODULES}
@@ -98,9 +73,6 @@ target_link_libraries(beauvoir PUBLIC
 
 target_link_options(beauvoir PRIVATE -lm)
 
-##
-# Compiler flags (multi-config)
-##
 target_compile_definitions(beauvoir PRIVATE
     $<$<CONFIG:Debug>:BVR_DEBUG>
     $<$<CONFIG:Release>:NDEBUG>
@@ -117,31 +89,19 @@ target_compile_options(beauvoir PRIVATE
     >
 )
 
-##
-# C standard
-##
 set_target_properties(beauvoir PROPERTIES
     C_STANDARD 99
     C_STANDARD_REQUIRED ON
-)
-
-##
-# Output directories
-##
-set_target_properties(beauvoir PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${BVR_BIN_DIR}
     ARCHIVE_OUTPUT_DIRECTORY ${BVR_BUILD_DIR}
     LIBRARY_OUTPUT_DIRECTORY ${BVR_BUILD_DIR}
 )
 
-##
-# Installation & export
-##
 install(TARGETS beauvoir
     EXPORT beauvoirTargets
-    RUNTIME DESTINATION ${BVR_BIN_DIR}
-    LIBRARY DESTINATION ${BVR_BUILD_DIR}
-    ARCHIVE DESTINATION ${BVR_BUILD_DIR}
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
 )
 
 install(EXPORT beauvoirTargets
@@ -151,5 +111,5 @@ install(EXPORT beauvoirTargets
 )
 
 install(DIRECTORY ${BVR_INCLUDE_DIR}/ DESTINATION include)
-install(DIRECTORY ${BVR_LIB_DIR}/ DESTINATION lib)
-install(DIRECTORY ${BVR_BIN_DIR}/ DESTINATION bin)
+install(DIRECTORY ${BVR_LIB_DIR}/     DESTINATION lib)
+install(DIRECTORY ${BVR_BIN_DIR}/     DESTINATION bin)

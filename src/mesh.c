@@ -1248,6 +1248,7 @@ int bvr_create_meshv(bvr_mesh_t* mesh, bvr_mesh_buffer_t* vertices, bvr_mesh_buf
     group->element_offset = 0;
     group->element_count = elements->count;
     group->texture = 0;
+    group->flags = 0;
     BVR_IDENTITY_MAT4(group->matrix);
     
     // copy vertex values over buffers

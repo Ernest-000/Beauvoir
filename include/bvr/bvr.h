@@ -12,7 +12,6 @@ extern "C" {
 #include <bvr/scene.h>
 #include <bvr/landscape.h>
 #include <bvr/assets.h>
-#include <bvr/assets.book.h>
 
 #ifndef BVR_NO_NUKLEAR
     #include <bvr/gui.h>

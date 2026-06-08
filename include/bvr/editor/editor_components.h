@@ -153,7 +153,7 @@ BVR_H_FUNC void bvr_nk_view_image(bvr_canvas_t* context, bvr_texture_t* texture,
     if(nk_tree_push(&context->context, NK_TREE_NODE, "view", NK_MAXIMIZED)){
        
         // if texture has tiles
-        if(!draw_has_tileset && (texture->tiles.tile_per_column > 1 || texture->tiles.tile_per_row > 1)){
+        if(draw_has_tileset || (texture->tiles.tile_per_column > 1 || texture->tiles.tile_per_row > 1)){
             rect.w = texture->tiles.width;
             rect.h = texture->tiles.height;
 
@@ -454,6 +454,26 @@ static void bvr_nk_draw_layer_actor_component(bvr_canvas_t* context, void* user)
 
     BVR_NK_SEPARATOR(&context->context);
     nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));
+
+    bvr_nk_view_image(context, &actor->texture, false);
+
+    if(nk_tree_push(&context->context, NK_TREE_TAB, "Layers", NK_MAXIMIZED)){
+        bvr_layer_t* layer;
+        for (size_t i = 0; i < BVR_BUFFER_COUNT(actor->texture.image.layers); i++)
+        {
+            layer = &((bvr_layer_t*)actor->texture.image.layers.data)[i];
+
+            if(nk_tree_push(&context->context, NK_TREE_NODE, layer->name.string, NK_MAXIMIZED)){
+                
+                
+                nk_tree_pop(&context->context);
+            }
+        }
+
+        nk_tree_pop(&context->context);
+    }
+    
+    
 }
 
 static void bvr_nk_draw_static_actor_component(bvr_canvas_t* context, void* user){

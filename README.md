@@ -24,12 +24,12 @@ In order to install Beauvoir to your project directory, you can use Cmake
 - To create MinGW Makefiles
 ```Sh
 cmake . -G="MinGW Makefiles" -DCMAKE_INSTALL_PREFIX="./build"
-make install
+cmake --install build --prefix <your_path>
 ```
 - To create a new Visual Studio Solution 
 ```Sh
 cmake . -G="Visual Studio 17 2022" -DCMAKE_INSTALL_PREFIX="./build"
-make install
+cmake --install build --prefix <your_path>
 ```
 Then, you can copy ```bin/``` and ```lib/``` folders that you generates with build.sh into your project.
 > You may want to check the [empty demo project](/demo/empty) to get an example :p

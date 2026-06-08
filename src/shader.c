@@ -362,7 +362,7 @@ int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int 
     }
 
     // if there is a fragment shader stage
-    if(BVR_HAS_FLAG(flags, BVR_VERTEX_SHADER)){
+    if(BVR_HAS_FLAG(flags, BVR_FRAGMENT_SHADER)){
         shader->shaders[shader->shader_count].type = GL_FRAGMENT_SHADER;
 
         bvri_compile_shader_raw(&shader->shaders[shader->shader_count].shader, 

@@ -386,7 +386,7 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     for (int i = 0; i < BVR_BUFFER_COUNT(actor->texture.image.layers); i++)
     {
         layer = &((bvr_layer_t*)actor->texture.image.layers.data)[i];
-        
+
         layer_info.layer = i;
         layer_info.blend_mode = layer->blend_mode;
         layer_info.opacity = layer->opacity;
@@ -405,10 +405,10 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
             &layer_info
         );
 
-        //cmd.order = actor->self.order_in_layer + i;
-        //if(BVR_HAS_FLAG(layer->flags, BVR_LAYER_Y_SORTED)){
-        //    cmd.order += layer->anchor_y;
-        //}
+        cmd.order = actor->self.order_in_layer + i;
+        if(BVR_HAS_FLAG(layer->flags, BVR_LAYER_Y_SORTED)){
+            cmd.order += layer->anchor_y;
+        }
 
         cmd.array_buffer = actor->mesh.array_buffer;
         cmd.vertex_buffer = actor->mesh.vertex_buffer;
@@ -438,6 +438,9 @@ static void bvri_draw_layer_actor(bvr_layer_actor_t* actor, int drawmode){
     // set the composite shader as a target
     if(bvr_get_instance()->predefs.is_available){
         cmd.shader = &bvr_get_instance()->predefs.c_shaders.c_composite_shader;
+    }
+    else {
+        BVR_PRINT("predefinition shaders are not available!");
     }
 
     // update transform
@@ -526,9 +529,7 @@ void bvr_draw_actor(struct bvr_actor_s* actor, int drawmode){
 
     // create the draw command
     struct bvr_draw_command_s cmd;
-    
     cmd.order = actor->order_in_layer;
-
     cmd.array_buffer = _actor->mesh.array_buffer;
     cmd.vertex_buffer = _actor->mesh.vertex_buffer;
     cmd.element_buffer = _actor->mesh.element_buffer;

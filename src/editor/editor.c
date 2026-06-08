@@ -13,8 +13,6 @@
 #include <bvr/landscape.h>
 
 #include <bvr/assets.h>
-#include <bvr/assets.book.h>
-
 #include <bvr/gl.h>
 
 #include <limits.h>
@@ -25,8 +23,9 @@
 #define BVR_NK_RECT(rect) nk_rect(rect.coords[0], rect.coords[1], rect.width, rect.height)
 
 // global functionalities
-static void bvri_editor_import_asset(bvr_string_t* string);
-static void bvri_load_landscape(bvr_string_t* path);
+// depreciate
+//static void bvri_editor_import_asset(bvr_string_t* string);
+//static void bvri_load_landscape(bvr_string_t* path);
 
 // render buffers
 static int bvri_create_editor_render_buffers(uint32* array_buffer, uint32* vertex_buffer, uint64 vertex_size);
@@ -36,25 +35,6 @@ static void bvri_draw_editor_buffer(int drawmode, uint32 element_offset, uint32 
 static void bvri_destroy_editor_render_buffers(uint32* array_buffer, uint32* vertex_buffer);
 
 static bvr_editor_t* __editor;
-
-static void bvri_load_landscape(bvr_string_t* path){
-    BVR_PRINTF("load map %s", path->string);
-
-    bvr_landscape_actor_t* actor = (bvr_landscape_actor_t*)__editor->inspector_cmd.object;
-    bvr_create_landscape(&actor->landscape, path->string);
-}
-
-static void bvri_editor_import_asset(bvr_string_t* string){
-    if(string && string->string){
-        if(bvr_register_asset(string->string, BVR_OPEN_READ)){
-            BVR_PRINTF("sucessfully imported %s", string->string);
-        }
-        else {
-            BVR_PRINTF("failed to import %s", string->string);
-        }
-    }
-}
-
 
 void bvr_create_editor(bvr_editor_t* editor, bvr_book_t* book){
     BVR_ASSERT(editor);

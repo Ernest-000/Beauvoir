@@ -24,10 +24,6 @@
     #define BVR_MAX_SCENE_LIGHT_COUNT 16
 #endif
 
-#if !defined(BVR_SCENE_AUTO_HEAP)
-    #define BVR_SCENE_AUTO_HEAP
-#endif
-
 #if !defined(BVR_FRAMERATE)
     #if !defined(BVR_TARGET_FRAMERATE)
         #define BVR_TARGET_FRAMERATE 60

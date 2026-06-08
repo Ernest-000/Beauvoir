@@ -141,6 +141,27 @@ extern "C" {
 #define SDL_HINT_ANDROID_TRAP_BACK_BUTTON "SDL_ANDROID_TRAP_BACK_BUTTON"
 
 /**
+ * A variable to control whether we allow persistent folder access on Android
+ * when using the SDL select folder dialog.
+ *
+ * If set to `1`, the selected folder will be accessible persistently across
+ * app launches. That allows the user to only have to select the directory
+ * once, and then the app can access it again in the future without needing to
+ * ask the user to select it again.
+ *
+ * The variable can be set to the following values:
+ *
+ * - "0": Persistent folder access is not allowed. (default)
+ * - "1": Persistent folder access is allowed.
+ *
+ * This hint should be set before the SDL folder selection dialog is shown,
+ * and can be changed between dialog invocations.
+ *
+ * \since This hint is available since SDL 3.6.0.
+ */
+#define SDL_HINT_ANDROID_ALLOW_PERSISTENT_FOLDER_ACCESS "SDL_ANDROID_ALLOW_PERSISTENT_FOLDER_ACCESS"
+
+/**
  * A variable setting the app ID string.
  *
  * This string is used by desktop compositors to identify and group windows
@@ -273,9 +294,9 @@ extern "C" {
  *
  * The variable can be set to the following values:
  *
+ * - "playback": Use the AVAudioSessionCategoryPlayback category. (default)
  * - "ambient": Use the AVAudioSessionCategoryAmbient audio category, will be
- *   muted by the phone mute switch (default)
- * - "playback": Use the AVAudioSessionCategoryPlayback category.
+ *   muted by the phone mute switch.
  *
  * For more information, see Apple's documentation:
  * https://developer.apple.com/library/content/documentation/Audio/Conceptual/AudioSessionProgrammingGuide/AudioSessionCategoriesandModes/AudioSessionCategoriesandModes.html
@@ -486,6 +507,23 @@ extern "C" {
 #define SDL_HINT_AUDIO_DRIVER "SDL_AUDIO_DRIVER"
 
 /**
+ * Specify whether this audio stream should duck other audio.
+ *
+ * On Apple platforms, this hint controls whether other audio streams are
+ * ducked (reduced in volume) while your application is in the foreground.
+ *
+ * The variable can be set to the following values:
+ *
+ * - "0": Other audio will not be ducked. (default)
+ * - "1": Other audio will be ducked.
+ *
+ * This hint should be set before an audio device is opened.
+ *
+ * \since This hint is available since SDL 3.6.0.
+ */
+#define SDL_HINT_AUDIO_DUCK_OTHERS "SDL_AUDIO_DUCK_OTHERS"
+
+/**
  * A variable controlling the audio rate when using the dummy audio driver.
  *
  * The dummy audio driver normally simulates real-time for the audio rate that
@@ -654,6 +692,7 @@ extern "C" {
  * - "avx512f"
  * - "arm-simd"
  * - "neon"
+ * - "sve2"
  * - "lsx"
  * - "lasx"
  *
@@ -4127,6 +4166,33 @@ extern "C" {
  * \since This hint is available since SDL 3.2.0.
  */
 #define SDL_HINT_VIDEO_WIN_D3DCOMPILER "SDL_VIDEO_WIN_D3DCOMPILER"
+
+/**
+ * A variable controlling whether the X Synchronization Extension is enabled.
+ *
+ * If set, this can result in smoother window resizing when rendering using
+ * OpenGL, however, there are some conditions:
+ *
+ * - It is only activated on windows created with the `SDL_WINDOW_OPENGL` flag
+ *   (windows using an SDL OpenGL renderer have this automatically set).
+ * - When activated, presentation must be done with `SDL_GL_SwapWindow()`
+ *   (`SDL_RenderPresent()` calls this internally for OpenGL renderers as
+ *   well).
+ *
+ * Enabling this and presenting via an external mechanism will result in sync
+ * requests not being acked, and hangs and other odd window behavior may
+ * result.
+ *
+ * The variable can be set to the following values:
+ *
+ * - "0": The X Synchronization Extension is disabled. (default)
+ * - "1": The X Synchronization Extension is enabled.
+ *
+ * This hint should be set before creating a window.
+ *
+ * \since This hint is available since SDL 3.4.10.
+ */
+#define SDL_HINT_VIDEO_X11_ENABLE_XSYNC_EXT "SDL_VIDEO_X11_ENABLE_XSYNC_EXT"
 
 /**
  * A variable controlling whether SDL should call XSelectInput() to enable

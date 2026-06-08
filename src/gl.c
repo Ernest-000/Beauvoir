@@ -929,7 +929,7 @@ static void load_GL_ES_VERSION_2_0(GLADloadproc load) {
 	glad_glIsTexture = (PFNGLISTEXTUREPROC)load("glIsTexture");
 	glad_glLineWidth = (PFNGLLINEWIDTHPROC)load("glLineWidth");
 	glad_glLinkProgram = (PFNGLLINKPROGRAMPROC)load("glLinkProgram");
-	glad_glPixelStorei = (PFNGLPIXELSTOREIPROC)load("glPixelStorei");
+	//glad_glPixelStorei = (PFNGLPIXELSTOREIPROC)load("glPixelStorei");
 	glad_glPolygonOffset = (PFNGLPOLYGONOFFSETPROC)load("glPolygonOffset");
 	glad_glReadPixels = (PFNGLREADPIXELSPROC)load("glReadPixels");
 	glad_glReleaseShaderCompiler = (PFNGLRELEASESHADERCOMPILERPROC)load("glReleaseShaderCompiler");

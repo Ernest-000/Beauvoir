@@ -1490,14 +1490,19 @@ int bvr_create_texture_2d(bvr_texture_t* texture, bvr_image_t* image, int filter
     BVR_ASSERT(texture);
     BVR_ASSERT(image);
 
+    // copy image data
+    if(image != &texture->image){
+        texture->image = *image;
+    }
+
     texture->filter = filter;
     texture->wrap = wrap;
     texture->id = 0;
     texture->unit = 0;
     texture->target = GL_TEXTURE_2D;
 
-    texture->tiles.width = texture->image.width;
-    texture->tiles.height = texture->image.height;
+    texture->tiles.width = image->width;
+    texture->tiles.height = image->height;
     texture->tiles.brush = 0;
     texture->tiles.tile_per_column = 1;
     texture->tiles.tile_per_row = 1;
@@ -1519,7 +1524,7 @@ int bvr_create_texture_2d(bvr_texture_t* texture, bvr_image_t* image, int filter
         texture->image.format,
         GL_UNSIGNED_BYTE,
         texture->image.sformat, 
-        image->width, image->height
+        texture->image.width, texture->image.height
     );
 
     glTexSubImage2D(
@@ -1535,6 +1540,7 @@ int bvr_create_texture_2d(bvr_texture_t* texture, bvr_image_t* image, int filter
 
     free(image->pixels);
     image->pixels = NULL;
+    texture->image.pixels = NULL;
 
     return BVR_TRUE;
 }
@@ -1542,13 +1548,18 @@ int bvr_create_texture_2d(bvr_texture_t* texture, bvr_image_t* image, int filter
 int bvr_create_texture_3d(bvr_texture_t* texture, bvr_image_t* image, int filter, int wrap){
     BVR_ASSERT(texture);
     BVR_ASSERT(image);
+
+    // copy image data
+    if(image != &texture->image){
+        texture->image = *image;
+    }
     
     texture->filter = filter;
     texture->wrap = wrap;
     texture->target = GL_TEXTURE_2D_ARRAY;
 
-    texture->tiles.width = texture->image.width;
-    texture->tiles.height = texture->image.height;
+    texture->tiles.width = image->width;
+    texture->tiles.height = image->height;
     texture->tiles.brush = 0;
     texture->tiles.tile_per_column = 1;
     texture->tiles.tile_per_row = 1;
@@ -1561,7 +1572,7 @@ int bvr_create_texture_3d(bvr_texture_t* texture, bvr_image_t* image, int filter
     texture->unit = 0;
 
     if(!image->layers.data){
-        bvri_create_empty_layer(&texture->image);
+        bvri_create_empty_layer(image);
     }
 
     if(!bvri_setup_texture(texture)){
@@ -1579,10 +1590,10 @@ int bvr_create_texture_3d(bvr_texture_t* texture, bvr_image_t* image, int filter
         GL_UNSIGNED_BYTE,
         image->sformat,
         image->width, image->height, 
-        image->layers.size / sizeof(bvr_layer_t)
+        BVR_BUFFER_COUNT(texture->image.layers)
     );
 
-    for (uint64 layer = 0; layer < image->layers.size / sizeof(bvr_layer_t); layer++)
+    for (uint64 layer = 0; layer < BVR_BUFFER_COUNT(texture->image.layers); layer++)
     {
 
 #ifndef BVR_NO_FLIP
@@ -1615,6 +1626,7 @@ int bvr_create_texture_3d(bvr_texture_t* texture, bvr_image_t* image, int filter
 
     free(image->pixels);
     image->pixels = NULL;
+    texture->image.pixels = NULL;
 
     return BVR_TRUE;
 }
@@ -1635,7 +1647,7 @@ int bvr_create_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap
     }
     
     // otherwise we create a single layer texture
-    return bvr_create_texture_2d(texture, &texture->image, filter, wrap);    
+    return bvr_create_texture_3d(texture, &texture->image, filter, wrap);    
 }
 
 int bvr_create_texture_atlasf(bvr_texture_t* texture, FILE* file, 
@@ -1780,7 +1792,7 @@ void bvr_composite_enable(bvr_composite_t* composite, bvr_transform_t* const tra
 
     glBindFramebuffer(GL_FRAMEBUFFER, composite->framebuffer);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glViewport(0, 0, composite->image->width, composite->image->height);

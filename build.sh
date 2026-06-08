@@ -1,19 +1,17 @@
 #!/usr/bin/env bash
 set -e
 
-# Configuration
-BVR_GENERATOR="MinGW Makefiles"
+BVR_GENERATOR="Unix Makefiles"
 BVR_CC="gcc"
 BVR_CXX="g++"
 
-BVR_ROOT_DIR="$(pwd)"
-BVR_BUILD_DIR="$BVR_ROOT_DIR/build"
+BVR_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BVR_BUILD_DIR="/tmp/beauvoir-build"
 BVR_INCLUDE_DIR="$BVR_ROOT_DIR/include"
 BVR_NUKLEAR_DIR="$BVR_ROOT_DIR/extern/Nuklear/src"
 
 BVR_EXTERNAL_MODULES=( "SDL" "Zlib" "Lpng" "json-c" )
 
-# Flags
 BVR_CLEAR=false
 BVR_SKIP_BIN=false
 BVR_SKIP_SYNC=false
@@ -28,57 +26,79 @@ for arg in "$@"; do
             ;;
         --skip-git-sync)
             BVR_SKIP_SYNC=true
-            ;;  
+            ;;
     esac
 done
 
-# Git submodules
 if [ "$BVR_SKIP_SYNC" = false ]; then
     git submodule deinit -f .
     git submodule update --init
     git submodule update --remote --merge
 fi
 
-# Clear command
-if [ "$BVR_CLEAR" = false ]; then
+if [ "$BVR_CLEAR" = true ]; then
     echo "Cleaning..."
 
     rm -rf "$BVR_ROOT_DIR/bin"
     rm -rf "$BVR_ROOT_DIR/lib"
     rm -rf "$BVR_ROOT_DIR/licenses"
     rm -rf "$BVR_ROOT_DIR/cmake"
+    rm -rf "$BVR_BUILD_DIR"
 
     mkdir -p "$BVR_ROOT_DIR/bin"
     mkdir -p "$BVR_ROOT_DIR/lib"
 fi
 
-# Loop over external modules
 if [ "$BVR_SKIP_BIN" = false ]; then
     for MOD in "${BVR_EXTERNAL_MODULES[@]}"; do
         MODULE_PATH="$BVR_ROOT_DIR/extern/$MOD"
+        MODULE_BUILD_DIR="$BVR_BUILD_DIR/$MOD"
 
         if [ -d "$MODULE_PATH" ]; then
             echo "$MODULE_PATH found!"
 
-            BVR_MODULE_FLAGS=""
+            BVR_MODULE_FLAGS="-DBUILD_SHARED_LIBS=OFF -DCMAKE_PLATFORM_NO_VERSIONED_SONAME=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
 
-            rm -f "$BVR_BUILD_DIR/$MOD/CMakeCache.txt"
+            case "$MOD" in
+              SDL)
+                BVR_MODULE_FLAGS="$BVR_MODULE_FLAGS -DSDL_SHARED=OFF -DSDL_STATIC=ON"
+                ;;
+              Lpng)
+                BVR_MODULE_FLAGS="$BVR_MODULE_FLAGS -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_NO_VERSIONEDLINKS=ON"
+                ;;
+              Zlib)
+                BVR_MODULE_FLAGS="$BVR_MODULE_FLAGS -DZLIB_BUILD_EXAMPLES=OFF"
+                ;;
+              json-c)
+                BVR_MODULE_FLAGS="$BVR_MODULE_FLAGS -DBUILD_SHARED_LIBS=ON"
+                ;;
+            esac
 
-            cmake "$MODULE_PATH/CMakeLists.txt" \
+            BVR_TMP_INSTALL="$MODULE_BUILD_DIR/install"
+
+            cmake --fresh \
+                -S "$MODULE_PATH" \
                 -G "$BVR_GENERATOR" \
-                -B "$BVR_BUILD_DIR/$MOD" \
-                -D CMAKE_INSTALL_PREFIX="$BVR_ROOT_DIR" \
-                -D CMAKE_C_COMPILER="$BVR_CC" \
+                -B "$MODULE_BUILD_DIR" \
+                -DCMAKE_INSTALL_PREFIX="$BVR_TMP_INSTALL" \
+                -DCMAKE_C_COMPILER="$BVR_CC" \
                 $BVR_MODULE_FLAGS
 
-            cmake --build "$BVR_BUILD_DIR/$MOD" --target install
+            cmake --build "$MODULE_BUILD_DIR" --target install
+
+            find "$BVR_TMP_INSTALL/lib" -maxdepth 1 \( -name "*.a" -o -name "*.so*" \) | while read -r f; do
+                cp -L "$f" "$BVR_ROOT_DIR/lib/"
+            done
+
+            if [ -d "$BVR_TMP_INSTALL/include" ]; then
+                cp -rL "$BVR_TMP_INSTALL/include/." "$BVR_ROOT_DIR/include/"
+            fi
         else
             echo "$MODULE_PATH not found!"
         fi
     done
 fi
 
-# Nuklear
 NK_HEADER="$BVR_NUKLEAR_DIR/HEADER.md"
 NK_FOOTER="$BVR_NUKLEAR_DIR/LICENSE $BVR_NUKLEAR_DIR/CHANGELOG $BVR_NUKLEAR_DIR/CREDITS"
 
@@ -134,6 +154,5 @@ NK_PUBLIC="$BVR_NUKLEAR_DIR/nuklear.h"
 
 python3 "$BVR_NUKLEAR_DIR/build.py" --macro NK --intro "$NK_HEADER" --pub "$NK_PUBLIC" --priv1 "$NK_PRIV1" --extern "$NK_EXTERN" --priv2 "$NK_PRIV2" --outro "$NK_FOOTER" > "$BVR_INCLUDE_DIR/nuklear.h"
 
-# Auto clear-up unused SDL folders
 [ -d "$BVR_ROOT_DIR/licenses" ] && rm -rf "$BVR_ROOT_DIR/licenses"
 [ -d "$BVR_ROOT_DIR/cmake" ] && rm -rf "$BVR_ROOT_DIR/cmake"

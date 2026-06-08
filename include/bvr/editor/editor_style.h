@@ -3,8 +3,8 @@
 
 #include "nuklear.h"
 
-#define BVR_NK_BORDER_WIDTH 0.1f
-#define BVR_NK_BORDER_ROUNDING 2.5f
+#define BVR_NK_BORDER_WIDTH 0.0f
+#define BVR_NK_BORDER_ROUNDING 0.0f
 
 #define BVR_NK_COLOR_BACKGROUND_DARK nk_rgba(44, 44, 44, 255)
 #define BVR_NK_COLOR_BACKGROUND_MID nk_rgba(38, 38, 38, 255)

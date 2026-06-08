@@ -2,7 +2,6 @@
 #include <bvr/math.h>
 
 #include <bvr/lights.h>
-#include <bvr/assets.book.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -333,29 +332,12 @@ void bvr_enable_page(bvr_page_t *page)
     // set page as the new target
     __s_book_instance->page = page;
 
-#ifdef BVR_AUTO_SAVE
-    // load page's datas
-    bvr_asset_t asset;
-    if (bvr_find_asset(BVR_FORMAT("%s.bin", __book_instance->page.name.string), &asset))
-    {
-        bvr_open_book(BVR_FORMAT("%s.bin", __book_instance->page.name.string), bvr_get_book_instance());
-    }
-#endif
-
     BVR_CALL(page->events.load, page);
 }
 
 void bvr_disable_page(bvr_page_t *page)
 {
     BVR_ASSERT(page);
-
-#ifdef BVR_AUTO_SAVE
-    // sage page's data
-    if (access(BVR_FORMAT("%s.bin", __book_instance->page.name.string), F_OK))
-    {
-        bvr_write_book(BVR_FORMAT("%s.bin", __book_instance->page.name.string), bvr_get_book_instance());
-    }
-#endif
 
     // reset targeted page
     __s_book_instance->page = &__s_book_instance->slots[0].page;

@@ -1,6 +1,10 @@
 #pragma once
 
-#include <bvr/buffer.h>
+#include <bvr/collections/buffer.h>
+#include <bvr/collections/memstream.h>
+#include <bvr/collections/string.h>
+#include <bvr/collections/pool.h>
+
 #include <bvr/math.h>
 #include <bvr/actors.h>
 
@@ -42,13 +46,13 @@ typedef struct bvr_page_s {
     bvr_global_illumination_t global_illumination;
 
     // all world's actors (pointers)
-    bvr_pool_t actors;
+    //bvr_pool_t actors;
 
     // all world lights
     bvr_pool_t lights;
 
     // all world's colliders (pointers)
-    bvr_collider_collection_t colliders;
+    //bvr_collider_collection_t colliders;
 
     // scene's callbacks
     struct {
@@ -116,6 +120,7 @@ typedef struct bvr_book_s {
         float delta_time, frame_timer;
         int average_render_time, frames;
         uint64 prev_time, current_time;
+        uint64 start_time;
     } timer;
 } bvr_book_t;
 
@@ -235,32 +240,5 @@ void bvr_enable_page(bvr_page_t* page);
     Remove page from current working page
 */
 void bvr_disable_page(bvr_page_t* page);
-
-/*
-    Register a new actor inside page's pool. 
-    Return NULL if cannot register actor.
-*/
-struct bvr_actor_s* bvr_alloc_actor(bvr_page_t* page, bvr_actor_type_t type);
-
-/**
- * Free and destory an actor in a scene.
- */
-void bvr_free_actor(bvr_page_t* page, struct bvr_actor_s* actor);
-
-/**
- * Find an actor with its name
- */
-struct bvr_actor_s* bvr_find_actor(bvr_book_t* book, const char* name);
-
-/**
- * Find an actor with its unique id
- */
-struct bvr_actor_s* bvr_find_actor_uuid(bvr_book_t* book, bvr_uuid_t uuid);
-
-/*
-    Register a new non-actor collider inside page's pool.
-    Return NULL if cannot register collider.
-*/
-bvr_collider_t* bvr_register_collider(bvr_page_t* page, bvr_collider_t* collider);
 
 void bvr_destroy_page(bvr_page_t* page);

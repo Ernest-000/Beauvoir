@@ -37,7 +37,7 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
 
 void bvr_pipeline_do_draw_cmd(struct bvr_pipeline_state_s* state, struct bvr_draw_command_s* cmd){
     // check for invalid buffer
-    BVR_ASSERT(cmd->array_buffer && cmd->vertex_buffer && cmd->element_buffer);
+    BVR_ASSERT(cmd->array_buffer > 1 && cmd->vertex_buffer > 1);
 
     // try to apply local uniform
     bvr_shader_set_uniform_raw(
@@ -49,26 +49,41 @@ void bvr_pipeline_do_draw_cmd(struct bvr_pipeline_state_s* state, struct bvr_dra
 
     glBindVertexArray(cmd->array_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, cmd->vertex_buffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cmd->element_buffer);
 
-    for (uint64 i = 0; i < cmd->attrib_count; i++)
-    {
-        glEnableVertexAttribArray(i);
-    }
+    // for (uint64 i = 0; i < cmd->attrib_count; i++)
+    // {
+    //     glEnableVertexAttribArray(i);
+    // }
     
     // overwrite drawmonde if wireframe is enabled
     if(BVR_HAS_FLAG(state->flags, BVR_WIREFRAME_ENABLE)){
         cmd->draw_mode = GL_LINE_STRIP_ADJACENCY;      
     }
 
+    // uint32 arr, buff, elem, tex;
+    // glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &arr);
+    // glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &buff);
+    // glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &elem);
+    // glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
+    // 
+    // BVR_PRINTF("buffer state: %i %i %i %i", arr, buff, elem, tex);
+    // BVR_PRINTF("vertex group: start %i count %i end %i", 
+    //     cmd->vertex_group.element_offset, 
+    //     cmd->vertex_group.element_count, 
+    //     cmd->vertex_group.element_offset + cmd->vertex_group.element_count
+    // );
+
     // if use element 
     if(cmd->element_buffer){ 
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cmd->element_buffer);
+
         glDrawRangeElements(
             cmd->draw_mode, 
             cmd->vertex_group.element_offset,
             cmd->vertex_group.element_offset + cmd->vertex_group.element_count,
             cmd->vertex_group.element_count,
-            cmd->element_type, NULL
+            cmd->element_type, 
+            NULL
         );
     }
     else {
@@ -79,14 +94,14 @@ void bvr_pipeline_do_draw_cmd(struct bvr_pipeline_state_s* state, struct bvr_dra
         );
     }
 
-    for (uint64 i = 0; i < cmd->attrib_count; i++)
-    {
-        glDisableVertexAttribArray(i);
-    }
+    // for (uint64 i = 0; i < cmd->attrib_count; i++)
+    // {
+    //     glDisableVertexAttribArray(i);
+    // }
 
     glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     bvr_shader_disable();
 }
@@ -185,11 +200,11 @@ int bvr_create_framebuffer(bvr_framebuffer_t* framebuffer, const uint16 width, c
              half_width,   half_height, 1.0f, 1.0f,
         };
 
-        glGenVertexArrays(1, &framebuffer->vertex_buffer);
-        glBindVertexArray(framebuffer->vertex_buffer);
+        glGenVertexArrays(1, &framebuffer->array_buffer);
+        glBindVertexArray(framebuffer->array_buffer);
 
-        glGenBuffers(1, &framebuffer->array_buffer);
-        glBindBuffer(GL_ARRAY_BUFFER, framebuffer->array_buffer);
+        glGenBuffers(1, &framebuffer->vertex_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, framebuffer->vertex_buffer);
 
         glBufferData(GL_ARRAY_BUFFER, 24 * sizeof(float), &quad, GL_STATIC_DRAW);
 
@@ -253,7 +268,7 @@ void bvr_framebuffer_disable(bvr_framebuffer_t* framebuffer){
 }
 
 void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 const color){
-    glClearColor(color[0], color[1], color[2], 1.0f);
+    glClearColor(color[0], color[1], color[2], 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
@@ -271,23 +286,23 @@ void bvr_framebuffer_blit(bvr_framebuffer_t* framebuffer){
     );
 
     BVR_ASSERT(bvr_shader_set_uniform_raw(
-        &shader->uniforms[0], &ortho[0][0]
+        bvr_find_uniform_tag(shader, BVR_UNIFORM_PROJECTION), &ortho[0][0]
     ));
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
     bvr_shader_enable(shader);
 
-    glBindVertexArray(framebuffer->vertex_buffer);
+    glBindVertexArray(framebuffer->array_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, framebuffer->vertex_buffer);
+
     glBindTexture(GL_TEXTURE_2D, framebuffer->color_buffer);
 
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
+    // glEnableVertexAttribArray(0);
+    // glEnableVertexAttribArray(1);
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(0);
+    // glDisableVertexAttribArray(1);
+    // glDisableVertexAttribArray(0);
 
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -333,7 +348,7 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
             "	vertex.uvs = in_uvs;\n"
             "}";
         
-        fragment_shader = "#version 400\n"
+        fragment_shader = BVR_SHADER_VERSION
             "in V_DATA {\n"
             "vec2 uvs;\n"
             "} vertex;\n"
@@ -355,16 +370,16 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
         vertex_shader = BVR_SHADER_VERSION
             "layout(location=0) in vec2 in_position;\n"
             "layout(location=1) in vec2 in_uvs;\n"
-            "uniform mat4 bvr_transform;\n"
+            "uniform mat4 bvr_projection;\n"
             "out V_DATA {\n"
             "	vec2 uvs;\n"
             "} vertex;\n"
             "void main() {\n"
-            "	gl_Position = bvr_transform * vec4(in_position, 0.0, 1.0);\n"
+            "	gl_Position = bvr_projection * vec4(in_position, 0.0, 1.0);\n"
             "	vertex.uvs = in_uvs;\n"
             "}";
         
-        fragment_shader = "#version 400\n"
+        fragment_shader = BVR_SHADER_VERSION
             "in V_DATA {\n"
             "vec2 uvs;\n"
             "} vertex;\n"
@@ -389,7 +404,7 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
 
     /* composite shader */
     {
-        vertex_shader = "#version 400\n"
+        vertex_shader = BVR_SHADER_VERSION
             "layout(location=0) in vec2 in_position;\n"
             "layout(location=1) in vec2 in_uvs;\n"
             "uniform mat4 bvr_transform;\n"
@@ -405,7 +420,7 @@ void bvr_create_predefs(struct bvr_predefs* predefs){
             "	vertex.uvs = in_uvs;\n"
             "}";
         
-        fragment_shader = "#version 400\n"
+        fragment_shader = BVR_SHADER_VERSION
             "in V_DATA {\n"
             "vec2 uvs;\n"
             "} vertex;\n"

@@ -2,7 +2,6 @@
 
 #include <bvr/common.h>
 
-#include <memory.h>
 #include <malloc.h>
 
 static int bvri_aabb(struct bvr_bounds_s* a, struct bvr_bounds_s* b, vec3 a_inertia, vec3 b_inertia);

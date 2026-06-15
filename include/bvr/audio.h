@@ -2,7 +2,7 @@
 
 #include <bvr/config.h>
 #include <bvr/common.h>
-#include <bvr/buffer.h>
+#include <bvr/collections/string.h>
 
 #define BVR_AUDIO_MONO 1
 #define BVR_AUDIO_STEREO 2

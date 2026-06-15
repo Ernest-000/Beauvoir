@@ -4,21 +4,21 @@
 #include "nuklear.h"
 
 #define BVR_NK_BORDER_WIDTH 0.0f
-#define BVR_NK_BORDER_ROUNDING 0.0f
+#define BVR_NK_BORDER_ROUNDING 5.0f
 
-#define BVR_NK_COLOR_BACKGROUND_DARK nk_rgba(44, 44, 44, 255)
-#define BVR_NK_COLOR_BACKGROUND_MID nk_rgba(38, 38, 38, 255)
-#define BVR_NK_COLOR_BACKGROUND_LIGHT nk_rgba(53, 53, 53, 255)
+#define BVR_NK_COLOR_BACKGROUND_DARK nk_rgba(40, 35, 40, 255)
+#define BVR_NK_COLOR_BACKGROUND_MID nk_rgba(87, 76, 87, 255)
+#define BVR_NK_COLOR_BACKGROUND_LIGHT nk_rgba(84, 92, 126, 255)
 
-#define BVR_NK_COLOR_BORDER nk_rgba(117, 21, 21, 255)
-#define BVR_NK_COLOR_BORDER_SOFT nk_rgba(180, 186, 196, 255)
+#define BVR_NK_COLOR_BORDER nk_rgba(0, 0, 0, 255)
+#define BVR_NK_COLOR_BORDER_SOFT nk_rgba(0, 0, 0, 255)
 
 #define BVR_NK_COLOR_TEXT nk_rgba(255, 255, 255, 255)
-#define BVR_NK_COLOR_TEXT_DIM nk_rgba(85, 92, 104, 255)
-#define BVR_NK_COLOR_DISABLED nk_rgba(140, 145, 154, 255)
+#define BVR_NK_COLOR_TEXT_DIM nk_rgba(163, 162, 154, 255)
+#define BVR_NK_COLOR_DISABLED nk_rgba(163, 162, 154, 255)
 
-#define BVR_NK_COLOR_ACCENT nk_rgba(117, 21, 21, 255)
-#define BVR_NK_COLOR_SELECT nk_rgba(255, 56, 60, 255)
+#define BVR_NK_COLOR_ACCENT nk_rgba(197, 105, 129, 255)
+#define BVR_NK_COLOR_SELECT nk_rgba(197, 105, 129, 255)
 
 #define BVR_NK_COLOR_SHADOW nk_rgba(0, 0, 0, 60)
 #define BVR_NK_COLOR_CURSOR nk_rgba(255, 255, 255, 255)

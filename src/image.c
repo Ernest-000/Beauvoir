@@ -13,6 +13,8 @@
 
 #include <bvr/gl.h>
 
+#define BVR_NO_PNG
+
 static int bvri_get_sformat(bvr_image_t* image){
     if(image->format == 16){
         switch (image->format)

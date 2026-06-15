@@ -60,11 +60,11 @@ static void bvr_nk_draw_dynamic_actor_component(bvr_canvas_t* context, void* use
 static void bvr_nk_draw_texture_actor_component(bvr_canvas_t* context, void* user);
 static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* user);
 
-BVR_H_FUNC void bvr_nk_draw_button_actor(bvr_editor_t* editor, struct bvr_actor_s* actor){
+BVR_H_FUNC void bvr_nk_draw_button_actor(bvr_editor_t* editor, void* actor){
     BVR_ASSERT(editor);
     BVR_ASSERT(actor);
     
-    if(!actor->name.string){
+    /*if(!actor->name.string){
         return;
     }
 
@@ -95,7 +95,7 @@ BVR_H_FUNC void bvr_nk_draw_button_actor(bvr_editor_t* editor, struct bvr_actor_
         default:
             break;
         }
-    }
+    }*/
 }
 
 BVR_H_FUNC void bvr_nk_draw_button(bvr_editor_t* editor, const char* name, uint32 type, void* object){
@@ -241,14 +241,14 @@ static void bvr_nk_draw_transform_component(bvr_canvas_t* context, void* user){
 static void bvr_nk_draw_actor_component(bvr_canvas_t* context, void* user){
     struct bvr_actor_s* actor = (struct bvr_actor_s*)user;
 
-    if(nk_tree_push(&context->context, NK_TREE_TAB, "actor", NK_MAXIMIZED)){
+    /*if(nk_tree_push(&context->context, NK_TREE_TAB, "actor", NK_MAXIMIZED)){
         nk_checkbox_label(&context->context, "is active?", (nk_bool*)&actor->active);
         nk_property_short(&context->context, "draw order", 0, &actor->order_in_layer, BVR_INT16_MAX, 1, 1);
         bvr_nk_draw_transform_component(context, &actor->transform);
         nk_tree_pop(&context->context);
     }
 
-    nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
+    nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);*/
 }
 
 static void bvr_nk_draw_image_component(bvr_canvas_t* context, void* user){
@@ -428,6 +428,10 @@ static void bvr_nk_draw_gpipeline_component(bvr_canvas_t* context, void* user){
 
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     BVR_NK_CHECKBOX(pipeline->rendering_pass.flags, BVR_WIREFRAME_ENABLE, "wireframe");
+
+    nk_label(&context->context, BVR_FORMAT("deta time: %f", bvr_get_instance()->timer.delta_time), NK_TEXT_ALIGN_LEFT);
+    nk_label(&context->context, BVR_FORMAT("render time: %f", bvr_get_instance()->timer.average_render_time), NK_TEXT_ALIGN_LEFT);
+    nk_label(&context->context, BVR_FORMAT("frame count: %f", bvr_get_instance()->timer.current_time), NK_TEXT_ALIGN_LEFT);
 }
 
 static void bvr_nk_draw_global_illumination_component(bvr_canvas_t* context, void* user){
@@ -444,7 +448,7 @@ static void bvr_nk_draw_user_component(bvr_canvas_t* context, void* user){
 static void bvr_nk_draw_layer_actor_component(bvr_canvas_t* context, void* user){
     BVR_ASSERT(user);
 
-    bvr_layer_actor_t* actor = (bvr_layer_actor_t*)user;
+    /*bvr_layer_actor_t* actor = (bvr_layer_actor_t*)user;
 
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     nk_label_wrap(&context->context, BVR_FORMAT("%s (bvr_layer_actor_t)", actor->self.name.string));
@@ -472,14 +476,14 @@ static void bvr_nk_draw_layer_actor_component(bvr_canvas_t* context, void* user)
 
         nk_tree_pop(&context->context);
     }
-    
+    */
     
 }
 
 static void bvr_nk_draw_static_actor_component(bvr_canvas_t* context, void* user){
     BVR_ASSERT(user);
 
-    bvr_static_actor_t* actor = (bvr_static_actor_t*)user;
+    /*bvr_static_actor_t* actor = (bvr_static_actor_t*)user;
 
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     nk_label_wrap(&context->context, BVR_FORMAT("%s (bvr_static_actor_t)", actor->self.name.string));
@@ -488,13 +492,13 @@ static void bvr_nk_draw_static_actor_component(bvr_canvas_t* context, void* user
     bvr_nk_draw_actor_component(context, user);
 
     BVR_NK_SEPARATOR(&context->context);
-    nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));
+    nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));*/
 }
 
 static void bvr_nk_draw_dynamic_actor_component(bvr_canvas_t* context, void* user){
     BVR_ASSERT(user);
 
-    bvr_dynamic_actor_t* actor = (bvr_dynamic_actor_t*)user;
+    /*bvr_dynamic_actor_t* actor = (bvr_dynamic_actor_t*)user;
 
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     nk_label_wrap(&context->context, BVR_FORMAT("%s (bvr_dynamic_actor_t)", actor->self.name.string));
@@ -503,13 +507,13 @@ static void bvr_nk_draw_dynamic_actor_component(bvr_canvas_t* context, void* use
     bvr_nk_draw_actor_component(context, user);
 
     BVR_NK_SEPARATOR(&context->context);
-    nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));
+    nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));*/
 }
 
 static void bvr_nk_draw_texture_actor_component(bvr_canvas_t* context, void* user){
     BVR_ASSERT(user);
 
-    bvr_texture_actor_t* actor = (bvr_texture_actor_t*)user;
+    /*bvr_texture_actor_t* actor = (bvr_texture_actor_t*)user;
 
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     nk_label_wrap(&context->context, BVR_FORMAT("%s (bvr_texture_actor_t)", actor->self.name.string));
@@ -520,13 +524,13 @@ static void bvr_nk_draw_texture_actor_component(bvr_canvas_t* context, void* use
     bvr_nk_draw_shader_component(context, &actor->shader);
 
     BVR_NK_SEPARATOR(&context->context);
-    nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));
+    nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));*/
 }
 
 static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* user){
     BVR_ASSERT(user);
 
-    bvr_landscape_actor_t* actor = (bvr_landscape_actor_t*)user;
+    /*bvr_landscape_actor_t* actor = (bvr_landscape_actor_t*)user;
 
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     nk_label_wrap(&context->context, BVR_FORMAT("%s (bvr_landscape_actor_t)", actor->self.name.string));
@@ -672,7 +676,7 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
             bvr_landscape_set_tile(&actor->landscape, tile[0], tile[1], layer, p_tile);
         }
     }
-
+*/
     
 }
 

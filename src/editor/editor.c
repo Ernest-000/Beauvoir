@@ -2,11 +2,10 @@
 #include <bvr/editor/editor_style.h>
 #include <bvr/editor/editor_flags.h>
 #include <bvr/editor/editor_components.h>
-#include <bvr/editor/editor_landscape.h>
 
 #ifndef BVR_NO_NUKLEAR
 
-#include <bvr/buffer.h>
+#include <bvr/memory.h>
 #include <bvr/common.h>
 #include <bvr/window.h>
 #include <bvr/actors.h>
@@ -166,9 +165,9 @@ void bvr_editor_draw_page_hierarchy(){
             if(nk_tree_push(p_context, NK_TREE_TAB, "actors", NK_MAXIMIZED)){
 
                 struct bvr_actor_s** pp_actor; 
-                BVR_POOL_FOR_EACH(pp_actor, __editor->book->page->actors){
-                    bvr_nk_draw_button_actor(__editor, *pp_actor);
-                }
+                // BVR_POOL_FOR_EACH(pp_actor, __editor->book->page->actors){
+                //     bvr_nk_draw_button_actor(__editor, *pp_actor);
+                // }
 
                 nk_tree_pop(p_context);
             }
@@ -287,7 +286,7 @@ int bvri_create_editor_render_buffers(uint32* array_buffer, uint32* vertex_buffe
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
-    glDisableVertexAttribArray(0);
+    //glDisableVertexAttribArray(0);
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -303,16 +302,16 @@ void bvri_bind_editor_buffers(uint32 array_buffer, uint32 vertex_buffer){
 void bvri_set_editor_buffers(float* vertices, uint32 vertices_count, uint8 stride){
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertices_count * stride * sizeof(float), vertices);
     
-    glEnableVertexAttribArray(0);
+    //glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, stride, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)0);
-    glDisableVertexAttribArray(0);
+    //glDisableVertexAttribArray(0);
     
 }
 
 void bvri_draw_editor_buffer(int drawmode, uint32 element_offset, uint32 element_count){
-    glEnableVertexAttribArray(0);
+    //glEnableVertexAttribArray(0);
     glDrawArrays(drawmode, element_offset, element_count);
-    glDisableVertexAttribArray(0);
+    //glDisableVertexAttribArray(0);
 }
 
 void bvri_destroy_editor_render_buffers(uint32* array_buffer, uint32* vertex_buffer){

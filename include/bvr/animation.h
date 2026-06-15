@@ -1,7 +1,9 @@
 #pragma once
 
-#include <bvr/buffer.h>
 #include <bvr/image.h>
+#include <bvr/collections/buffer.h>
+#include <bvr/collections/pool.h>
+#include <bvr/collections/string.h>
 
 #if !defined(BVR_INTERPOLATE)
     #define BVR_LINEAR_INTERPOLATE(_start, _end, t) (_start + ((_end - _start) * t))

@@ -1,7 +1,7 @@
 #include <bvr/gui.h>
 #include <bvr/file.h>
 
-#include <SDL3/SDL.h>
+// #include <SDL3/SDL.h>
 #include <bvr/gl.h>
 
 #include <malloc.h>
@@ -149,7 +149,7 @@ void bvr_canvas_new_frame(bvr_canvas_t* context){
     nk_input_begin(&context->context);
 
     // context->device.texture_offset = -1;
-
+    /*
     if(((context->win->events & SDL_EVENT_KEY_DOWN) == SDL_EVENT_KEY_DOWN) ||
         (context->win->events & SDL_EVENT_KEY_UP) == SDL_EVENT_KEY_UP){
         const uint8* state = (Uint8*)SDL_GetKeyboardState(0);
@@ -230,7 +230,7 @@ void bvr_canvas_new_frame(bvr_canvas_t* context){
         nk_glyph glyph;
         memcpy(glyph, context->win->inputs.text_input, NK_UTF_SIZE);
         nk_input_glyph(&context->context, glyph);
-    }
+    }*/
 
     nk_input_end(&context->context);
 }
@@ -377,9 +377,9 @@ void bvr_canvas_render(bvr_canvas_t* context){
         nk_buffer_clear(&context->device.cmds);
     }
 
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(2);
+    // glDisableVertexAttribArray(0);
+    // glDisableVertexAttribArray(1);
+    // glDisableVertexAttribArray(2);
 
     glUseProgram(0);
     glBindVertexArray(0);

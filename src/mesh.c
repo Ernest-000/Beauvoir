@@ -1,6 +1,6 @@
 #include <bvr/mesh.h>
 #include <bvr/math.h>
-#include <bvr/buffer.h>
+#include <bvr/memory.h>
 #include <bvr/file.h>
 #include <bvr/physics.h>
 
@@ -1182,9 +1182,8 @@ int bvr_create_meshf(bvr_mesh_t* mesh, FILE* file, bvr_mesh_array_attrib_t attri
     mesh->attrib = attrib;
     
     mesh->vertex_groups.data = NULL;
-    mesh->vertex_groups.avail = NULL;
-    mesh->vertex_groups.next_block = NULL;
-    mesh->vertex_groups.count = 0;
+    mesh->vertex_groups.next_free = NULL;
+    mesh->vertex_groups.capacity = 0;
     mesh->vertex_groups.elemsize = sizeof(bvr_vertex_group_t);
 
 #ifndef BVR_NO_GLTF
@@ -1246,7 +1245,7 @@ int bvr_create_meshv(bvr_mesh_t* mesh, bvr_mesh_buffer_t* vertices, bvr_mesh_buf
     group->name.length = 0;
     group->name.string = NULL;
     group->element_offset = 0;
-    group->element_count = elements->count;
+    group->element_count = vertices->count;
     group->texture = 0;
     group->flags = 0;
     BVR_IDENTITY_MAT4(group->matrix);
@@ -1257,7 +1256,10 @@ int bvr_create_meshv(bvr_mesh_t* mesh, bvr_mesh_buffer_t* vertices, bvr_mesh_buf
 
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertices->count * bvr_sizeof(vertices->type), vertices->data);
 
-    if(elements->type){
+    // check for valid element data types
+    if(elements->type && elements->count > 0 && elements->data){
+        group->element_count = elements->count;
+        
         glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, elements->count * bvr_sizeof(elements->type), elements->data);
     }
     
@@ -1388,13 +1390,13 @@ static int bvri_create_mesh_buffers(bvr_mesh_t* mesh, uint64 vertices_size, uint
         return BVR_FALSE;
     }
 
-    for (uint64 i = 0; i < mesh->attrib_count; i++){ 
-        glDisableVertexAttribArray(i); 
-    }
+    // for (uint64 i = 0; i < mesh->attrib_count; i++){ 
+    //     glDisableVertexAttribArray(i); 
+    // }
 
+    glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
 
     return BVR_TRUE;
 }

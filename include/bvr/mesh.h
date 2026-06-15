@@ -3,7 +3,9 @@
 #include <stdint.h>
 
 #include <bvr/common.h>
-#include <bvr/buffer.h>
+#include <bvr/collections/string.h>
+#include <bvr/collections/buffer.h>
+#include <bvr/collections/pool.h>
 
 #include <bvr/math.h>
 
@@ -126,7 +128,7 @@ void bvr_destroy_mesh(bvr_mesh_t* mesh);
 #include <malloc.h>
 
 BVR_H_FUNC void bvr_create_2d_square_mesh(bvr_mesh_t* mesh, float width, float height){
-    /*float vertices[16] = {
+    float vertices[16] = {
         -width,  height, 0, 1,
         -width, -height, 0, 0,
          width, -height, 1, 0,
@@ -144,26 +146,6 @@ BVR_H_FUNC void bvr_create_2d_square_mesh(bvr_mesh_t* mesh, float width, float h
     element_buffer.data = (char*) indices;
     element_buffer.type = BVR_UNSIGNED_INT32;
     element_buffer.count = 6;
-
-    bvr_create_meshv(mesh, &vertices_buffer, &element_buffer, BVR_MESH_ATTRIB_V2UV2);*/
-    float vertices[24] = {
-        -width,  height, 0, 1,
-        -width, -height, 0, 0,
-         width, -height, 1, 0,
-        -width,  height, 0, 1,
-         width, -height, 1, 0,
-         width,  height, 1, 1
-    };
-
-    bvr_mesh_buffer_t vertices_buffer;
-    vertices_buffer.data = (char*) vertices;
-    vertices_buffer.type = BVR_FLOAT;
-    vertices_buffer.count = 24;
-
-    bvr_mesh_buffer_t element_buffer;
-    element_buffer.data = (char*) NULL;
-    element_buffer.type = BVR_UNSIGNED_INT32;
-    element_buffer.count = 0;
 
     bvr_create_meshv(mesh, &vertices_buffer, &element_buffer, BVR_MESH_ATTRIB_V2UV2);
 }

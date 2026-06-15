@@ -211,7 +211,7 @@ bvr_animation_handle_t* bvr_animation_register_track(bvr_animation_t* anim, cons
     }
 
     // avoid overflows
-    if(anim->tracks.count >= anim->tracks.capacity){
+    if(anim->tracks.capacity >= anim->tracks.capacity){
         BVR_PRINT("cannot add more track...");
         return NULL;
     }
@@ -219,7 +219,7 @@ bvr_animation_handle_t* bvr_animation_register_track(bvr_animation_t* anim, cons
     bvr_animation_handle_t* handle = (bvr_animation_handle_t*) bvr_pool_alloc(&anim->tracks);
     BVR_ASSERT(handle);
 
-    handle->id = anim->tracks.count - 1;
+    handle->id = anim->tracks.capacity - 1;
     handle->object.ptr = object;
     handle->type = type;
     handle->flags = flags;

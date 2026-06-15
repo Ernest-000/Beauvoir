@@ -1,7 +1,7 @@
 #include <bvr/common.h>
 
 #include <bvr/config.h>
-#include <bvr/buffer.h>
+#include <bvr/collections/string.h>
 
 #include <stdlib.h>
 #include <stdint.h>

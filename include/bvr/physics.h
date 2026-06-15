@@ -1,6 +1,6 @@
 #pragma once
 
-#include <bvr/buffer.h>
+#include <bvr/collections/buffer.h>
 #include <bvr/math.h>
 
 #ifndef BVR_COLLIDER_COLLECTION_SIZE

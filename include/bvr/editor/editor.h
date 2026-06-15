@@ -17,7 +17,7 @@
 #endif
 
 #ifndef BVR_EDITOR_SCALE
-    #define BVR_EDITOR_SCALE 1.1f
+    #define BVR_EDITOR_SCALE 1.5f
 #endif
 
 enum bvr_editor_state_e {

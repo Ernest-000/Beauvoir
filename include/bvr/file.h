@@ -1,7 +1,7 @@
 #pragma once
 
 #include <bvr/config.h>
-#include <bvr/buffer.h>
+#include <bvr/collections/string.h>
 
 #include <stdint.h>
 #include <stdio.h>

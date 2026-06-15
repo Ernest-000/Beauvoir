@@ -1,8 +1,10 @@
 #pragma once
 
-#include <bvr/buffer.h>
 #include <bvr/common.h>
 #include <bvr/math.h>
+
+#include <bvr/collections/buffer.h>
+#include <bvr/collections/string.h>
 
 #include <stdint.h>
 #include <stdio.h>

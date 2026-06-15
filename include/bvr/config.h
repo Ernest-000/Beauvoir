@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef BVR_CLASS_NAME
+    #define BVR_CLASS_NAME "BEAUVOIR"
+#endif
+
 #ifndef BVR_VERSION
     #define BVR_VERSION "v0.1"
 #endif
@@ -11,6 +15,10 @@
 #endif
 
 #include <stdbool.h>
+
+#ifndef NULL
+#include <stddef.h>
+#endif
 
 typedef signed char int8;
 typedef signed short int16;
@@ -96,65 +104,3 @@ typedef float float32;
 #define __bswap_constant_32(x) \
      ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) |                      \
       (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
-
-/*
-#if defined __GNUC__ && __GNUC__ >= 2
-# define __bswap_16(x) \
-                                                                  \
-      ({ register unsigned short int __v, __x = (x);                              \
-         if (__builtin_constant_p (__x))                                      \
-           __v = __bswap_constant_16 (__x);                                      \
-         else                                                                      \
-           __asm__ ("rorw $8, %w0"                                              \
-                    : "=r" (__v)                                              \
-                    : "0" (__x)                                                      \
-                    : "cc");                                                      \
-         __v; })
-#else
-// This is better than nothing.
-# define __bswap_16(x) \
-                                                                  \
-      ({ register unsigned short int __x = (x); __bswap_constant_16 (__x); })
-#endif
-
-
-// Swap bytes in 32 bit value.
-
-#if defined __GNUC__ && __GNUC__ >= 2
-# if __WORDSIZE == 64 || (defined __i486__ || defined __pentium__              \
-                          || defined __pentiumpro__ || defined __pentium4__   \
-                          || defined __k8__ || defined __athlon__              \
-                          || defined __k6__ || defined __nocona__              \
-                          || defined __core2__ || defined __geode__              \
-                          || defined __amdfam10__)
-// To swap the bytes in a word the i486 processors and up provide the
-//   `bswap' opcode.  On i386 we have to use three instructions.  
-#  define __bswap_32(x) \
-                                                                  \
-      ({ register unsigned int __v, __x = (x);                                      \
-         if (__builtin_constant_p (__x))                                      \
-           __v = __bswap_constant_32 (__x);                                      \
-         else                                                                      \
-           __asm__ ("bswap %0" : "=r" (__v) : "0" (__x));                      \
-         __v; })
-# else
-#  define __bswap_32(x)                                                              \
-                                                                  \
-      ({ register unsigned int __v, __x = (x);                                      \
-         if (__builtin_constant_p (__x))                                      \
-           __v = __bswap_constant_32 (__x);                                      \
-         else                                                                      \
-           __asm__ ("rorw $8, %w0;"                                              \
-                    "rorl $16, %0;"                                              \
-                    "rorw $8, %w0"                                              \
-                    : "=r" (__v)                                              \
-                    : "0" (__x)                                                      \
-                    : "cc");                                                      \
-         __v; })  
-# endif
-#else
-# define __bswap_32(x) \
-                                                                  \
-      ({ register unsigned int __x = (x); __bswap_constant_32 (__x); })
-#endif
-*/

@@ -4,7 +4,7 @@
 #include <bvr/file.h>
 #include <bvr/window.h>
 
-#include <SDL3/SDL_audio.h>
+// #include <SDL3/SDL_audio.h>
 
 #include <stdlib.h>
 #include <memory.h>
@@ -12,7 +12,7 @@
 #define BVR_AUDIO_FORMAT BVR_AUDIO_INT16
 #define BVR_AUDIO_NO_SIGNAL (0)
 
-static void bvri_audio_callback(void* _stream, SDL_AudioStream* sdl, int additional_amount, int total_amount);
+static void bvri_audio_callback(void* _stream, void* sdl, int additional_amount, int total_amount);
 static struct bvr_audio_command_s* bvri_audio_find_audio_command(uint32 id);
 
 #ifndef BVR_NO_WAV
@@ -1181,7 +1181,7 @@ void bvr_destroy_audio(bvr_audio_t* audio){
     audio->wave = NULL;
 }
 
-static void bvri_audio_callback(void* _stream, SDL_AudioStream* sdl, int additional_amount, int total_amount){
+static void bvri_audio_callback(void* _stream, void* sdl, int additional_amount, int total_amount){
     uint32 done = 0;
     bvr_audio_mixer_t* mixer = (bvr_audio_mixer_t*)_stream;
 
@@ -1203,40 +1203,40 @@ static void bvri_audio_callback(void* _stream, SDL_AudioStream* sdl, int additio
 
     mixer->command_count = done;
 
-    SDL_PutAudioStreamData(mixer->context, mixer->master.pcm, mixer->master.avail_buffer_length);
+    // SDL_PutAudioStreamData(mixer->context, mixer->master.pcm, mixer->master.avail_buffer_length);
 }
 
 int bvr_create_audio_mixer(bvr_audio_mixer_t* mixer, const int sample_rate, const uint8 channels){
     BVR_ASSERT(mixer);
     BVR_ASSERT(sample_rate > 0);
 
-    SDL_AudioSpec config;
-    config.channels = channels;
-    config.format = BVR_AUDIO_FORMAT;
-    config.freq = sample_rate;
-
-    mixer->channels = channels;
-    mixer->sample_rate = sample_rate;
-    mixer->sample_depth = 16;
-    mixer->device_id = BVR_AUDIO_DEFAULT_OUTPUT;
-    mixer->gain = 1.0f;
-    mixer->command_count = 0;
-
-    mixer->context = SDL_OpenAudioDeviceStream(
-        BVR_AUDIO_DEFAULT_OUTPUT, &config, 
-        bvri_audio_callback, mixer
-    );
-    BVR_ASSERT(mixer->context);
-
-    for (size_t i = 0; i < BVR_MAX_AUDIO_TRACKS; i++)
-    {
-        bvr_create_audio_track(mixer, i, 100.0f, 0.0f);
-    }
-    
-    SDL_ResumeAudioStreamDevice(mixer->context);
-
-    mixer->avail = true;
-    return BVR_TRUE;
+    // SDL_AudioSpec config;
+    // config.channels = channels;
+    // config.format = BVR_AUDIO_FORMAT;
+    // config.freq = sample_rate;
+// 
+    // mixer->channels = channels;
+    // mixer->sample_rate = sample_rate;
+    // mixer->sample_depth = 16;
+    // mixer->device_id = BVR_AUDIO_DEFAULT_OUTPUT;
+    // mixer->gain = 1.0f;
+    // mixer->command_count = 0;
+// 
+    // mixer->context = SDL_OpenAudioDeviceStream(
+    //     BVR_AUDIO_DEFAULT_OUTPUT, &config, 
+    //     bvri_audio_callback, mixer
+    // );
+    // BVR_ASSERT(mixer->context);
+// 
+    // for (size_t i = 0; i < BVR_MAX_AUDIO_TRACKS; i++)
+    // {
+    //     bvr_create_audio_track(mixer, i, 100.0f, 0.0f);
+    // }
+    // 
+    // // SDL_ResumeAudioStreamDevice(mixer->context);
+// 
+    // mixer->avail = true;
+    // return BVR_TRUE;
 }
 
 void bvr_create_audio_track(bvr_audio_mixer_t* mixer, uint8 track, float volume, float pan){
@@ -1343,7 +1343,7 @@ static struct bvr_audio_command_s* bvri_audio_find_audio_command(uint32 id){
 void bvr_destroy_audio_mixer(bvr_audio_mixer_t* mixer){
     BVR_ASSERT(mixer);
 
-    SDL_CloseAudioDevice(mixer->device_id);
+    // SDL_CloseAudioDevice(mixer->device_id);
     mixer->context = NULL;
     mixer->avail = false;
 }

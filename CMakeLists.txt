@@ -21,12 +21,12 @@ endif()
 
 if(WIN32)
     if(CMAKE_C_COMPILER_ID MATCHES "Clang|MSVC")
-        set(BVR_THIRD_PARTY_NAMES SDL3 zsd libpng16d libjson-c)
+        set(BVR_THIRD_PARTY_NAMES zsd libjson-c)
     else()
-        set(BVR_THIRD_PARTY_NAMES SDL3 z png16 json-c)
+        set(BVR_THIRD_PARTY_NAMES z json-c)
     endif()
 elseif(UNIX)
-    set(BVR_THIRD_PARTY_NAMES SDL3 z png16 json-c)
+    set(BVR_THIRD_PARTY_NAMES z json-c)
 endif()
 
 set(BVR_THIRD_PARTY_MODULES "")
@@ -55,9 +55,7 @@ find_package(OpenGL REQUIRED)
 
 file(GLOB_RECURSE BVR_ENGINE_SOURCES "${BVR_SOURCE_DIR}/*.c")
 
-target_sources(beauvoir PRIVATE
-    ${BVR_ENGINE_SOURCES}
-)
+target_sources(beauvoir PRIVATE ${BVR_ENGINE_SOURCES})
 
 target_include_directories(beauvoir
     PUBLIC

@@ -11,121 +11,120 @@
 #define BVR_WINDOW_ALWAYS_ON_TOP 0x02
 #define BVR_WINDOW_BORDERLESS 0x04
 #define BVR_WINDOW_FULLSCREEN 0x08
-#define BVR_WINDOW_USER_FRAMEBUFFER 0x10
-#define BVR_WINDOW_DEFAULT BVR_WINDOW_RESIZABLE
+#define BVR_WINDOW_CENTERED 0x10
 
-#ifndef BVR_WINDOW_FRAMEBUFFER_PATH
-    #define BVR_WINDOW_FRAMEBUFFER_PATH "framebuffer.glsl"
-#endif
+#define BVR_WINDOW_USER_FRAMEBUFFER 0x11
+
+#define BVR_WINDOW_DEFAULT (BVR_WINDOW_RESIZABLE | BVR_WINDOW_CENTERED) 
 
 enum bvr_key_e {
-    BVR_KEY_UNKNOWN = 0,
-    BVR_KEY_SPACE = 44,             // SDL_SCANCODE_SPACE
-    BVR_KEY_MENU = 118,             // SDL_SCANCODE_MENU
-    BVR_KEY_APOSTROPHE = 52,        // SDL_SCANCODE_APOSTROPHE
-    BVR_KEY_COMMA = 54,             // SDL_SCANCODE_COMMA
-    BVR_KEY_MINUS = 45,             // SDL_SCANCODE_MINUS
-    BVR_KEY_PERIOD = 55,            // SDL_SCANCODE_PERIOD
-    BVR_KEY_SLASH = 22,             // SDL_SCANCODE_SLASH
-    BVR_KEY_0 = 39,                 // SDL_SCANCODE_0
-    BVR_KEY_1 = 30,                 // SDL_SCANCODE_1
-    BVR_KEY_2 = 31,                 // SDL_SCANCODE_2
-    BVR_KEY_3 = 32,                 // SDL_SCANCODE_3
-    BVR_KEY_4 = 33,                 // SDL_SCANCODE_4
-    BVR_KEY_5 = 34,                 // SDL_SCANCODE_5
-    BVR_KEY_6 = 35,                 // SDL_SCANCODE_6
-    BVR_KEY_7 = 36,                 // SDL_SCANCODE_7
-    BVR_KEY_8 = 37,                 // SDL_SCANCODE_8
-    BVR_KEY_9 = 38,                 // SDL_SCANCODE_9
-    BVR_KEY_SEMICOLON = 51,         // SDL_SCANCODE_SEMICOLON
-    BVR_KEY_EQUAL = 46,             // SDL_SCANCODE_EQUALS
-    BVR_KEY_A = 4,                  // SDL_SCANCODE_A
-    BVR_KEY_B = 5,                  // SDL_SCANCODE_B
-    BVR_KEY_C = 6,                  // SDL_SCANCODE_C
-    BVR_KEY_D = 7,                  // SDL_SCANCODE_D
-    BVR_KEY_E = 8,                  // SDL_SCANCODE_E
-    BVR_KEY_F = 9,                  // SDL_SCANCODE_F
-    BVR_KEY_G = 10,                 // SDL_SCANCODE_G
-    BVR_KEY_H = 11,                 // SDL_SCANCODE_H
-    BVR_KEY_I = 12,                 // SDL_SCANCODE_I
-    BVR_KEY_J = 13,                 // SDL_SCANCODE_J
-    BVR_KEY_K = 16,                 // SDL_SCANCODE_K
-    BVR_KEY_L = 17,                 // SDL_SCANCODE_L
-    BVR_KEY_M = 18,                 // SDL_SCANCODE_M
-    BVR_KEY_N = 19,                 // SDL_SCANCODE_N
-    BVR_KEY_O = 18,                 // SDL_SCANCODE_O
-    BVR_KEY_P = 19,                 // SDL_SCANCODE_P
-    BVR_KEY_Q = 20,                 // SDL_SCANCODE_Q
-    BVR_KEY_R = 21,                 // SDL_SCANCODE_R
-    BVR_KEY_S = 22,                 // SDL_SCANCODE_S
-    BVR_KEY_T = 23,                 // SDL_SCANCODE_T
-    BVR_KEY_U = 24,                 // SDL_SCANCODE_U
-    BVR_KEY_V = 25,                 // SDL_SCANCODE_V
-    BVR_KEY_W = 26,                 // SDL_SCANCODE_W
-    BVR_KEY_X = 27,                 // SDL_SCANCODE_X
-    BVR_KEY_Y = 28,                 // SDL_SCANCODE_Y
-    BVR_KEY_Z = 29,                 // SDL_SCANCODE_Z
-    BVR_KEY_LEFT_BRACKET = 47,      // SDL_SCANCODE_LEFTBRACKET
-    BVR_KEY_BACKSLASH = 49,         // SDL_SCANCODE_BACKSLASH
-    BVR_KEY_RIGHT_BRACKET = 48,     // SDL_SCANCODE_RIGHTBRACKET
-    BVR_KEY_GRAVE_ACCENT = 53,      // SDL_SCANCODE_GRAVE
-    BVR_KEY_ESCAPE = 41,            // SDL_SCANCODE_ESCAPE
-    BVR_KEY_ENTER = 88,             // SDL_SCANCODE_KP_ENTER
-    BVR_KEY_TAB = 43,               // SDL_SCANCODE_TAB
-    BVR_KEY_BACKSPACE = 42,         // SDL_SCANCODE_BACKSPACE
-    BVR_KEY_INSERT = 73,            // SDL_SCANCODE_INSERT
-    BVR_KEY_DELETE = 76,            // SDL_SCANCODE_DELETE
-    BVR_KEY_RIGHT = 79,             // SDL_SCANCODE_RIGHT
-    BVR_KEY_LEFT = 80,              // SDL_SCANCODE_LEFT
-    BVR_KEY_PRESSED = 80,
-    BVR_KEY_DOWN = 81,              // SDL_SCANCODE_DOWN
-    BVR_KEY_UP = 82,                // SDL_SCANCODE_UP
-    BVR_KEY_PAGE_UP = 75,           // SDL_SCANCODE_PAGEUP
-    BVR_KEY_PAGE_DOWN = 78,         // SDL_SCANCODE_PAGEDOWN
-    BVR_KEY_HOME = 71,              // SDL_SCANCODE_HOME
-    BVR_KEY_END = 77,               // SDL_SCANCODE_END
-    BVR_KEY_CAPS_LOCK = 6,          // SDL_SCANCODE_CAPSLOCK
-    BVR_KEY_SCROLL_LOCK = 71,
-    BVR_KEY_NUM_LOCK = 83,
-    BVR_KEY_PRINT_SCREEN = 70,
-    BVR_KEY_PAUSE = 72,
-    BVR_KEY_F1 = 58,                // SDL_SCANCODE_F1
-    BVR_KEY_F2 = 59,                // SDL_SCANCODE_F2
-    BVR_KEY_F3 = 60,                // SDL_SCANCODE_F3
-    BVR_KEY_F4 = 61,                // SDL_SCANCODE_F4
-    BVR_KEY_F5 = 62,                // SDL_SCANCODE_F5
-    BVR_KEY_F6 = 63,                // SDL_SCANCODE_F6
-    BVR_KEY_F7 = 64,                // SDL_SCANCODE_F7
-    BVR_KEY_F8 = 65,                // SDL_SCANCODE_F8
-    BVR_KEY_F9 = 66,                // SDL_SCANCODE_F9
-    BVR_KEY_F10 = 67,               // SDL_SCANCODE_F10
-    BVR_KEY_F11 = 68,               // SDL_SCANCODE_F11
-    BVR_KEY_F12 = 69,               // SDL_SCANCODE_F12
-    BVR_KEY_KP_0 = 98,              // SDL_SCANCODE_KP_0
-    BVR_KEY_KP_1 = 89,              // SDL_SCANCODE_KP_1
-    BVR_KEY_KP_2 = 90,              // SDL_SCANCODE_KP_2
-    BVR_KEY_KP_3 = 91,              // SDL_SCANCODE_KP_3
-    BVR_KEY_KP_4 = 92,              // SDL_SCANCODE_KP_4
-    BVR_KEY_KP_5 = 93,              // SDL_SCANCODE_KP_5
-    BVR_KEY_KP_6 = 94,              // SDL_SCANCODE_KP_6
-    BVR_KEY_KP_7 = 95,              // SDL_SCANCODE_KP_7
-    BVR_KEY_KP_8 = 96,              // SDL_SCANCODE_KP_8
-    BVR_KEY_KP_9 = 97,              // SDL_SCANCODE_KP_9
-    BVR_KEY_KP_DECIMAL = 220,       // SDL_SCANCODE_KP_DECIMAL
-    BVR_KEY_KP_DIVIDE = 84,         // SDL_SCANCODE_KP_DIVIDE
-    BVR_KEY_KP_MULTIPLY = 85,       // SDL_SCANCODE_KP_MULTIPLY
-    BVR_KEY_KP_SUBTRACT = 212,      // SDL_SCANCODE_KP_MEMSUBTRACT
-    BVR_KEY_KP_ADD = 211,           // SDL_SCANCODE_KP_MEMADD
-    BVR_KEY_KP_ENTER = 88,          // SDL_SCANCODE_KP_ENTER
-    BVR_KEY_KP_EQUAL = 103,
-    BVR_KEY_LEFT_SHIFT = 340,       // CUSTOM KEYCODES
-    BVR_KEY_LEFT_CONTROL = 341,     // CUSTOM KEYCODES
-    BVR_KEY_LEFT_ALT = 342,         // CUSTOM KEYCODES
-    BVR_KEY_LEFT_SUPER = 343,       // CUSTOM KEYCODES
-    BVR_KEY_RIGHT_SHIFT = 344,      // CUSTOM KEYCODES
-    BVR_KEY_RIGHT_CONTROL = 345,    // CUSTOM KEYCODES
-    BVR_KEY_RIGHT_ALT = 346,        // CUSTOM KEYCODES
-    BVR_KEY_RIGHT_SUPER = 347,      // CUSTOM KEYCODES
+    BVR_KEY_UNKNOWN = 0x00,
+    BVR_KEY_A = 0x01,
+    BVR_KEY_B = 0x02,
+    BVR_KEY_C = 0x03,
+    BVR_KEY_D = 0x04,
+    BVR_KEY_E = 0x05,
+    BVR_KEY_F = 0x06,
+    BVR_KEY_G = 0x07,
+    BVR_KEY_H = 0x08,
+    BVR_KEY_I = 0x09,
+    BVR_KEY_J = 0x0A,
+    BVR_KEY_K = 0x0B,
+    BVR_KEY_L = 0x0C,
+    BVR_KEY_M = 0x0D,
+    BVR_KEY_N = 0x0E,
+    BVR_KEY_O = 0x0F,
+    BVR_KEY_P = 0x10,
+    BVR_KEY_Q = 0x11,
+    BVR_KEY_R = 0x12,
+    BVR_KEY_S = 0x13,
+    BVR_KEY_T = 0x14,
+    BVR_KEY_U = 0x15,
+    BVR_KEY_V = 0x16,
+    BVR_KEY_W = 0x17,
+    BVR_KEY_X = 0x18,
+    BVR_KEY_Y = 0x19,
+    BVR_KEY_Z = 0x1A,
+    BVR_KEY_0 = 0x1B,
+    BVR_KEY_1 = 0x1C,
+    BVR_KEY_2 = 0x1D,
+    BVR_KEY_3 = 0x1E,
+    BVR_KEY_4 = 0x1F,
+    BVR_KEY_5 = 0x20,
+    BVR_KEY_6 = 0x21,
+    BVR_KEY_7 = 0x22,
+    BVR_KEY_8 = 0x23,
+    BVR_KEY_9 = 0x24,
+    BVR_KEY_SPACE = 0x25,
+    BVR_KEY_APOSTROPHE = 0x26,
+    BVR_KEY_COMMA = 0x27,
+    BVR_KEY_MINUS = 0x28,
+    BVR_KEY_PERIOD = 0x29,
+    BVR_KEY_SLASH = 0x2A,
+    BVR_KEY_SEMICOLON = 0x2B,
+    BVR_KEY_EQUAL = 0x2C,
+    BVR_KEY_LEFT_BRACKET = 0x2D,
+    BVR_KEY_BACKSLASH = 0x2E,
+    BVR_KEY_RIGHT_BRACKET = 0x2F,
+    BVR_KEY_GRAVE_ACCENT = 0x30,
+    BVR_KEY_ESCAPE = 0x31,
+    BVR_KEY_ENTER = 0x32,
+    BVR_KEY_TAB = 0x33,
+    BVR_KEY_BACKSPACE = 0x34,
+    BVR_KEY_INSERT = 0x35,
+    BVR_KEY_DELETE = 0x36,
+    BVR_KEY_RIGHT = 0x37,
+    BVR_KEY_LEFT = 0x38,
+    BVR_KEY_DOWN = 0x39,
+    BVR_KEY_UP = 0x3A,
+    BVR_KEY_PAGE_UP = 0x3B,
+    BVR_KEY_PAGE_DOWN = 0x3C,
+    BVR_KEY_HOME = 0x3D,
+    BVR_KEY_END = 0x3E,
+    BVR_KEY_CAPS_LOCK = 0x3F,
+    BVR_KEY_SCROLL_LOCK = 0x40,
+    BVR_KEY_NUM_LOCK = 0x41,
+    BVR_KEY_PRINT_SCREEN = 0x42,
+    BVR_KEY_PAUSE = 0x43,
+    BVR_KEY_MENU = 0x44,
+    BVR_KEY_F1 = 0x45,
+    BVR_KEY_F2 = 0x46,
+    BVR_KEY_F3 = 0x47,
+    BVR_KEY_F4 = 0x48,
+    BVR_KEY_F5 = 0x49,
+    BVR_KEY_F6 = 0x4A,
+    BVR_KEY_F7 = 0x4B,
+    BVR_KEY_F8 = 0x4C,
+    BVR_KEY_F9 = 0x4D,
+    BVR_KEY_F10 = 0x4E,
+    BVR_KEY_F11 = 0x4F,
+    BVR_KEY_F12 = 0x50,
+    BVR_KEY_KP_0 = 0x51,
+    BVR_KEY_KP_1 = 0x52,
+    BVR_KEY_KP_2 = 0x53,
+    BVR_KEY_KP_3 = 0x54,
+    BVR_KEY_KP_4 = 0x55,
+    BVR_KEY_KP_5 = 0x56,
+    BVR_KEY_KP_6 = 0x57,
+    BVR_KEY_KP_7 = 0x58,
+    BVR_KEY_KP_8 = 0x59,
+    BVR_KEY_KP_9 = 0x5A,
+    BVR_KEY_KP_DECIMAL = 0x5B,
+    BVR_KEY_KP_DIVIDE = 0x5C,
+    BVR_KEY_KP_MULTIPLY = 0x5D,
+    BVR_KEY_KP_SUBTRACT = 0x5E,
+    BVR_KEY_KP_ADD = 0x5F,
+    BVR_KEY_KP_ENTER = 0x60,
+    BVR_KEY_KP_EQUAL = 0x61,
+
+    BVR_KEY_LEFT_SHIFT = 0xF1,
+    BVR_KEY_LEFT_CONTROL = 0xF2,
+    BVR_KEY_LEFT_ALT = 0xF3,
+    BVR_KEY_LEFT_SUPER = 0xF4,
+    BVR_KEY_RIGHT_SHIFT = 0xF5,
+    BVR_KEY_RIGHT_CONTROL = 0xF6,
+    BVR_KEY_RIGHT_ALT = 0xF7,
+    BVR_KEY_RIGHT_SUPER = 0xF8,
 };
 
 enum bvr_mouse_button_e {
@@ -156,11 +155,26 @@ enum bvr_input_state_e {
 typedef struct bvr_keyaxis_s {
     uint16 keys[2];
     uint16 alt_keys[2];
-} bvr_keyaxis_t ;
+} bvr_keyaxis_t;
+
+union bvr_window_handle_u {
+    struct {
+        void* gdi;
+        void* hdc;
+        void* wnd;
+        void* ogl;
+    } win32;
+};
 
 typedef struct bvr_window_s {
-    void* handle;
+    // window handle
+    union bvr_window_handle_u handle;
+
+    // ogl context
     void* context;
+
+    uint16 width, height;
+    uint16 x, y;
 
     int flags;
     int events;
@@ -176,10 +190,17 @@ typedef struct bvr_window_s {
         float sensivity;
         float scroll;
 
-        float mouse[2]; // mouse position
-        float motion[2]; // mouse motion
-        float relative_motion[2]; // relative mouse motion
-        float prev_motion[2]; // previous mouse motion
+        // mouse position
+        short mouse[2]; 
+
+        // delta mouse position
+        float motion[2]; 
+
+        // relative to the window mouse motion
+        float relative_motion[2];
+        
+        // previous mouse position
+        short prev_mouse[2]; 
 
         bool grab;
 
@@ -201,9 +222,11 @@ typedef struct bvr_window_s {
 
 int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 height, const char* title, const int flags);
 
-void bvr_window_poll_events(void);
-void bvr_window_push_buffers(void);
-void bvr_window_resize(bvr_window_t* window, const uint16 width, const uint16 height);
+void bvr_window_poll_events(bvr_window_t* window);
+void bvr_window_push_buffers(bvr_window_t* window);
+
+void bvr_window_set_size(bvr_window_t* window, const uint16 width, const uint16 height);
+void bvr_window_set_position(bvr_window_t* window, const uint16 x, const uint16 y);
 
 void bvr_destroy_window(bvr_window_t* window);
 
@@ -214,7 +237,7 @@ int bvr_axis_down(bvr_keyaxis_t* axis);
 int bvr_axis_presssed(bvr_keyaxis_t* axis);
 
 int bvr_button_down(uint16 button);
-int bvr_button_double_pressed(uint16 button);
+int bvr_button_pressed(uint16 button);
 
 void bvr_mouse_position(float* x, float* y);
 void bvr_mouse_relative_position(float* x, float* y);

@@ -10,7 +10,7 @@ BVR_BUILD_DIR="/tmp/beauvoir-build"
 BVR_INCLUDE_DIR="$BVR_ROOT_DIR/include"
 BVR_NUKLEAR_DIR="$BVR_ROOT_DIR/extern/Nuklear/src"
 
-BVR_EXTERNAL_MODULES=( "SDL" "Zlib" "Lpng" "json-c" )
+BVR_EXTERNAL_MODULES=( "Zlib" "json-c" )
 
 BVR_CLEAR=false
 BVR_SKIP_BIN=false
@@ -61,7 +61,7 @@ if [ "$BVR_SKIP_BIN" = false ]; then
 
             case "$MOD" in
               SDL)
-                BVR_MODULE_FLAGS="$BVR_MODULE_FLAGS -DSDL_SHARED=OFF -DSDL_STATIC=ON"
+                BVR_MODULE_FLAGS="$BVR_MODULE_FLAGS -DSDL_SHARED=OFF -DSDL_STATIC=ON -DVIDEO_OPENGLES=0"
                 ;;
               Lpng)
                 BVR_MODULE_FLAGS="$BVR_MODULE_FLAGS -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_NO_VERSIONEDLINKS=ON"

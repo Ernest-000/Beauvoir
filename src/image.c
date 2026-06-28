@@ -13,7 +13,7 @@
 
 #include <bvr/gl.h>
 
-#define BVR_NO_PNG
+#include <zlib.h>
 
 static int bvri_get_sformat(bvr_image_t* image){
     if(image->format == 16){
@@ -41,123 +41,209 @@ static int bvri_get_sformat(bvr_image_t* image){
 
 #ifndef BVR_NO_PNG
 
-#include <png.h>
-
 #define BVR_PNG_HEADER_LENGTH 8
+#define BVR_PNG_PLTE_MAX_ENTRIES 256
+
+struct bvri_pngchunk_s {
+    uint64 offset;
+    uint32 length;
+    uint8 name[4];
+};
+
+struct bvri_pngIHDR_s {
+    uint32 width;
+    uint32 height;
+    uint8 bit_depth;
+    uint8 color_mode;
+    uint8 compression_mode;
+    uint8 filter_mode;
+    uint8 interlacing_mode;
+};
+
+struct bvri_pngPHYS_s {
+    uint32 pixel_per_unit_x;
+    uint32 pixel_per_unit_y;
+    uint8 specifier;
+};
+
+struct bvri_pngIDAT_s {
+    uint8* buffer;
+    uint32 packed_length;
+    uint32 avail_length;
+
+    uint32 unpacked_length;
+};
+
+struct bvri_pngPLTE_s {
+    struct {
+        uint8 r;
+        uint8 g;
+        uint8 b;
+    } colors[BVR_PNG_PLTE_MAX_ENTRIES];
+};
 
 static int bvri_is_png(FILE* __file) {
     fseek(__file, 0, SEEK_SET);
     uint8 header[BVR_PNG_HEADER_LENGTH];
     fread(header, 1, BVR_PNG_HEADER_LENGTH, __file);
-    return png_sig_cmp(header, 0, BVR_PNG_HEADER_LENGTH) == 0;
+
+    if(header[0] != 137) return 0;
+    return strncmp(&header[1], "PNG", 3) == 0;
 }
 
-static void bvri_png_error(png_structp sptr, png_const_charp cc){
-    BVR_ASSERT(cc || 0);
+static int bvri_is_chunk_type(struct bvri_pngchunk_s* chunk, const char* name){
+    if(chunk == NULL) return 0;
+    return strncmp(chunk->name, name, 4) == 0;
 }
 
-static void bvri_png_warn(png_structp sptr, png_const_charp cc){
-    BVR_PRINT(cc);
-}
-
+/*
+    https://www.libpng.org/pub/png/spec/1.2/PNG-Contents.html
+*/
 static int bvri_load_png(bvr_image_t* image, FILE* file){
-    BVR_ASSERT(image);
-    BVR_ASSERT(file);
+    fseek(file, BVR_PNG_HEADER_LENGTH, SEEK_SET);
 
-    png_structp pngldr;
-    png_infop pnginfo;
-    uint32 width, height;
-    uint64 rowbytes;
-    int compression;
-    int depth, color_type, interlace_type;
+    struct bvri_pngIHDR_s ihdr;
+    struct bvri_pngPHYS_s phys;
+    struct bvri_pngPLTE_s plte;
+    struct bvri_pngIDAT_s idat;
 
-    pngldr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, bvri_png_error, bvri_png_warn);
-    BVR_ASSERT(pngldr);
+    // width and height tells if the idhr chunck
+    // has been read before loading pixel data
+    ihdr.width = 0;
+    ihdr.height = 0;
 
-    pnginfo = png_create_info_struct(pngldr);
-    BVR_ASSERT(pnginfo);
+    idat.buffer = NULL;
+    idat.packed_length = 0;
+    idat.avail_length = 0;
 
-    if(setjmp(png_jmpbuf(pngldr))){
-        png_destroy_read_struct(&pngldr, &pnginfo, NULL);
+    // chunch buffer
+    struct bvri_pngchunk_s chunk;
+
+    do {
+        // read chunck infos
+        chunk.length = bvr_freadu32_be(file);
+        chunk.name[0] = bvr_freadu8_be(file);
+        chunk.name[1] = bvr_freadu8_be(file);
+        chunk.name[2] = bvr_freadu8_be(file);
+        chunk.name[3] = bvr_freadu8_be(file);
+        chunk.offset = ftell(file);
+
+        BVR_PRINTF("%i %i %i", chunk.length, chunk.offset, 0);
+ 
+        if(bvri_is_chunk_type(&chunk, "IDAT")){
+            BVR_ASSERT(ihdr.width > 0 && ihdr.height > 0);
+
+            // realloc if needed
+            if(idat.avail_length <= chunk.length){
+                idat.avail_length = idat.avail_length + chunk.length * 2;
+                idat.buffer = realloc(idat.buffer, idat.avail_length + idat.packed_length);
+                BVR_ASSERT(idat.buffer);
+            }
+
+            fread(&idat.buffer[idat.packed_length], sizeof(char), chunk.length, file);
+            idat.packed_length += chunk.length;
+            idat.avail_length -= chunk.length;
+        }
+        else if(bvri_is_chunk_type(&chunk, "PLTE")){
+            // chunck size must contains 3 color components
+            BVR_ASSERT(chunk.length % 3 == 0);
+
+            for (size_t i = 0; i < chunk.length / 3; i += 3)
+            {
+                plte.colors[i].r = bvr_freadu8_be(file); // red
+                plte.colors[i].g = bvr_freadu8_be(file); // green
+                plte.colors[i].b = bvr_freadu8_be(file); // blue
+            }
+        }
+        else if(bvri_is_chunk_type(&chunk, "pHYs")){
+            phys.pixel_per_unit_x = bvr_freadu32_be(file);
+            phys.pixel_per_unit_y = bvr_freadu32_be(file);
+            phys.specifier = bvr_freadu8_be(file);
+        }
+        else if(bvri_is_chunk_type(&chunk, "IHDR")){
+            // read ihdr informations
+            ihdr.width = bvr_freadu32_be(file);
+            ihdr.height = bvr_freadu32_be(file);
+            ihdr.bit_depth = bvr_freadu8_be(file);
+            ihdr.color_mode = bvr_freadu8_be(file);
+            ihdr.compression_mode = bvr_freadu8_be(file);
+            ihdr.filter_mode = bvr_freadu8_be(file);
+            ihdr.interlacing_mode = bvr_freadu8_be(file);
+        }
+        else if(bvri_is_chunk_type(&chunk, "IEND")){
+            // no-op
+        }
+        else {
+            BVR_PRINTF("unknown chunk (%.4s)", chunk.name);
+        }   
+
+        fseek(file, chunk.offset + chunk.length, SEEK_SET);
+        bvr_freadu32_be(file); // CRC
+
+    } while(chunk.length > 0);
+
+    if(idat.buffer == NULL || idat.packed_length == 0){
+        BVR_PRINT("failed to read png's data :/");
+        
+        free(idat.buffer);
         return BVR_FALSE;
     }
 
-    fseek(file, BVR_PNG_HEADER_LENGTH, SEEK_SET);
+    if(ihdr.width == 0 && ihdr.height == 0){
+        BVR_PRINT("IHDR chunk is missing!");
 
-    png_init_io(pngldr, file);
-    png_set_sig_bytes(pngldr, BVR_PNG_HEADER_LENGTH);
-    png_read_info(pngldr, pnginfo);
-
-    //image->width = png_get_image_width(pngldr, pnginfo);
-    //image->height = png_get_image_height(pngldr, pnginfo);
-    //image->depth = png_get_bit_depth(pngldr, pnginfo);
-    //color_type = png_get_color_type(pngldr, pnginfo);
-
-    png_get_IHDR(pngldr, pnginfo,
-        &width, &height, &depth, &color_type,
-        &interlace_type, &compression, NULL
-    );
-
-    if(color_type == PNG_COLOR_TYPE_PALETTE){
-        png_set_palette_to_rgb(pngldr);
-    }
-    
-    if(color_type == PNG_COLOR_TYPE_GRAY && depth < 8){
-        png_set_expand_gray_1_2_4_to_8(pngldr);
+        free(idat.buffer);
+        return BVR_FALSE;
     }
 
-    if(png_get_valid(pngldr, pnginfo, PNG_INFO_tRNS)){
-        png_set_tRNS_to_alpha(pngldr);
-    }
+    image->width = ihdr.width;
+    image->height = ihdr.height;
+    image->depth = ihdr.bit_depth;
 
-    if(depth == 16){
-        png_set_strip_16(pngldr);
-    }
-    else if(depth < 8){
-        png_set_packing(pngldr);
-    }
-
-    png_read_update_info(pngldr, pnginfo);
-    color_type = png_get_color_type(pngldr, pnginfo);
-
-    switch (color_type)
+    // find channel count
+    switch (ihdr.color_mode)
     {
-    case PNG_COLOR_TYPE_RGB:
-        image->format = BVR_RGB;
+    case 0:
+        /* grayscale*/
+        image->channels = 1;
+        break;
+
+    case 2:
+        /* rgb */
         image->channels = 3;
         break;
-    case PNG_COLOR_TYPE_RGB_ALPHA:
-        image->format = BVR_RGBA;
+
+    case 3:
+        /* index */
         image->channels = 4;
         break;
+
+    case 4:
+        /* grayscale + alpha */
+        image->channels = 2;
+        break;
+
+    case 6:
+        /* rgba */
+        image->channels = 4;
+        break;
+    
     default:
-        BVR_PRINTF("color type %x is not supported!", color_type);
-        png_destroy_read_struct(&pngldr, &pnginfo, NULL);
         break;
     }
 
-    image->width = (int)width;
-    image->height = (int)height;
-    image->depth = (int)depth;
-    image->sformat = bvri_get_sformat(image);
-
-    rowbytes = png_get_rowbytes(pngldr, pnginfo);
-    image->pixels = malloc(image->height * rowbytes * sizeof(uint8));
-    uint8** rowp = malloc(image->height * sizeof(uint8*));
-    BVR_ASSERT(image->pixels);
-    BVR_ASSERT(rowp);
-
-    for (uint64 i = 0; i < image->height; i++)
+    // do filtering
     {
-        rowp[image->height - i - 1] = image->pixels + i * rowbytes;
+        if(ihdr.filter_mode == 0){
+            // no filter
+        }
+        else if(ihdr.filter_mode == 1){
+
+        }
     }
 
-    png_read_image(pngldr, rowp);
-
-    free(rowp);
-    png_destroy_read_struct(&pngldr, &pnginfo, NULL);
-        
-    return image->pixels == NULL;
+    free(idat.buffer);
+    idat.buffer = NULL;
 }
 
 #endif
@@ -317,6 +403,34 @@ static int bvri_load_bmp(bvr_image_t* image, FILE* file){
                 BVR_ASSERT(unpacked_bytes == stride_length);
             }
         }
+    }
+    else if(header.compression_method == 3){
+        // do huffman decompressing
+
+        uint32 avail_out = image->width * image->height * image->channels;
+        uint32 avail_in = bvr_fsize(file) - ftell(file);
+        BVR_ASSERT(avail_in > 0);
+        
+        uint8* unpacked = malloc(avail_in);        
+        BVR_ASSERT(unpacked);
+        BVR_ASSERT(fread(unpacked, sizeof(char), avail_in, file));
+
+        BVR_PRINTF("%i %i", avail_out, avail_in);
+
+        z_stream stream;
+        stream.zalloc = NULL;
+        stream.zfree = NULL;
+        stream.opaque = NULL;
+        stream.avail_in = avail_in;
+        stream.next_in = unpacked;
+        stream.avail_out = avail_out;
+        stream.next_out = image->pixels;
+
+        inflateInit(&stream);
+        inflate(&stream, Z_NO_FLUSH);
+        inflateEnd(&stream);
+
+        free(unpacked);
     }
     else {
         BVR_ASSERT(0 && "compression not supported");
@@ -1020,6 +1134,7 @@ static int bvri_load_psd(bvr_image_t* image, FILE* file){
     image_data_section.packed_buffer = NULL;
     image_data_section.rle_pack_lengths = NULL;
     image_data_section.compression = bvr_freadu16_be(file);
+
     {
         if(image_data_section.compression == 0){
             // proceed to RAW uncompression 
@@ -1649,7 +1764,7 @@ int bvr_create_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap
     }
     
     // otherwise we create a single layer texture
-    return bvr_create_texture_3d(texture, &texture->image, filter, wrap);    
+    return bvr_create_texture_2d(texture, &texture->image, filter, wrap);    
 }
 
 int bvr_create_texture_atlasf(bvr_texture_t* texture, FILE* file, 

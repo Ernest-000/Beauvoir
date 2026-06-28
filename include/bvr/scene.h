@@ -116,12 +116,12 @@ typedef struct bvr_book_s {
     struct bvr_predefs predefs;
 
     // time information
-    struct bvr_chrono_s {
-        float delta_time, frame_timer;
-        int average_render_time, frames;
-        uint64 prev_time, current_time;
-        uint64 start_time;
-    } timer;
+    //struct bvr_chrono_s {
+    //    float delta_time, frame_timer;
+    //    int average_render_time, frames;
+    //    uint64 prev_time, current_time;
+    //    uint64 start_time;
+    //} timer;
 } bvr_book_t;
 
 typedef void(*bvr_page_event_t)(bvr_page_t* self);

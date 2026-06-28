@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 BVR_GENERATOR="Unix Makefiles"
 BVR_CC="gcc"
@@ -7,10 +7,10 @@ BVR_CXX="g++"
 
 BVR_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BVR_BUILD_DIR="/tmp/beauvoir-build"
-BVR_INCLUDE_DIR="$BVR_ROOT_DIR/include"
-BVR_NUKLEAR_DIR="$BVR_ROOT_DIR/extern/Nuklear/src"
+BVR_INCLUDE_DIR="${BVR_ROOT_DIR}/include"
+BVR_NUKLEAR_DIR="${BVR_ROOT_DIR}/extern/Nuklear/src"
 
-BVR_EXTERNAL_MODULES=( "Zlib" "json-c" )
+BVR_EXTERNAL_MODULES=("Zlib" "json-c")
 
 BVR_CLEAR=false
 BVR_SKIP_BIN=false
@@ -18,15 +18,9 @@ BVR_SKIP_SYNC=false
 
 for arg in "$@"; do
     case "$arg" in
-        --clear)
-            BVR_CLEAR=true
-            ;;
-        --skip-binaries)
-            BVR_SKIP_BIN=true
-            ;;
-        --skip-git-sync)
-            BVR_SKIP_SYNC=true
-            ;;
+        --clear)          BVR_CLEAR=true ;;
+        --skip-binaries)  BVR_SKIP_BIN=true ;;
+        --skip-git-sync)  BVR_SKIP_SYNC=true ;;
     esac
 done
 
@@ -39,120 +33,81 @@ fi
 if [ "$BVR_CLEAR" = true ]; then
     echo "Cleaning..."
 
-    rm -rf "$BVR_ROOT_DIR/bin"
-    rm -rf "$BVR_ROOT_DIR/lib"
-    rm -rf "$BVR_ROOT_DIR/licenses"
-    rm -rf "$BVR_ROOT_DIR/cmake"
-    rm -rf "$BVR_BUILD_DIR"
+    rm -rf "${BVR_ROOT_DIR}/bin"
+    rm -rf "${BVR_ROOT_DIR}/lib"
+    rm -rf "${BVR_ROOT_DIR}/licenses"
+    rm -rf "${BVR_ROOT_DIR}/cmake"
+    rm -rf "${BVR_BUILD_DIR}"
 
-    mkdir -p "$BVR_ROOT_DIR/bin"
-    mkdir -p "$BVR_ROOT_DIR/lib"
+    mkdir -p "${BVR_ROOT_DIR}/bin"
+    mkdir -p "${BVR_ROOT_DIR}/lib"
 fi
 
 if [ "$BVR_SKIP_BIN" = false ]; then
     for MOD in "${BVR_EXTERNAL_MODULES[@]}"; do
-        MODULE_PATH="$BVR_ROOT_DIR/extern/$MOD"
-        MODULE_BUILD_DIR="$BVR_BUILD_DIR/$MOD"
+        MODULE_PATH="${BVR_ROOT_DIR}/extern/${MOD}"
+        MODULE_BUILD_DIR="${BVR_BUILD_DIR}/${MOD}"
 
-        if [ -d "$MODULE_PATH" ]; then
-            echo "$MODULE_PATH found!"
+        if [ -d "${MODULE_PATH}" ]; then
+            echo "Module trouvé : ${MODULE_PATH}"
 
             BVR_MODULE_FLAGS="-DBUILD_SHARED_LIBS=OFF -DCMAKE_PLATFORM_NO_VERSIONED_SONAME=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
 
             case "$MOD" in
-              SDL)
-                BVR_MODULE_FLAGS="$BVR_MODULE_FLAGS -DSDL_SHARED=OFF -DSDL_STATIC=ON -DVIDEO_OPENGLES=0"
-                ;;
-              Lpng)
-                BVR_MODULE_FLAGS="$BVR_MODULE_FLAGS -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_NO_VERSIONEDLINKS=ON"
-                ;;
-              Zlib)
-                BVR_MODULE_FLAGS="$BVR_MODULE_FLAGS -DZLIB_BUILD_EXAMPLES=OFF"
-                ;;
-              json-c)
-                BVR_MODULE_FLAGS="$BVR_MODULE_FLAGS -DBUILD_SHARED_LIBS=ON"
-                ;;
+                SDL)    BVR_MODULE_FLAGS="${BVR_MODULE_FLAGS} -DSDL_SHARED=OFF -DSDL_STATIC=ON -DVIDEO_OPENGLES=0" ;;
+                Lpng)   BVR_MODULE_FLAGS="${BVR_MODULE_FLAGS} -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_NO_VERSIONEDLINKS=ON" ;;
+                Zlib)   BVR_MODULE_FLAGS="${BVR_MODULE_FLAGS} -DZLIB_BUILD_EXAMPLES=OFF" ;;
+                json-c) BVR_MODULE_FLAGS="${BVR_MODULE_FLAGS} -DBUILD_SHARED_LIBS=ON" ;;
             esac
 
-            BVR_TMP_INSTALL="$MODULE_BUILD_DIR/install"
+            BVR_TMP_INSTALL="${MODULE_BUILD_DIR}/install"
 
             cmake --fresh \
-                -S "$MODULE_PATH" \
-                -G "$BVR_GENERATOR" \
-                -B "$MODULE_BUILD_DIR" \
-                -DCMAKE_INSTALL_PREFIX="$BVR_TMP_INSTALL" \
-                -DCMAKE_C_COMPILER="$BVR_CC" \
-                $BVR_MODULE_FLAGS
+                -S "${MODULE_PATH}" \
+                -G "${BVR_GENERATOR}" \
+                -B "${MODULE_BUILD_DIR}" \
+                -DCMAKE_INSTALL_PREFIX="${BVR_TMP_INSTALL}" \
+                -DCMAKE_C_COMPILER="${BVR_CC}" \
+                ${BVR_MODULE_FLAGS}
 
-            cmake --build "$MODULE_BUILD_DIR" --target install
+            cmake --build "${MODULE_BUILD_DIR}" --target install
 
-            find "$BVR_TMP_INSTALL/lib" -maxdepth 1 \( -name "*.a" -o -name "*.so*" \) | while read -r f; do
-                cp -L "$f" "$BVR_ROOT_DIR/lib/"
-            done
+            if [ -d "${BVR_TMP_INSTALL}/lib" ]; then
+                for ext in "*.so" "*.a" "*.dylib"; do
+                    find "${BVR_TMP_INSTALL}/lib" -maxdepth 1 -name "$ext" \
+                        -exec cp -f {} "${BVR_ROOT_DIR}/lib/" \;
+                done
+            fi
 
-            if [ -d "$BVR_TMP_INSTALL/include" ]; then
-                cp -rL "$BVR_TMP_INSTALL/include/." "$BVR_ROOT_DIR/include/"
+            if [ -d "${BVR_TMP_INSTALL}/include" ]; then
+                cp -r "${BVR_TMP_INSTALL}/include/." "${BVR_INCLUDE_DIR}/"
             fi
         else
-            echo "$MODULE_PATH not found!"
+            echo "Module absent : ${MODULE_PATH}"
         fi
     done
 fi
 
-NK_HEADER="$BVR_NUKLEAR_DIR/HEADER.md"
-NK_FOOTER="$BVR_NUKLEAR_DIR/LICENSE $BVR_NUKLEAR_DIR/CHANGELOG $BVR_NUKLEAR_DIR/CREDITS"
+NK_HEADER="${BVR_NUKLEAR_DIR}/HEADER.md"
+NK_FOOTER="${BVR_NUKLEAR_DIR}/LICENSE ${BVR_NUKLEAR_DIR}/CHANGELOG ${BVR_NUKLEAR_DIR}/CREDITS"
 
-NK_PRIV1="$BVR_NUKLEAR_DIR/nuklear_internal.h
-$BVR_NUKLEAR_DIR/nuklear_math.c
-$BVR_NUKLEAR_DIR/nuklear_util.c
-$BVR_NUKLEAR_DIR/nuklear_color.c
-$BVR_NUKLEAR_DIR/nuklear_utf8.c
-$BVR_NUKLEAR_DIR/nuklear_buffer.c
-$BVR_NUKLEAR_DIR/nuklear_string.c
-$BVR_NUKLEAR_DIR/nuklear_draw.c
-$BVR_NUKLEAR_DIR/nuklear_vertex.c"
+NK_PRIV1="${BVR_NUKLEAR_DIR}/nuklear_internal.h ${BVR_NUKLEAR_DIR}/nuklear_math.c ${BVR_NUKLEAR_DIR}/nuklear_util.c ${BVR_NUKLEAR_DIR}/nuklear_color.c ${BVR_NUKLEAR_DIR}/nuklear_utf8.c ${BVR_NUKLEAR_DIR}/nuklear_buffer.c ${BVR_NUKLEAR_DIR}/nuklear_string.c ${BVR_NUKLEAR_DIR}/nuklear_draw.c ${BVR_NUKLEAR_DIR}/nuklear_vertex.c"
 
-NK_PRIV2="$BVR_NUKLEAR_DIR/nuklear_font.c
-$BVR_NUKLEAR_DIR/nuklear_input.c
-$BVR_NUKLEAR_DIR/nuklear_style.c
-$BVR_NUKLEAR_DIR/nuklear_context.c
-$BVR_NUKLEAR_DIR/nuklear_pool.c
-$BVR_NUKLEAR_DIR/nuklear_page_element.c
-$BVR_NUKLEAR_DIR/nuklear_table.c
-$BVR_NUKLEAR_DIR/nuklear_panel.c
-$BVR_NUKLEAR_DIR/nuklear_window.c
-$BVR_NUKLEAR_DIR/nuklear_popup.c
-$BVR_NUKLEAR_DIR/nuklear_contextual.c
-$BVR_NUKLEAR_DIR/nuklear_menu.c
-$BVR_NUKLEAR_DIR/nuklear_layout.c
-$BVR_NUKLEAR_DIR/nuklear_tree.c
-$BVR_NUKLEAR_DIR/nuklear_group.c
-$BVR_NUKLEAR_DIR/nuklear_list_view.c
-$BVR_NUKLEAR_DIR/nuklear_widget.c
-$BVR_NUKLEAR_DIR/nuklear_text.c
-$BVR_NUKLEAR_DIR/nuklear_image.c
-$BVR_NUKLEAR_DIR/nuklear_9slice.c
-$BVR_NUKLEAR_DIR/nuklear_button.c
-$BVR_NUKLEAR_DIR/nuklear_toggle.c
-$BVR_NUKLEAR_DIR/nuklear_selectable.c
-$BVR_NUKLEAR_DIR/nuklear_slider.c
-$BVR_NUKLEAR_DIR/nuklear_knob.c
-$BVR_NUKLEAR_DIR/nuklear_progress.c
-$BVR_NUKLEAR_DIR/nuklear_scrollbar.c
-$BVR_NUKLEAR_DIR/nuklear_text_editor.c
-$BVR_NUKLEAR_DIR/nuklear_edit.c
-$BVR_NUKLEAR_DIR/nuklear_property.c
-$BVR_NUKLEAR_DIR/nuklear_chart.c
-$BVR_NUKLEAR_DIR/nuklear_color_picker.c
-$BVR_NUKLEAR_DIR/nuklear_combo.c
-$BVR_NUKLEAR_DIR/nuklear_tooltip.c"
+NK_PRIV2="${BVR_NUKLEAR_DIR}/nuklear_font.c ${BVR_NUKLEAR_DIR}/nuklear_input.c ${BVR_NUKLEAR_DIR}/nuklear_style.c ${BVR_NUKLEAR_DIR}/nuklear_context.c ${BVR_NUKLEAR_DIR}/nuklear_pool.c ${BVR_NUKLEAR_DIR}/nuklear_page_element.c ${BVR_NUKLEAR_DIR}/nuklear_table.c ${BVR_NUKLEAR_DIR}/nuklear_panel.c ${BVR_NUKLEAR_DIR}/nuklear_window.c ${BVR_NUKLEAR_DIR}/nuklear_popup.c ${BVR_NUKLEAR_DIR}/nuklear_contextual.c ${BVR_NUKLEAR_DIR}/nuklear_menu.c ${BVR_NUKLEAR_DIR}/nuklear_layout.c ${BVR_NUKLEAR_DIR}/nuklear_tree.c ${BVR_NUKLEAR_DIR}/nuklear_group.c ${BVR_NUKLEAR_DIR}/nuklear_list_view.c ${BVR_NUKLEAR_DIR}/nuklear_widget.c ${BVR_NUKLEAR_DIR}/nuklear_text.c ${BVR_NUKLEAR_DIR}/nuklear_image.c ${BVR_NUKLEAR_DIR}/nuklear_9slice.c ${BVR_NUKLEAR_DIR}/nuklear_button.c ${BVR_NUKLEAR_DIR}/nuklear_toggle.c ${BVR_NUKLEAR_DIR}/nuklear_selectable.c ${BVR_NUKLEAR_DIR}/nuklear_slider.c ${BVR_NUKLEAR_DIR}/nuklear_knob.c ${BVR_NUKLEAR_DIR}/nuklear_progress.c ${BVR_NUKLEAR_DIR}/nuklear_scrollbar.c ${BVR_NUKLEAR_DIR}/nuklear_text_editor.c ${BVR_NUKLEAR_DIR}/nuklear_edit.c ${BVR_NUKLEAR_DIR}/nuklear_property.c ${BVR_NUKLEAR_DIR}/nuklear_chart.c ${BVR_NUKLEAR_DIR}/nuklear_color_picker.c ${BVR_NUKLEAR_DIR}/nuklear_combo.c ${BVR_NUKLEAR_DIR}/nuklear_tooltip.c"
 
-NK_EXTERN="$BVR_NUKLEAR_DIR/stb_rect_pack.h
-$BVR_NUKLEAR_DIR/stb_truetype.h"
+NK_EXTERN="${BVR_NUKLEAR_DIR}/stb_rect_pack.h ${BVR_NUKLEAR_DIR}/stb_truetype.h"
 
-NK_PUBLIC="$BVR_NUKLEAR_DIR/nuklear.h"
+NK_PUBLIC="${BVR_NUKLEAR_DIR}/nuklear.h"
 
-python3 "$BVR_NUKLEAR_DIR/build.py" --macro NK --intro "$NK_HEADER" --pub "$NK_PUBLIC" --priv1 "$NK_PRIV1" --extern "$NK_EXTERN" --priv2 "$NK_PRIV2" --outro "$NK_FOOTER" > "$BVR_INCLUDE_DIR/nuklear.h"
+python3 "${BVR_NUKLEAR_DIR}/build.py" \
+    --macro NK \
+    --intro  "${NK_HEADER}" \
+    --pub    "${NK_PUBLIC}" \
+    --priv1  "${NK_PRIV1}" \
+    --extern "${NK_EXTERN}" \
+    --priv2  "${NK_PRIV2}" \
+    --outro  "${NK_FOOTER}" \
+    > "${BVR_INCLUDE_DIR}/nuklear.h"
 
-[ -d "$BVR_ROOT_DIR/licenses" ] && rm -rf "$BVR_ROOT_DIR/licenses"
-[ -d "$BVR_ROOT_DIR/cmake" ] && rm -rf "$BVR_ROOT_DIR/cmake"
+rm -rf "${BVR_ROOT_DIR}/licenses"
+rm -rf "${BVR_ROOT_DIR}/cmake"

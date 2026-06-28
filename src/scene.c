@@ -30,13 +30,13 @@ int bvr_create_book(bvr_book_t *book)
 
     book->slot_count = 0;
 
-    book->timer.frames = 0;
-    book->timer.frame_timer = 0.0f;
-    book->timer.delta_time = 0.0f;
-    book->timer.prev_time = 0.0f;
-    book->timer.current_time = 0.0f;
-    book->timer.average_render_time = 0.0f;
-    book->timer.start_time = bvr_frames();
+    // book->timer.frames = 0;
+    // book->timer.frame_timer = 0.0f;
+    // book->timer.delta_time = 0.0f;
+    // book->timer.prev_time = 0.0f;
+    // book->timer.current_time = 0.0f;
+    // book->timer.average_render_time = 0.0f;
+    // book->timer.start_time = bvr_frames();
 
     book->pipeline.rendering_pass.blending = BVR_BLEND_FUNC_ALPHA_ONE_MINUS;
     book->pipeline.rendering_pass.depth = BVR_DEPTH_FUNC_LESS;
@@ -103,8 +103,8 @@ void bvr_new_frame(bvr_book_t *book)
 {
     bvr_window_poll_events(&book->window);
 
-    book->timer.current_time = bvr_frames() - book->timer.start_time;
-    book->timer.delta_time = (book->timer.current_time - book->timer.prev_time) / 1000.0f;
+    // book->timer.current_time = bvr_frames() - book->timer.start_time;
+    // book->timer.delta_time = (book->timer.current_time - book->timer.prev_time) / 1000.0f;
 
     // reset opengl states
     bvr_framebuffer_enable(&book->window.framebuffer);
@@ -231,25 +231,25 @@ void bvr_render(bvr_book_t *book)
     bvr_framebuffer_blit(&book->window.framebuffer);
     bvr_window_push_buffers(&book->window);
 
-#ifndef BVR_NO_FPS_CAP
-    // wait for next frame.
-    double delay = (BVR_TARGET_FRAMERATE / 1000.0) - book->timer.delta_time;
-    if (delay > 0)
-    {
-        bvr_delay(delay);
-    }
-#endif
+    // #ifndef BVR_NO_FPS_CAP
+    //     // wait for next frame.
+    //     double delay = (BVR_TARGET_FRAMERATE / 1000.0) - book->timer.delta_time;
+    //     if (delay > 0)
+    //     {
+    //         bvr_delay(delay);
+    //     }
+    // #endif
 
-    book->timer.frames++;
-    book->timer.frame_timer += book->timer.delta_time;
-    book->timer.prev_time = book->timer.current_time;
-
-    if (book->timer.frames > BVR_TARGET_FRAMERATE)
-    {
-        book->timer.average_render_time = book->timer.frames / book->timer.frame_timer;
-        book->timer.frames = 0;
-        book->timer.frame_timer = book->timer.delta_time;
-    }
+    // book->timer.frames++;
+    // book->timer.frame_timer += book->timer.delta_time;
+    // book->timer.prev_time = book->timer.current_time;
+    // 
+    // if (book->timer.frames > BVR_TARGET_FRAMERATE)
+    // {
+    //     book->timer.average_render_time = book->timer.frames / book->timer.frame_timer;
+    //     book->timer.frames = 0;
+    //     book->timer.frame_timer = book->timer.delta_time;
+    // }
 
     // debug
     // bvr_poll_errors();

@@ -1,32 +1,46 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set BVR_GENERATOR=NMake Makefiles
-set BVR_CC=gcc
-set BVR_CXX=g++
+rem ============================================================
+rem  Equivalent Windows du script bash original.
+rem  Hypothese : generateur "MinGW Makefiles" + gcc/g++ (le plus
+rem  proche de "Unix Makefiles" sous Windows). Adapter
+rem  BVR_GENERATOR / BVR_CC / BVR_CXX si vous utilisez
+rem  Visual Studio (cl.exe) ou Ninja.
+rem ============================================================
 
-set BVR_ROOT_DIR=%~dp0
-set BVR_ROOT_DIR=%BVR_ROOT_DIR:~0,-1%
-set BVR_BUILD_DIR=%TEMP%\beauvoir-build
-set BVR_INCLUDE_DIR=%BVR_ROOT_DIR%\include
-set BVR_NUKLEAR_DIR=%BVR_ROOT_DIR%\extern\Nuklear\src
+set "BVR_GENERATOR=MinGW Makefiles"
+set "BVR_CC=gcc"
+set "BVR_CXX=g++"
 
-set BVR_EXTERNAL_MODULES=SDL Zlib Lpng json-c
+set "BVR_ROOT_DIR=%~dp0"
+if "%BVR_ROOT_DIR:~-1%"=="\" set "BVR_ROOT_DIR=%BVR_ROOT_DIR:~0,-1%"
+set "BVR_BUILD_DIR=%TEMP%\beauvoir-build"
+set "BVR_INCLUDE_DIR=%BVR_ROOT_DIR%\include"
+set "BVR_NUKLEAR_DIR=%BVR_ROOT_DIR%\extern\Nuklear\src"
 
-set BVR_CLEAR=false
-set BVR_SKIP_BIN=false
-set BVR_SKIP_SYNC=false
+set "BVR_EXTERNAL_MODULES=Zlib json-c"
 
-for %%A in (%*) do (
-    if "%%A"=="--clear"          set BVR_CLEAR=true
-    if "%%A"=="--skip-binaries"  set BVR_SKIP_BIN=true
-    if "%%A"=="--skip-git-sync"  set BVR_SKIP_SYNC=true
-)
+set "BVR_CLEAR=false"
+set "BVR_SKIP_BIN=false"
+set "BVR_SKIP_SYNC=false"
+
+:parse_args
+if "%~1"=="" goto args_done
+if "%~1"=="--clear" set "BVR_CLEAR=true"
+if "%~1"=="--skip-binaries" set "BVR_SKIP_BIN=true"
+if "%~1"=="--skip-git-sync" set "BVR_SKIP_SYNC=true"
+shift
+goto parse_args
+:args_done
 
 if "%BVR_SKIP_SYNC%"=="false" (
     git submodule deinit -f .
+    if errorlevel 1 exit /b 1
     git submodule update --init
+    if errorlevel 1 exit /b 1
     git submodule update --remote --merge
+    if errorlevel 1 exit /b 1
 )
 
 if "%BVR_CLEAR%"=="true" (
@@ -44,29 +58,21 @@ if "%BVR_CLEAR%"=="true" (
 
 if "%BVR_SKIP_BIN%"=="false" (
     for %%M in (%BVR_EXTERNAL_MODULES%) do (
-        set MOD=%%M
-        set MODULE_PATH=%BVR_ROOT_DIR%\extern\%%M
-        set MODULE_BUILD_DIR=%BVR_BUILD_DIR%\%%M
+        set "MOD=%%M"
+        set "MODULE_PATH=%BVR_ROOT_DIR%\extern\!MOD!"
+        set "MODULE_BUILD_DIR=%BVR_BUILD_DIR%\!MOD!"
 
         if exist "!MODULE_PATH!" (
-            echo !MODULE_PATH! found!
+            echo Module trouve : !MODULE_PATH!
 
-            set BVR_MODULE_FLAGS=-DBUILD_SHARED_LIBS=OFF -DCMAKE_PLATFORM_NO_VERSIONED_SONAME=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+            set "BVR_MODULE_FLAGS=-DBUILD_SHARED_LIBS=OFF -DCMAKE_PLATFORM_NO_VERSIONED_SONAME=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
 
-            if "%%M"=="SDL" (
-                set BVR_MODULE_FLAGS=!BVR_MODULE_FLAGS! -DSDL_SHARED=OFF -DSDL_STATIC=ON
-            )
-            if "%%M"=="Lpng" (
-                set BVR_MODULE_FLAGS=!BVR_MODULE_FLAGS! -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_NO_VERSIONEDLINKS=ON
-            )
-            if "%%M"=="Zlib" (
-                set BVR_MODULE_FLAGS=!BVR_MODULE_FLAGS! -DZLIB_BUILD_EXAMPLES=OFF
-            )
-            if "%%M"=="json-c" (
-                set BVR_MODULE_FLAGS=!BVR_MODULE_FLAGS! -DBUILD_SHARED_LIBS=ON
-            )
+            if "!MOD!"=="SDL"    set "BVR_MODULE_FLAGS=!BVR_MODULE_FLAGS! -DSDL_SHARED=OFF -DSDL_STATIC=ON -DVIDEO_OPENGLES=0"
+            if "!MOD!"=="Lpng"   set "BVR_MODULE_FLAGS=!BVR_MODULE_FLAGS! -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_NO_VERSIONEDLINKS=ON"
+            if "!MOD!"=="Zlib"   set "BVR_MODULE_FLAGS=!BVR_MODULE_FLAGS! -DZLIB_BUILD_EXAMPLES=OFF"
+            if "!MOD!"=="json-c" set "BVR_MODULE_FLAGS=!BVR_MODULE_FLAGS! -DBUILD_SHARED_LIBS=ON"
 
-            set BVR_TMP_INSTALL=!MODULE_BUILD_DIR!\install
+            set "BVR_TMP_INSTALL=!MODULE_BUILD_DIR!\install"
 
             cmake --fresh ^
                 -S "!MODULE_PATH!" ^
@@ -75,79 +81,39 @@ if "%BVR_SKIP_BIN%"=="false" (
                 -DCMAKE_INSTALL_PREFIX="!BVR_TMP_INSTALL!" ^
                 -DCMAKE_C_COMPILER="%BVR_CC%" ^
                 !BVR_MODULE_FLAGS!
+            if errorlevel 1 exit /b 1
 
             cmake --build "!MODULE_BUILD_DIR!" --target install
+            if errorlevel 1 exit /b 1
 
-            for %%F in ("!BVR_TMP_INSTALL!\lib\*.a" "!BVR_TMP_INSTALL!\lib\*.lib") do (
-                if exist "%%F" copy /Y "%%F" "%BVR_ROOT_DIR%\lib\"
+            if exist "!BVR_TMP_INSTALL!\lib" (
+                for %%F in ("!BVR_TMP_INSTALL!\lib\*.lib" "!BVR_TMP_INSTALL!\lib\*.dll" "!BVR_TMP_INSTALL!\lib\*.a") do (
+                    if exist "%%F" copy /y "%%F" "%BVR_ROOT_DIR%\lib\" >nul
+                )
             )
 
-            if exist "!BVR_TMP_INSTALL!\include\" (
-                xcopy /E /I /Y "!BVR_TMP_INSTALL!\include\*" "%BVR_ROOT_DIR%\include\"
+            if exist "!BVR_TMP_INSTALL!\include" (
+                xcopy "!BVR_TMP_INSTALL!\include" "%BVR_INCLUDE_DIR%\" /e /i /y >nul
             )
         ) else (
-            echo !MODULE_PATH! not found!
+            echo Module absent : !MODULE_PATH!
         )
     )
 )
 
-set NK_HEADER=%BVR_NUKLEAR_DIR%\HEADER.md
-set NK_FOOTER=%BVR_NUKLEAR_DIR%\LICENSE %BVR_NUKLEAR_DIR%\CHANGELOG %BVR_NUKLEAR_DIR%\CREDITS
+set "NK_HEADER=%BVR_NUKLEAR_DIR%\HEADER.md"
+set "NK_FOOTER=%BVR_NUKLEAR_DIR%\LICENSE %BVR_NUKLEAR_DIR%\CHANGELOG %BVR_NUKLEAR_DIR%\CREDITS"
 
-set NK_PRIV1=^
-%BVR_NUKLEAR_DIR%\nuklear_internal.h ^
-%BVR_NUKLEAR_DIR%\nuklear_math.c ^
-%BVR_NUKLEAR_DIR%\nuklear_util.c ^
-%BVR_NUKLEAR_DIR%\nuklear_color.c ^
-%BVR_NUKLEAR_DIR%\nuklear_utf8.c ^
-%BVR_NUKLEAR_DIR%\nuklear_buffer.c ^
-%BVR_NUKLEAR_DIR%\nuklear_string.c ^
-%BVR_NUKLEAR_DIR%\nuklear_draw.c ^
-%BVR_NUKLEAR_DIR%\nuklear_vertex.c
+set "NK_PRIV1=%BVR_NUKLEAR_DIR%\nuklear_internal.h %BVR_NUKLEAR_DIR%\nuklear_math.c %BVR_NUKLEAR_DIR%\nuklear_util.c %BVR_NUKLEAR_DIR%\nuklear_color.c %BVR_NUKLEAR_DIR%\nuklear_utf8.c %BVR_NUKLEAR_DIR%\nuklear_buffer.c %BVR_NUKLEAR_DIR%\nuklear_string.c %BVR_NUKLEAR_DIR%\nuklear_draw.c %BVR_NUKLEAR_DIR%\nuklear_vertex.c"
 
-set NK_PRIV2=^
-%BVR_NUKLEAR_DIR%\nuklear_font.c ^
-%BVR_NUKLEAR_DIR%\nuklear_input.c ^
-%BVR_NUKLEAR_DIR%\nuklear_style.c ^
-%BVR_NUKLEAR_DIR%\nuklear_context.c ^
-%BVR_NUKLEAR_DIR%\nuklear_pool.c ^
-%BVR_NUKLEAR_DIR%\nuklear_page_element.c ^
-%BVR_NUKLEAR_DIR%\nuklear_table.c ^
-%BVR_NUKLEAR_DIR%\nuklear_panel.c ^
-%BVR_NUKLEAR_DIR%\nuklear_window.c ^
-%BVR_NUKLEAR_DIR%\nuklear_popup.c ^
-%BVR_NUKLEAR_DIR%\nuklear_contextual.c ^
-%BVR_NUKLEAR_DIR%\nuklear_menu.c ^
-%BVR_NUKLEAR_DIR%\nuklear_layout.c ^
-%BVR_NUKLEAR_DIR%\nuklear_tree.c ^
-%BVR_NUKLEAR_DIR%\nuklear_group.c ^
-%BVR_NUKLEAR_DIR%\nuklear_list_view.c ^
-%BVR_NUKLEAR_DIR%\nuklear_widget.c ^
-%BVR_NUKLEAR_DIR%\nuklear_text.c ^
-%BVR_NUKLEAR_DIR%\nuklear_image.c ^
-%BVR_NUKLEAR_DIR%\nuklear_9slice.c ^
-%BVR_NUKLEAR_DIR%\nuklear_button.c ^
-%BVR_NUKLEAR_DIR%\nuklear_toggle.c ^
-%BVR_NUKLEAR_DIR%\nuklear_selectable.c ^
-%BVR_NUKLEAR_DIR%\nuklear_slider.c ^
-%BVR_NUKLEAR_DIR%\nuklear_knob.c ^
-%BVR_NUKLEAR_DIR%\nuklear_progress.c ^
-%BVR_NUKLEAR_DIR%\nuklear_scrollbar.c ^
-%BVR_NUKLEAR_DIR%\nuklear_text_editor.c ^
-%BVR_NUKLEAR_DIR%\nuklear_edit.c ^
-%BVR_NUKLEAR_DIR%\nuklear_property.c ^
-%BVR_NUKLEAR_DIR%\nuklear_chart.c ^
-%BVR_NUKLEAR_DIR%\nuklear_color_picker.c ^
-%BVR_NUKLEAR_DIR%\nuklear_combo.c ^
-%BVR_NUKLEAR_DIR%\nuklear_tooltip.c
+set "NK_PRIV2=%BVR_NUKLEAR_DIR%\nuklear_font.c %BVR_NUKLEAR_DIR%\nuklear_input.c %BVR_NUKLEAR_DIR%\nuklear_style.c %BVR_NUKLEAR_DIR%\nuklear_context.c %BVR_NUKLEAR_DIR%\nuklear_pool.c %BVR_NUKLEAR_DIR%\nuklear_page_element.c %BVR_NUKLEAR_DIR%\nuklear_table.c %BVR_NUKLEAR_DIR%\nuklear_panel.c %BVR_NUKLEAR_DIR%\nuklear_window.c %BVR_NUKLEAR_DIR%\nuklear_popup.c %BVR_NUKLEAR_DIR%\nuklear_contextual.c %BVR_NUKLEAR_DIR%\nuklear_menu.c %BVR_NUKLEAR_DIR%\nuklear_layout.c %BVR_NUKLEAR_DIR%\nuklear_tree.c %BVR_NUKLEAR_DIR%\nuklear_group.c %BVR_NUKLEAR_DIR%\nuklear_list_view.c %BVR_NUKLEAR_DIR%\nuklear_widget.c %BVR_NUKLEAR_DIR%\nuklear_text.c %BVR_NUKLEAR_DIR%\nuklear_image.c %BVR_NUKLEAR_DIR%\nuklear_9slice.c %BVR_NUKLEAR_DIR%\nuklear_button.c %BVR_NUKLEAR_DIR%\nuklear_toggle.c %BVR_NUKLEAR_DIR%\nuklear_selectable.c %BVR_NUKLEAR_DIR%\nuklear_slider.c %BVR_NUKLEAR_DIR%\nuklear_knob.c %BVR_NUKLEAR_DIR%\nuklear_progress.c %BVR_NUKLEAR_DIR%\nuklear_scrollbar.c %BVR_NUKLEAR_DIR%\nuklear_text_editor.c %BVR_NUKLEAR_DIR%\nuklear_edit.c %BVR_NUKLEAR_DIR%\nuklear_property.c %BVR_NUKLEAR_DIR%\nuklear_chart.c %BVR_NUKLEAR_DIR%\nuklear_color_picker.c %BVR_NUKLEAR_DIR%\nuklear_combo.c %BVR_NUKLEAR_DIR%\nuklear_tooltip.c"
 
-set NK_EXTERN=^
-%BVR_NUKLEAR_DIR%\stb_rect_pack.h ^
-%BVR_NUKLEAR_DIR%\stb_truetype.h
+set "NK_EXTERN=%BVR_NUKLEAR_DIR%\stb_rect_pack.h %BVR_NUKLEAR_DIR%\stb_truetype.h"
 
-set NK_PUBLIC=%BVR_NUKLEAR_DIR%\nuklear.h
+set "NK_PUBLIC=%BVR_NUKLEAR_DIR%\nuklear.h"
 
 python "%BVR_NUKLEAR_DIR%\build.py" --macro NK --intro "%NK_HEADER%" --pub "%NK_PUBLIC%" --priv1 %NK_PRIV1% --extern %NK_EXTERN% --priv2 %NK_PRIV2% --outro %NK_FOOTER% > "%BVR_INCLUDE_DIR%\nuklear.h"
+if errorlevel 1 exit /b 1
 
 if exist "%BVR_ROOT_DIR%\licenses" rmdir /s /q "%BVR_ROOT_DIR%\licenses"
 if exist "%BVR_ROOT_DIR%\cmake"    rmdir /s /q "%BVR_ROOT_DIR%\cmake"

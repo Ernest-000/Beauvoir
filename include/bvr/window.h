@@ -159,11 +159,20 @@ typedef struct bvr_keyaxis_s {
 
 union bvr_window_handle_u {
     struct {
+        void* wnd;
         void* gdi;
         void* hdc;
-        void* wnd;
         void* ogl;
     } win32;
+
+    struct {
+        unsigned long xwindow; 
+        unsigned long xcolormap;
+        void* xdisplay;
+        void* xvisual;
+
+        unsigned long atoms[16];
+    } x11;
 };
 
 typedef struct bvr_window_s {
@@ -211,6 +220,13 @@ typedef struct bvr_window_s {
         } axis;
     } inputs;
 
+    struct bvr_chono_s {
+        unsigned long long initial_frame;
+        uint64 current_time, previous_time;
+        float delta_time;
+    } timer;
+
+    // store device informations
     struct {
         char version[32];
         char name[32];
@@ -242,6 +258,8 @@ int bvr_button_pressed(uint16 button);
 void bvr_mouse_position(float* x, float* y);
 void bvr_mouse_relative_position(float* x, float* y);
 
+float bvr_mouse_scroll();
+
 /*
     Ask the user to return a file. 
     File's path is return through a callback.
@@ -251,7 +269,12 @@ void bvr_open_file_dialog(void (*callback) (bvr_string_t* path), const char* fil
 /*
     Returns the number of milliseconds since SDL has started.
 */
-uint64 bvr_frames(void);
+uint64 bvr_get_frame(void);
+
+/*
+    Return the time in ms between two frames
+*/
+float bvr_delta_time(void);
 
 /*
     Wait a specified number of milliseconds before returning.

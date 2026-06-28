@@ -173,7 +173,9 @@ void bvr_animation_update(bvr_animation_t* anim, float delta_time){
     /**
      * for now time if second based but it's maybe better with a frame based counter ?
      */
-    uint64 elapsed_time = bvr_get_instance()->timer.current_time - bvr_get_instance()->timer.prev_time;
+    //uint64 elapsed_time = bvr_get_instance()->timer.current_time - bvr_get_instance()->timer.prev_time;
+    uint64 elapsed_time = 0;
+    BVR_ASSERT(0 && "elasped time!!");
 
     anim->cursor += delta_time;
     anim->current_frame += elapsed_time;

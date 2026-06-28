@@ -429,9 +429,9 @@ static void bvr_nk_draw_gpipeline_component(bvr_canvas_t* context, void* user){
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     BVR_NK_CHECKBOX(pipeline->rendering_pass.flags, BVR_WIREFRAME_ENABLE, "wireframe");
 
-    nk_label(&context->context, BVR_FORMAT("deta time: %f", bvr_get_instance()->timer.delta_time), NK_TEXT_ALIGN_LEFT);
-    nk_label(&context->context, BVR_FORMAT("render time: %f", bvr_get_instance()->timer.average_render_time), NK_TEXT_ALIGN_LEFT);
-    nk_label(&context->context, BVR_FORMAT("frame count: %f", bvr_get_instance()->timer.current_time), NK_TEXT_ALIGN_LEFT);
+    // nk_label(&context->context, BVR_FORMAT("deta time: %f", bvr_get_instance()->timer.delta_time), NK_TEXT_ALIGN_LEFT);
+    // nk_label(&context->context, BVR_FORMAT("render time: %f", bvr_get_instance()->timer.average_render_time), NK_TEXT_ALIGN_LEFT);
+    // nk_label(&context->context, BVR_FORMAT("frame count: %f", bvr_get_instance()->timer.current_time), NK_TEXT_ALIGN_LEFT);
 }
 
 static void bvr_nk_draw_global_illumination_component(bvr_canvas_t* context, void* user){

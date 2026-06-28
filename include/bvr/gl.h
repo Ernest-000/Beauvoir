@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef BVR_GLENTRIY
 #define BVR_GLENTRIY
 

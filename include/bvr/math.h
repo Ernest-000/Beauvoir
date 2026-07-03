@@ -76,6 +76,12 @@ struct bvr_bounds_s {
     tr.rotation[2] = yaw;                                   \
     BVR_SCALE_VEC3(tr.scale, scalev)                         
 
+// returns the smallest of a or b
+#define MIN(a,b) (((a)<(b))?(a):(b))
+
+// returns the biggest of a or b
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
 BVR_H_FUNC float flerp(float a, float b, float t){
     return a + t * (b - a);
 }
@@ -87,9 +93,6 @@ BVR_H_FUNC float rad_to_deg(float rad) {
 BVR_H_FUNC float deg_to_rad(float deg) { 
     return deg * M_PI / 180; 
 }
-
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
 
 BVR_H_FUNC float clamp(float d, float min, float max) {
   const float t = d < min ? min : d;

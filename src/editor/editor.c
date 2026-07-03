@@ -5,7 +5,7 @@
 
 #ifndef BVR_NO_NUKLEAR
 
-#include <bvr/memory.h>
+
 #include <bvr/common.h>
 #include <bvr/window.h>
 #include <bvr/actors.h>
@@ -154,50 +154,50 @@ void bvr_editor_draw_page_hierarchy(){
 
     struct nk_context* p_context = &__editor->gui.context;
 
-    if(nk_begin(p_context, BVR_FORMAT("scene '%s'", __editor->book->page->name.string), BVR_NK_RECT(__editor->hierarchy.viewport), 
-        BVR_NK_WINDOW_DEFAULT)){
-        
-        nk_layout_space_begin(p_context, NK_DYNAMIC, 1, 1);
-        
-        if(nk_tree_push(p_context, NK_TREE_TAB, BVR_FORMAT("%s", __editor->book->page->name.string), NK_MAXIMIZED)){
-            bvr_nk_draw_button(__editor, "main camera", BVR_EDITOR_CAMERA, &__editor->book->page->camera);
-
-            if(nk_tree_push(p_context, NK_TREE_TAB, "actors", NK_MAXIMIZED)){
-
-                struct bvr_actor_s** pp_actor; 
-                // BVR_POOL_FOR_EACH(pp_actor, __editor->book->page->actors){
-                //     bvr_nk_draw_button_actor(__editor, *pp_actor);
-                // }
-
-                nk_tree_pop(p_context);
-            }
-
-            if(nk_tree_push(p_context, NK_TREE_TAB, "parameters", NK_MAXIMIZED)){
-                bvr_nk_draw_button(__editor, "globals", 0, NULL);
-                bvr_nk_draw_button(__editor, "audio", BVR_EDITOR_AUDIO, &__editor->book->audio);
-                bvr_nk_draw_button(__editor, "user", BVR_EDITOR_USER, NULL);
-                bvr_nk_draw_button(__editor, "graphics", BVR_EDITOR_PIPELINE, &__editor->book->pipeline);
-
-                if(__editor->book->asset_stream.data){
-                    bvr_nk_draw_button(__editor, "assets", BVR_EDITOR_ASSETS, &__editor->book->asset_stream);
-                }
-
-                nk_tree_pop(p_context);
-            }
-
-            nk_tree_pop(p_context);
-        }
-        
-        __editor->device.is_gui_hovered |= nk_window_is_hovered(p_context);
-
-        struct nk_rect bounds = nk_window_get_bounds(p_context);
-        __editor->hierarchy.viewport.width = bounds.w;
-        __editor->hierarchy.viewport.height = bounds.h;
-        __editor->hierarchy.viewport.coords[0] = bounds.x;
-        __editor->hierarchy.viewport.coords[1] = bounds.y;
-
-        nk_end(p_context);
-    }
+    //if(nk_begin(p_context, BVR_FORMAT("scene '%s'", __editor->book->page->name.string), BVR_NK_RECT(__editor->hierarchy.viewport), 
+    //    BVR_NK_WINDOW_DEFAULT)){
+    //    
+    //    nk_layout_space_begin(p_context, NK_DYNAMIC, 1, 1);
+    //    
+    //    if(nk_tree_push(p_context, NK_TREE_TAB, BVR_FORMAT("%s", __editor->book->page->name.string), NK_MAXIMIZED)){
+    //        bvr_nk_draw_button(__editor, "main camera", BVR_EDITOR_CAMERA, &__editor->book->page->camera);
+    //
+    //        if(nk_tree_push(p_context, NK_TREE_TAB, "actors", NK_MAXIMIZED)){
+    //
+    //            struct bvr_actor_s** pp_actor; 
+    //            // BVR_POOL_FOR_EACH(pp_actor, __editor->book->page->actors){
+    //            //     bvr_nk_draw_button_actor(__editor, *pp_actor);
+    //            // }
+    //
+    //            nk_tree_pop(p_context);
+    //        }
+    //
+    //        if(nk_tree_push(p_context, NK_TREE_TAB, "parameters", NK_MAXIMIZED)){
+    //            bvr_nk_draw_button(__editor, "globals", 0, NULL);
+    //            bvr_nk_draw_button(__editor, "audio", BVR_EDITOR_AUDIO, &__editor->book->audio);
+    //            bvr_nk_draw_button(__editor, "user", BVR_EDITOR_USER, NULL);
+    //            bvr_nk_draw_button(__editor, "graphics", BVR_EDITOR_PIPELINE, &__editor->book->pipeline);
+    //
+    //            if(__editor->book->asset_stream.data){
+    //                bvr_nk_draw_button(__editor, "assets", BVR_EDITOR_ASSETS, &__editor->book->asset_stream);
+    //            }
+    //
+    //            nk_tree_pop(p_context);
+    //        }
+    //
+    //        nk_tree_pop(p_context);
+    //    }
+    //    
+    //    __editor->device.is_gui_hovered |= nk_window_is_hovered(p_context);
+    //
+    //    struct nk_rect bounds = nk_window_get_bounds(p_context);
+    //    __editor->hierarchy.viewport.width = bounds.w;
+    //    __editor->hierarchy.viewport.height = bounds.h;
+    //    __editor->hierarchy.viewport.coords[0] = bounds.x;
+    //    __editor->hierarchy.viewport.coords[1] = bounds.y;
+    //
+    //    nk_end(p_context);
+    //}
 }
 
 void bvr_editor_draw_inspector(){

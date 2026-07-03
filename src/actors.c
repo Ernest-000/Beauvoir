@@ -1,7 +1,7 @@
 #include <bvr/actors.h>
 
-#include <bvr/file.h>
-#include <bvr/scene.h>
+
+#include <bvr/book.h>
 #include <bvr/graphics.h>
 
 #include <bvr/landscape.h>

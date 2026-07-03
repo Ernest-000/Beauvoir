@@ -1,9 +1,9 @@
 #include <bvr/image.h>
 #include <bvr/common.h>
-#include <bvr/file.h>
+#include <bvr/io.h>
 
 #include <bvr/shader.h>
-#include <bvr/scene.h>
+#include <bvr/book.h>
 
 #include <stdlib.h>
 #include <malloc.h>
@@ -1915,42 +1915,42 @@ void bvr_composite_enable(bvr_composite_t* composite, bvr_transform_t* const tra
     glViewport(0, 0, composite->image->width, composite->image->height);
 
     // try to copy previous framebuffer content onto the current framebuffer
-    if(bvr_get_instance()->pipeline.state.framebuffer && transform){
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, bvr_get_instance()->pipeline.state.framebuffer->buffer);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, composite->framebuffer);
-
-        float hw = composite->image->width * 0.5f;
-        float hh = composite->image->height * 0.5f;
-
-        vec2 src0, src1;
-        vec4 world0, world1;
-
-        world0[0] = -hw;
-        world0[1] = -hh;
-        world0[2] = 0.0f;
-        world0[3] = 0.0f;
-
-        world1[0] = +hw;
-        world1[1] = +hh;
-        world1[2] = 0.0f;
-        world1[3] = 0.0f;
-
-        mat4_mul_vec4(world0, transform->matrix, world0);
-        mat4_mul_vec4(world1, transform->matrix, world1);
-
-        bvr_world_to_screen(&bvr_get_instance()->page->camera, world0, src0);
-        bvr_world_to_screen(&bvr_get_instance()->page->camera, world1, src1);
-
-        glBlitFramebuffer(
-            src0[0], src0[1], src1[0], src1[1], 
-            0.0f, 0.0f, composite->image->width, composite->image->height,
-            GL_COLOR_BUFFER_BIT, GL_NEAREST
-        );
-
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBindFramebuffer(GL_FRAMEBUFFER, composite->framebuffer);
-    }
+    //if(BVR_INSTANCE()->pipeline.state.framebuffer && transform){
+    //    glBindFramebuffer(GL_READ_FRAMEBUFFER, BVR_INSTANCE()->pipeline.state.framebuffer->buffer);
+    //    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, composite->framebuffer);
+    //
+    //    float hw = composite->image->width * 0.5f;
+    //    float hh = composite->image->height * 0.5f;
+    //
+    //    vec2 src0, src1;
+    //    vec4 world0, world1;
+    //
+    //    world0[0] = -hw;
+    //    world0[1] = -hh;
+    //    world0[2] = 0.0f;
+    //    world0[3] = 0.0f;
+    //
+    //    world1[0] = +hw;
+    //    world1[1] = +hh;
+    //    world1[2] = 0.0f;
+    //    world1[3] = 0.0f;
+    //
+    //    mat4_mul_vec4(world0, transform->matrix, world0);
+    //    mat4_mul_vec4(world1, transform->matrix, world1);
+    //
+    //    bvr_world_to_screen(&BVR_INSTANCE()->page->camera, world0, src0);
+    //    bvr_world_to_screen(&BVR_INSTANCE()->page->camera, world1, src1);
+    //
+    //    glBlitFramebuffer(
+    //        src0[0], src0[1], src1[0], src1[1], 
+    //        0.0f, 0.0f, composite->image->width, composite->image->height,
+    //        GL_COLOR_BUFFER_BIT, GL_NEAREST
+    //    );
+    //
+    //    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    //    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    //    glBindFramebuffer(GL_FRAMEBUFFER, composite->framebuffer);
+    //}
 }
 
 void bvr_composite_prepare(bvr_composite_t* composite){
@@ -1962,19 +1962,20 @@ void bvr_composite_prepare(bvr_composite_t* composite){
 
 void bvr_composite_disable(bvr_composite_t* composite){
     // if there is a working framebuffer
-    if(bvr_get_instance()->pipeline.state.framebuffer){
-        glBindFramebuffer(GL_FRAMEBUFFER, bvr_get_instance()->pipeline.state.framebuffer->buffer);
-        glViewport(0, 0, 
-            bvr_get_instance()->pipeline.state.framebuffer->width, 
-            bvr_get_instance()->pipeline.state.framebuffer->height
-        );
-    }
+    //if(BVR_INSTANCE()->pipeline.state.framebuffer){
+    //    glBindFramebuffer(GL_FRAMEBUFFER, BVR_INSTANCE()->pipeline.state.framebuffer->buffer);
+    //    glViewport(0, 0, 
+    //        BVR_INSTANCE()->pipeline.state.framebuffer->width, 
+    //        BVR_INSTANCE()->pipeline.state.framebuffer->height
+    //    );
+    //}
     // use default framebuffer and window's screen size
-    else {
+    //else {
+    {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, 
-            bvr_get_instance()->window.framebuffer.width, 
-            bvr_get_instance()->window.framebuffer.height
+            BVR_INSTANCE()->window.framebuffer.width, 
+            BVR_INSTANCE()->window.framebuffer.height
         );
     }
 }

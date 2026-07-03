@@ -1,6 +1,6 @@
 #include <bvr/shader.h>
 #include <bvr/math.h>
-#include <bvr/file.h>
+#include <bvr/io.h>
 #include <bvr/image.h>
 
 #include <string.h>

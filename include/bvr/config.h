@@ -8,6 +8,14 @@
     #define BVR_VERSION "v0.1"
 #endif
 
+#ifndef BVR_TARGET_FRAME_PER_SEC
+    #define BVR_TARGET_FRAME_PER_SEC 60
+#endif
+
+#ifndef BVR_TARGET_FRAMERATE
+    #define BVR_TARGET_FRAMERATE 60
+#endif
+
 #ifdef BVR_NO_INLINE
     #define BVR_H_FUNC static
 #else
@@ -47,6 +55,8 @@ typedef float float32;
 #define BVR_INT16_MAX  (0x7FFF)
 #define BVR_UINT16_MIN (0x0000)
 #define BVR_UINT16_MAX (0xFFFF)
+
+#define BVR_INT24_MAX (0x7FFFFF)
 
 #define BVR_INT32_MIN  (-0x80000000)
 #define BVR_INT32_MAX  (0x7FFFFFFF)

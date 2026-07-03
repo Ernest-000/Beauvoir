@@ -4,7 +4,7 @@
 
 #ifndef BVR_NO_NUKLEAR
 
-#include <bvr/scene.h>
+#include <bvr/book.h>
 
 #ifndef BVR_EDITOR_HIDDEN_INPUT
     // F5

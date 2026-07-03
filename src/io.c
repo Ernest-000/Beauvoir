@@ -1,4 +1,4 @@
-#include <bvr/file.h>
+#include <bvr/io.h>
 #include <bvr/common.h>
 
 #include <malloc.h>
@@ -42,6 +42,15 @@ short bvr_fread16_le(FILE* file){
     a = bvr_freadu8_le(file);
     b = bvr_freadu8_le(file);
     return (short)((b << 8) | a);
+}
+
+int bvr_fread24_le(FILE* file){
+    uint8 a, b, c, d;
+    a = 0;
+    b = bvr_freadu8_le(file);
+    c = bvr_freadu8_le(file);
+    d = bvr_freadu8_le(file);
+    return (int)((((d << 8) | c) << 8 | b) << 8 | a);
 }
 
 int bvr_fread32_le(FILE* file){

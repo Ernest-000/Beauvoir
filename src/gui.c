@@ -1,5 +1,5 @@
 #include <bvr/gui.h>
-#include <bvr/file.h>
+#include <bvr/io.h>
 
 // #include <SDL3/SDL.h>
 #include <bvr/gl.h>
@@ -258,7 +258,7 @@ void bvr_canvas_render(bvr_canvas_t* context){
     view[1][1] /= (GLfloat)context->win->framebuffer.height;
 
     // set blending and disable depth test
-    bvr_pipeline_state_enable(&bvr_get_instance()->pipeline.gui_pass);
+    bvr_pipeline_state_enable(&BVR_INSTANCE()->graphics.gui_pass);
 
     // update shaders
     bvr_shader_set_uniform_raw(context->device.projection, &view[0][0]);
@@ -389,7 +389,7 @@ void bvr_canvas_render(bvr_canvas_t* context){
     bvr_shader_disable();
 
     // reset pass
-    bvr_pipeline_state_enable(&bvr_get_instance()->pipeline.rendering_pass);
+    bvr_pipeline_state_enable(&BVR_INSTANCE()->graphics.rendering_pass);
 }
 
 static void bvri_clipboard_paste(nk_handle usr, struct nk_text_edit *edit){

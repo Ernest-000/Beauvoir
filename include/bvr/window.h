@@ -274,7 +274,7 @@ uint64 bvr_get_frame(void);
 /*
     Return the time in ms between two frames
 */
-float bvr_delta_time(void);
+float bvr_get_delta_time(void);
 
 /*
     Wait a specified number of milliseconds before returning.

@@ -1,7 +1,6 @@
 #include <bvr/audio.h>
-#include <bvr/scene.h>
-
-#include <bvr/file.h>
+#include <bvr/book.h>
+#include <bvr/io.h>
 #include <bvr/window.h>
 
 // #include <SDL3/SDL_audio.h>
@@ -9,11 +8,27 @@
 #include <stdlib.h>
 #include <memory.h>
 
-#define BVR_AUDIO_FORMAT BVR_AUDIO_INT16
+#ifdef _WIN32
+#elif __unix__
+    #include <spa/param/audio/format-utils.h>
+    #include <pipewire/pipewire.h>
+#else
+    #error unable to find a supported audio backend.
+#endif
+
+#define BVR_AUDIO_FORMAT BVR_AUDIO_FORMAT_INT16
 #define BVR_AUDIO_NO_SIGNAL (0)
 
-static void bvri_audio_callback(void* _stream, void* sdl, int additional_amount, int total_amount);
+// audio implementations promises
+void bvri_create_mixer_impl(bvr_audio_mixer_t* mixer);
+void bvri_write_audio_stream_impl(void* userdata);
+void bvri_destroy_mixer_impl(bvr_audio_mixer_t* mixer);
+
+// callbacks
+// static void bvri_audio_callback(void* _stream, int additional_amount, int total_amount);
 static struct bvr_audio_command_s* bvri_audio_find_audio_command(uint32 id);
+
+#pragma region AUDIO_SOURCE
 
 #ifndef BVR_NO_WAV
 
@@ -94,8 +109,9 @@ static int bvri_load_wav(FILE* file, bvr_audio_t* audio){
         fseek(file, chunk.size, SEEK_CUR);
     }
 
-    audio->wave = malloc(chunk.size);
-    audio->wave_length = chunk.size;
+    audio->wave = NULL;
+    audio->wave_length = 0;
+
     audio->channels = fmt.channel_count;
     audio->sample_rate = fmt.sample_rate;
     audio->sample_depth = fmt.bits_per_sample / 8;
@@ -103,20 +119,43 @@ static int bvri_load_wav(FILE* file, bvr_audio_t* audio){
 
     switch (fmt.bits_per_sample)
     {
-    case 8:  audio->format = BVR_AUDIO_INT8; break;
-    case 16: audio->format = BVR_AUDIO_INT16; break;
-    case 32: audio->format = BVR_AUDIO_INT32; break;
+    case 8:  audio->format = BVR_AUDIO_FORMAT_INT8; break;
+    case 16: audio->format = BVR_AUDIO_FORMAT_INT16; break;
+    case 24: audio->format = BVR_AUDIO_FORMAT_INT24; break;
+    case 32: audio->format = BVR_AUDIO_FORMAT_INT32; break;
     
     default:
-        audio->format = BVR_AUDIO_INT8;
+        audio->format = BVR_AUDIO_FORMAT_INT8;
         break;
     }
 
-    // copy raw wav to data
-    unpacked_bytes = fread(audio->wave, sizeof(uint8), chunk.size, file);
-    BVR_ASSERT(chunk.size == unpacked_bytes);
+    if(audio->format == BVR_AUDIO_FORMAT_INT24){
+        // because it's hard to store 24bit audio
+        // we need to read them as 32bit 
+        uint32* wave = malloc(chunk.size / audio->sample_depth * sizeof(int32));
 
-    return BVR_TRUE;
+        audio->wave = (short*)wave;
+        audio->wave_length = chunk.size / audio->sample_depth * sizeof(int32);
+
+        for(int f = 0; f < chunk.size / audio->sample_depth; f++)
+        {
+            wave[f] = bvr_fread24_le(file);
+        }
+        
+        // make shure to overwrite values to fake 32bit
+        audio->format = BVR_AUDIO_FORMAT_INT32;
+        audio->sample_depth = 4;
+    }
+    else {
+        // just copy raw data
+        audio->wave = malloc(chunk.size);
+        audio->wave_length = chunk.size;
+
+        unpacked_bytes = fread(audio->wave, sizeof(uint8), chunk.size, file);
+        BVR_ASSERT(chunk.size == unpacked_bytes);
+    }
+    
+    return audio->wave && audio->wave_length;
 }
 
 #endif
@@ -1081,6 +1120,16 @@ static int bvri_load_vorbis(FILE* file, bvr_audio_t* audio){
 
 #endif
 
+static short bvri_int8_to_short(int8* v){
+    return *v << 2;
+}
+
+static short bvri_int32_to_short(int8* v){
+    int32 rounded = *((int32*)v) + 0xff;
+    if(rounded > BVR_INT32_MAX) rounded = BVR_INT32_MAX; // avoid overflow
+    return (short)(rounded >> 16);
+}
+
 static void bvri_quantize_audio(bvr_audio_t* audio, const bvr_audio_mixer_t* mixer){
     BVR_ASSERT(audio);
 
@@ -1090,10 +1139,42 @@ static void bvri_quantize_audio(bvr_audio_t* audio, const bvr_audio_mixer_t* mix
 
     if(audio->sample_rate != mixer->sample_rate){
         BVR_PRINT("sample rates doesn't match");
+        // no op
     }
 
     if(audio->sample_depth != mixer->sample_depth){
         BVR_PRINT("sample depth doesn't match");
+
+        short (*convert_short_func)(int8*) = NULL;
+        switch (audio->format)
+        {
+        case BVR_AUDIO_FORMAT_INT8: convert_short_func = bvri_int8_to_short; break;
+        case BVR_AUDIO_FORMAT_INT32: convert_short_func = bvri_int32_to_short; break;
+        default:
+            break;
+        }
+
+        BVR_ASSERT(convert_short_func);
+
+        uint32 src_length = audio->wave_length;
+        uint32 new_length = (uint32)((float)audio->wave_length / ((float)audio->sample_depth / (float)mixer->sample_depth));
+
+        char* src = (char*)audio->wave;
+        short* dest = calloc(new_length, sizeof(char));
+        
+        BVR_ASSERT(src);
+        BVR_ASSERT(dest);
+
+        for (size_t i = 0; i < src_length / audio->sample_depth; i++)
+        {
+            dest[i] = convert_short_func(src);
+            src += audio->sample_depth;
+        }
+        
+        free(audio->wave);
+
+        audio->wave = dest;
+        audio->wave_length = new_length;
     }
 }
 
@@ -1102,7 +1183,7 @@ int bvr_create_audiof(bvr_audio_t* audio, FILE* file, const char* name){
     BVR_ASSERT(file);
 
     // check for audio stream
-    bvr_audio_mixer_t* mixer = &bvr_get_instance()->audio;
+    bvr_audio_mixer_t* mixer = &BVR_INSTANCE()->mixer;
     BVR_ASSERT(mixer->avail);
     
     int status = 0;
@@ -1141,6 +1222,163 @@ int bvr_create_audiof(bvr_audio_t* audio, FILE* file, const char* name){
 
     return status;
 }
+
+#pragma endregion
+
+#pragma region AUDIO MIXER
+
+#ifdef _WIN32
+
+#elif __unix__
+
+static struct pw_stream_events __pipewire_global_events;
+static struct spa_hook __pipewire_thread;
+
+void bvri_create_mixer_impl(bvr_audio_mixer_t* mixer){
+    const struct spa_pod* params[1];
+    uint8 buffer[BVR_BUFFER_SIZE];
+
+    struct spa_audio_info_raw spa_info = {0};
+    struct spa_pod_builder spa_builder = SPA_POD_BUILDER_INIT(buffer, sizeof(buffer));
+
+    // register audio callback
+    __pipewire_global_events = (struct pw_stream_events){0};
+    __pipewire_global_events.version = PW_VERSION_STREAM_EVENTS;
+    __pipewire_global_events.process = bvri_write_audio_stream_impl;
+    
+    
+    // find the correct format
+    switch (mixer->format)
+    {
+    case BVR_AUDIO_FORMAT_FLOAT: spa_info.format = SPA_AUDIO_FORMAT_F32; break;
+    case BVR_AUDIO_FORMAT_UINT8: spa_info.format = SPA_AUDIO_FORMAT_U8; break;
+    case BVR_AUDIO_FORMAT_INT8: spa_info.format = SPA_AUDIO_FORMAT_S8; break;
+    case BVR_AUDIO_FORMAT_INT16: spa_info.format = SPA_AUDIO_FORMAT_S16; break;
+    case BVR_AUDIO_FORMAT_INT32: spa_info.format = SPA_AUDIO_FORMAT_S32; break;
+    default: spa_info.format = SPA_AUDIO_FORMAT_S16; break;
+    }
+
+    spa_info.channels = mixer->channels;
+    spa_info.rate = mixer->sample_rate;
+
+    pw_init(NULL, NULL);
+
+    // create the audio callback loop
+    mixer->client.pipewire.loop = pw_thread_loop_new(BVR_CLASS_NAME "-ALOOP\0", NULL);
+    BVR_ASSERT(mixer->client.pipewire.loop);
+
+    mixer->client.pipewire.context = pw_context_new(
+        pw_thread_loop_get_loop(mixer->client.pipewire.loop),
+        NULL, 0
+    );
+    BVR_ASSERT(mixer->client.pipewire.context);
+
+    mixer->client.pipewire.core = pw_context_connect(
+        mixer->client.pipewire.context, NULL, 0
+    );
+    BVR_ASSERT(mixer->client.pipewire.core);
+
+    mixer->client.pipewire.stream = pw_stream_new(
+        mixer->client.pipewire.core,
+        BVR_CLASS_NAME "-ASTREAM", 
+        pw_properties_new(
+            PW_KEY_MEDIA_TYPE, "Audio",
+            PW_KEY_MEDIA_CATEGORY, "Playback",
+            PW_KEY_MEDIA_ROLE, "Game",
+            NULL
+        )
+    );
+    BVR_ASSERT(mixer->client.pipewire.stream);
+
+    pw_stream_add_listener(
+        mixer->client.pipewire.stream,
+        &__pipewire_thread, &__pipewire_global_events,
+        mixer
+    );
+
+    params[0] = spa_format_audio_raw_build(
+        &spa_builder, SPA_PARAM_EnumFormat, &spa_info
+    );
+
+    pw_stream_connect(
+        mixer->client.pipewire.stream,
+        PW_DIRECTION_OUTPUT,
+        PW_ID_ANY,
+        PW_STREAM_FLAG_AUTOCONNECT | 
+        PW_STREAM_FLAG_MAP_BUFFERS |
+        PW_STREAM_FLAG_RT_PROCESS,
+        params, 1
+    );
+
+    pw_thread_loop_start(mixer->client.pipewire.loop);
+}
+
+void bvri_write_audio_stream_impl(void* userdata){
+    bvr_audio_mixer_t* mixer = (bvr_audio_mixer_t*)userdata;
+
+    struct pw_buffer* pw_buffer;
+    struct spa_buffer* spa_buffer;
+
+    uint32 done = 0;
+    short value;
+    short* destination;
+    const uint8 depth = mixer->sample_depth;
+
+    pw_thread_loop_lock(mixer->client.pipewire.loop);
+
+    if(((pw_buffer = pw_stream_dequeue_buffer(mixer->client.pipewire.stream)) == NULL)){
+        BVR_PRINT("end of pipewire's buffer");
+        pw_thread_loop_unlock(mixer->client.pipewire.loop);
+        return;
+    }
+
+    spa_buffer = pw_buffer->buffer;
+    if((destination = spa_buffer->datas[0].data) == NULL){
+        // invalid spa buffer
+        pw_thread_loop_unlock(mixer->client.pipewire.loop);
+        return;
+    }
+
+    // find the maximum available buffer length
+    mixer->master.requested_length = spa_buffer->datas[0].maxsize / (depth * mixer->channels);
+    if(pw_buffer->requested){
+        mixer->master.requested_length = MIN(pw_buffer->requested, mixer->master.requested_length);
+    }
+    
+    // write buffer
+    {
+        memset(mixer->master.pcm, 0, mixer->master.requested_length * depth * mixer->channels);
+
+        for (size_t i = 0; i < mixer->command_count; i++)
+        {
+            if(bvr_audio_do_wave_command(&mixer->commands[i]) > 1){
+                mixer->commands[done++] = mixer->commands[i];
+            }
+        }
+
+        mixer->command_count = done;
+    }
+    
+    memcpy(destination, mixer->master.pcm, mixer->master.requested_length * depth * mixer->channels);
+
+    spa_buffer->datas[0].chunk->offset = 0;
+    spa_buffer->datas[0].chunk->stride = depth * mixer->channels;
+    spa_buffer->datas[0].chunk->size = mixer->master.requested_length * depth * mixer->channels;
+
+    pw_stream_queue_buffer(mixer->client.pipewire.stream, pw_buffer);
+    pw_thread_loop_unlock(mixer->client.pipewire.loop);
+}
+
+void bvri_destroy_mixer_impl(bvr_audio_mixer_t* mixer){
+    pw_thread_loop_stop(mixer->client.pipewire.loop);
+    pw_stream_destroy(mixer->client.pipewire.stream);
+    pw_thread_loop_destroy(mixer->client.pipewire.loop);
+
+    mixer->client.pipewire.stream = NULL;
+    mixer->client.pipewire.loop = NULL;
+}
+
+#endif
 
 void bvr_audio_play(bvr_audio_t* audio, uint8 track){
     BVR_ASSERT(audio);
@@ -1181,62 +1419,53 @@ void bvr_destroy_audio(bvr_audio_t* audio){
     audio->wave = NULL;
 }
 
-static void bvri_audio_callback(void* _stream, void* sdl, int additional_amount, int total_amount){
-    uint32 done = 0;
-    bvr_audio_mixer_t* mixer = (bvr_audio_mixer_t*)_stream;
-
-    // update buffer length in bytes
-    mixer->master.avail_buffer_length = MIN(additional_amount, BVR_AUDIO_FRAME_COUNT * sizeof(short));
-
-    // clear previous audio buffer
-    memset(mixer->master.pcm, 0, BVR_AUDIO_FRAME_COUNT * sizeof(short));
-    
-    for (size_t i = 0; i < mixer->command_count; i++)
-    {
-        bvr_audio_do_wave_command(&mixer->commands[i]);
-
-        if (mixer->commands[i].sample_count > 0) {
-            // if we this sample is not finished
-            mixer->commands[done++] = mixer->commands[i];
-        }
-    }
-
-    mixer->command_count = done;
-
-    // SDL_PutAudioStreamData(mixer->context, mixer->master.pcm, mixer->master.avail_buffer_length);
-}
+// static void bvri_audio_callback(void* _stream, int additional_amount, int total_amount){
+//     uint32 done = 0;
+//     bvr_audio_mixer_t* mixer = (bvr_audio_mixer_t*)_stream;
+// 
+//     // update buffer length in bytes
+//     mixer->master.requested_length = MIN(additional_amount, BVR_AUDIO_FRAME_COUNT * sizeof(short));
+// 
+//     // clear previous audio buffer
+//     memset(mixer->master.pcm, 0, BVR_AUDIO_FRAME_COUNT * sizeof(short));
+//     
+//     for (size_t i = 0; i < mixer->command_count; i++)
+//     {
+//         bvr_audio_do_wave_command(&mixer->commands[i]);
+// 
+//         if (mixer->commands[i].sample_count > 0) {
+//             // if we this sample is not finished
+//             mixer->commands[done++] = mixer->commands[i];
+//         }
+//     }
+// 
+//     mixer->command_count = done;
+// 
+//     // SDL_PutAudioStreamData(mixer->context, mixer->master.pcm, mixer->master.avail_buffer_length);
+// }
 
 int bvr_create_audio_mixer(bvr_audio_mixer_t* mixer, const int sample_rate, const uint8 channels){
     BVR_ASSERT(mixer);
     BVR_ASSERT(sample_rate > 0);
 
-    // SDL_AudioSpec config;
-    // config.channels = channels;
-    // config.format = BVR_AUDIO_FORMAT;
-    // config.freq = sample_rate;
-// 
-    // mixer->channels = channels;
-    // mixer->sample_rate = sample_rate;
-    // mixer->sample_depth = 16;
-    // mixer->device_id = BVR_AUDIO_DEFAULT_OUTPUT;
-    // mixer->gain = 1.0f;
-    // mixer->command_count = 0;
-// 
-    // mixer->context = SDL_OpenAudioDeviceStream(
-    //     BVR_AUDIO_DEFAULT_OUTPUT, &config, 
-    //     bvri_audio_callback, mixer
-    // );
-    // BVR_ASSERT(mixer->context);
-// 
-    // for (size_t i = 0; i < BVR_MAX_AUDIO_TRACKS; i++)
-    // {
-    //     bvr_create_audio_track(mixer, i, 100.0f, 0.0f);
-    // }
-    // 
-    // // SDL_ResumeAudioStreamDevice(mixer->context);
-// 
-    // mixer->avail = true;
-    // return BVR_TRUE;
+    mixer->channels = channels;
+    mixer->sample_rate = sample_rate;
+    mixer->sample_depth = 2;
+    mixer->format = BVR_AUDIO_FORMAT;
+    mixer->device_id = BVR_AUDIO_DEFAULT_OUTPUT;
+    mixer->gain = 1.0f;
+    mixer->command_count = 0;
+
+    for (size_t i = 0; i < BVR_MAX_AUDIO_TRACKS; i++)
+    {
+        bvr_create_audio_track(mixer, i, 100.0f, 0.0f);
+    }
+
+    bvri_create_mixer_impl(mixer);
+
+    mixer->avail = true;
+
+    return BVR_TRUE;
 }
 
 void bvr_create_audio_track(bvr_audio_mixer_t* mixer, uint8 track, float volume, float pan){
@@ -1249,27 +1478,27 @@ void bvr_create_audio_track(bvr_audio_mixer_t* mixer, uint8 track, float volume,
 
 /**
  * Because of how audio works, we might need to follow the same way as real sound mixers
- * https://sound-au.com/articles/audio-mixing.htm
+ * https://sound-au.com/articles/audio-mixing.html
  * 
  * https://lisyarus.github.io/blog/posts/audio-mixing.html
  */
 uint32 bvr_audio_do_wave_command(struct bvr_audio_command_s* command){
-    bvr_audio_mixer_t* mixer = &bvr_get_instance()->audio;
+    bvr_audio_mixer_t* mixer = &BVR_INSTANCE()->mixer;
 
     // maximum available frames
-    uint32 max_wave_frames = mixer->master.avail_buffer_length / (sizeof(short) * mixer->channels);
-    uint32 requested_wave_frames = command->sample_count / command->channels;
+    uint32 mixer_wave_frames = mixer->master.requested_length;
+    uint32 cmd_wave_frames = command->sample_count / command->channels;
 
-    uint32 frame_count = MIN(requested_wave_frames, max_wave_frames);
+    uint32 frame_count = MIN(cmd_wave_frames, mixer_wave_frames);
     
     // number of samples 
     uint32 wave_samples = frame_count * command->channels;
 
     for (uint32 s = 0; s < frame_count; s++)
     {
-        // add audio's amplitude to previous master values 
-        short left = (mixer->master.pcm[mixer->channels * s] + command->wave[command->channels * s]);
-        short right = (mixer->master.pcm[mixer->channels * s + 1] + command->wave[command->channels * s + 1]);
+        // add audio's amplitude to previous master values
+        int left = (mixer->master.pcm[mixer->channels * s] + command->wave[command->channels * s]);
+        int right = (mixer->master.pcm[mixer->channels * s + 1] + command->wave[command->channels * s + 1]);
 
         float left_volume = (mixer->master.tracks[command->track_id].pan / 100.0f + 0.5f);
         float right_volume = 1.0 - (mixer->master.tracks[command->track_id].pan / 100.0f + 0.5f);
@@ -1280,20 +1509,16 @@ uint32 bvr_audio_do_wave_command(struct bvr_audio_command_s* command){
         left_volume = clamp(left_volume, 0.0f, 1.0f);
         right_volume = clamp(right_volume, 0.0f, 1.0f);
 
-        // clip audio values
-        left = clampi(left, BVR_INT16_MIN, BVR_INT16_MAX) * left_volume;
-        right = clampi(right, BVR_INT16_MIN, BVR_INT16_MAX) * right_volume;
-
         // when master if mono
-        mixer->master.pcm[mixer->channels * s + 0] = left;
+        mixer->master.pcm[mixer->channels * s + 0] = (short)(clampi(left, BVR_INT16_MIN, BVR_INT16_MAX) * left_volume);
 
         // when master is stereo
         if(mixer->channels > 1){
-            mixer->master.pcm[mixer->channels * s + 1] = left;
+            mixer->master.pcm[mixer->channels * s + 1] = (short)(clampi(left, BVR_INT16_MIN, BVR_INT16_MAX) * left_volume);
     
             // when audio clip is stereo
             if(command->channels > 1){
-                mixer->master.pcm[mixer->channels * s + 1] = right;
+                mixer->master.pcm[mixer->channels * s + 1] = (short)(clampi(right, BVR_INT16_MIN, BVR_INT16_MAX) * right_volume);
             }
         }
     }
@@ -1308,24 +1533,24 @@ void bvr_audio_add_wave_command(const struct bvr_audio_command_s* command){
     BVR_ASSERT(command);
 
     // when there is no initialized instance
-    if(!bvr_get_instance()->audio.avail){
+    if(!BVR_INSTANCE()->mixer.avail){
         return;
     }
 
     // when there is no space for a new command
-    if(bvr_get_instance()->audio.command_count + 1 >= BVR_MAX_AUDIO_COMMAND){
+    if(BVR_INSTANCE()->mixer.command_count + 1 >= BVR_MAX_AUDIO_COMMAND){
         return;
     }
 
     // try to find an available command storing space
     memcpy(
-        &bvr_get_instance()->audio.commands[bvr_get_instance()->audio.command_count++], 
+        &BVR_INSTANCE()->mixer.commands[BVR_INSTANCE()->mixer.command_count++], 
         command, sizeof(struct bvr_audio_command_s)
     );
 }
 
 static struct bvr_audio_command_s* bvri_audio_find_audio_command(uint32 id){
-    bvr_audio_mixer_t* mixer = &bvr_get_instance()->audio;
+    bvr_audio_mixer_t* mixer = &BVR_INSTANCE()->mixer;
     if(!mixer){
         return NULL;
     }
@@ -1344,6 +1569,9 @@ void bvr_destroy_audio_mixer(bvr_audio_mixer_t* mixer){
     BVR_ASSERT(mixer);
 
     // SDL_CloseAudioDevice(mixer->device_id);
-    mixer->context = NULL;
+
+    bvri_destroy_mixer_impl(mixer);
     mixer->avail = false;
 }
+
+#pragma endregion

@@ -1,7 +1,7 @@
 #include <bvr/window.h>
 
 #include <bvr/common.h>
-#include <bvr/scene.h>
+#include <bvr/book.h>
 #include <bvr/gl.h>
 
 #include <string.h>
@@ -1156,7 +1156,8 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
     BVR_STRCPY(window->vendor.gl_version, glGetString(GL_VERSION), 31);
     BVR_STRCPY(window->vendor.glsl_version, glGetString(GL_SHADING_LANGUAGE_VERSION), 31);
 
-    BVR_PRINT(window->vendor.gl_version);
+    BVR_PRINTF("Running OPENGL %s", window->vendor.gl_version);
+    BVR_PRINTF("Running GLSL %s", window->vendor.glsl_version);
 
     // enable debugging
     if(glad_glDebugMessageCallback){
@@ -1279,7 +1280,7 @@ uint64 bvr_get_frame(){
     return frame / 1000000UL;
 }
 
-float bvr_delta_time(void){
+float bvr_get_delta_time(void){
     return __window->timer.delta_time / 1000.0;
 }
 

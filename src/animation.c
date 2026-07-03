@@ -1,6 +1,6 @@
 #include <bvr/animation.h>
 
-#include <bvr/scene.h>
+#include <bvr/book.h>
 
 #include <memory.h>
 #include <malloc.h>
@@ -173,7 +173,7 @@ void bvr_animation_update(bvr_animation_t* anim, float delta_time){
     /**
      * for now time if second based but it's maybe better with a frame based counter ?
      */
-    //uint64 elapsed_time = bvr_get_instance()->timer.current_time - bvr_get_instance()->timer.prev_time;
+    //uint64 elapsed_time = BVR_INSTANCE()->timer.current_time - BVR_INSTANCE()->timer.prev_time;
     uint64 elapsed_time = 0;
     BVR_ASSERT(0 && "elasped time!!");
 

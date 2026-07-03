@@ -3,7 +3,7 @@
 #ifndef BVR_NO_NUKLEAR
 
 #include <bvr/common.h>
-#include <bvr/scene.h>
+#include <bvr/book.h>
 #include <bvr/actors.h>
 
 #define NK_INCLUDE_FIXED_TYPES

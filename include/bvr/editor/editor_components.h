@@ -399,26 +399,26 @@ static void bvr_nk_draw_audio_component(bvr_canvas_t* context, void* user){
 static void bvr_nk_draw_camera_component(bvr_canvas_t* context, void* user){
     BVR_ASSERT(user);
 
-    bvr_camera_t* camera = (bvr_camera_t*)user;
-
-    if(nk_tree_push(&context->context, NK_TREE_TAB, "camera", NK_MAXIMIZED)){
-
-        nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 2);
-                    
-        nk_label(&context->context, BVR_FORMAT("width %i", camera->framebuffer->width), NK_TEXT_ALIGN_LEFT);
-        nk_label(&context->context, BVR_FORMAT("height %i", camera->framebuffer->height), NK_TEXT_ALIGN_LEFT);
-        
-        nk_label(&context->context, BVR_FORMAT("near %f", camera->near), NK_TEXT_ALIGN_LEFT);
-        nk_label(&context->context, BVR_FORMAT("far %f", camera->far), NK_TEXT_ALIGN_LEFT);
-
-        nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
-        nk_property_float(&context->context, "scale", 0.0f, &camera->field_of_view.scale, 100000.0f, 0.1f, 0.1f);
-
-        bvr_nk_draw_transform_component(context, &camera->transform);
-        nk_tree_pop(&context->context);
-    }
- 
-    nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
+    //bvr_camera_t* camera = (bvr_camera_t*)user;
+    //
+    //if(nk_tree_push(&context->context, NK_TREE_TAB, "camera", NK_MAXIMIZED)){
+    //
+    //    nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 2);
+    //                
+    //    nk_label(&context->context, BVR_FORMAT("width %i", camera->framebuffer->width), NK_TEXT_ALIGN_LEFT);
+    //    nk_label(&context->context, BVR_FORMAT("height %i", camera->framebuffer->height), NK_TEXT_ALIGN_LEFT);
+    //    
+    //    nk_label(&context->context, BVR_FORMAT("near %f", camera->near), NK_TEXT_ALIGN_LEFT);
+    //    nk_label(&context->context, BVR_FORMAT("far %f", camera->far), NK_TEXT_ALIGN_LEFT);
+    //
+    //    nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
+    //    nk_property_float(&context->context, "scale", 0.0f, &camera->field_of_view.scale, 100000.0f, 0.1f, 0.1f);
+    //
+    //    bvr_nk_draw_transform_component(context, &camera->transform);
+    //    nk_tree_pop(&context->context);
+    //}
+    //
+    //nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
 }
 
 static void bvr_nk_draw_gpipeline_component(bvr_canvas_t* context, void* user){
@@ -429,9 +429,9 @@ static void bvr_nk_draw_gpipeline_component(bvr_canvas_t* context, void* user){
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     BVR_NK_CHECKBOX(pipeline->rendering_pass.flags, BVR_WIREFRAME_ENABLE, "wireframe");
 
-    // nk_label(&context->context, BVR_FORMAT("deta time: %f", bvr_get_instance()->timer.delta_time), NK_TEXT_ALIGN_LEFT);
-    // nk_label(&context->context, BVR_FORMAT("render time: %f", bvr_get_instance()->timer.average_render_time), NK_TEXT_ALIGN_LEFT);
-    // nk_label(&context->context, BVR_FORMAT("frame count: %f", bvr_get_instance()->timer.current_time), NK_TEXT_ALIGN_LEFT);
+    // nk_label(&context->context, BVR_FORMAT("deta time: %f", BVR_INSTANCE()->timer.delta_time), NK_TEXT_ALIGN_LEFT);
+    // nk_label(&context->context, BVR_FORMAT("render time: %f", BVR_INSTANCE()->timer.average_render_time), NK_TEXT_ALIGN_LEFT);
+    // nk_label(&context->context, BVR_FORMAT("frame count: %f", BVR_INSTANCE()->timer.current_time), NK_TEXT_ALIGN_LEFT);
 }
 
 static void bvr_nk_draw_global_illumination_component(bvr_canvas_t* context, void* user){
@@ -542,7 +542,7 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
     nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));
 
     if(nk_button_label(&context->context, "focus")){
-        bvr_camera_t* camera = &bvr_get_instance()->page->camera;
+        bvr_camera_t* camera = &BVR_INSTANCE()->page->camera;
         
         vec3 center;
         float distance;
@@ -626,7 +626,7 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
         BVR_SCALE_VEC3(screen, 0);
         
         bvr_mouse_position(&screen[0], &screen[1]);
-        bvr_screen_to_world(&bvr_get_instance()->page->camera, screen, world);
+        bvr_screen_to_world(&BVR_INSTANCE()->page->camera, screen, world);
     
 
         // draw tile gizmo

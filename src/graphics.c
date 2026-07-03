@@ -4,7 +4,7 @@
 
 #include <bvr/math.h>
 #include <bvr/common.h>
-#include <bvr/scene.h>
+#include <bvr/book.h>
 
 #include <memory.h>
 #include <malloc.h>
@@ -110,14 +110,14 @@ void bvr_pipeline_add_draw_cmd(struct bvr_draw_command_s* cmd){
     BVR_ASSERT(cmd);
 
     // old invalid shader implementation
-    // if(!cmd->shader->program && bvr_get_instance()->predefs.is_available){
-    //     cmd->shader = &bvr_get_instance()->predefs.c_shaders.c_invalid_shader;
+    // if(!cmd->shader->program && BVR_INSTANCE()->predefs.is_available){
+    //     cmd->shader = &BVR_INSTANCE()->predefs.c_shaders.c_invalid_shader;
     //     BVR_PRINT("invalid shader!");
     // }
 
-    if(bvr_get_instance()->pipeline.command_count + 1 < BVR_MAX_DRAW_COMMAND){
+    if(BVR_INSTANCE()->graphics.command_count + 1 < BVR_MAX_DRAW_COMMAND){
         memcpy(
-            &bvr_get_instance()->pipeline.commands[bvr_get_instance()->pipeline.command_count++], 
+            &BVR_INSTANCE()->graphics.commands[BVR_INSTANCE()->graphics.command_count++], 
             cmd, sizeof(struct bvr_draw_command_s)
         );
     }
@@ -256,7 +256,7 @@ void bvr_framebuffer_enable(bvr_framebuffer_t* framebuffer){
     glViewport(0, 0, framebuffer->width, framebuffer->height);
 
     // update pipeline state
-    bvr_get_instance()->pipeline.state.framebuffer = framebuffer;
+    BVR_INSTANCE()->graphics.state.framebuffer = framebuffer;
 }
 
 void bvr_framebuffer_disable(bvr_framebuffer_t* framebuffer){
@@ -264,7 +264,7 @@ void bvr_framebuffer_disable(bvr_framebuffer_t* framebuffer){
     glViewport(0, 0, framebuffer->target_width, framebuffer->target_height);
 
     // update pipeline state
-    bvr_get_instance()->pipeline.state.framebuffer = NULL;
+    BVR_INSTANCE()->graphics.state.framebuffer = NULL;
 }
 
 void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 const color){
@@ -273,7 +273,7 @@ void bvr_framebuffer_clear(bvr_framebuffer_t* framebuffer, vec3 const color){
 }
 
 void bvr_framebuffer_blit(bvr_framebuffer_t* framebuffer){
-    bvr_shader_t* shader = &bvr_get_instance()->predefs.c_shaders.c_framebuffer_shader;
+    bvr_shader_t* shader = &BVR_INSTANCE()->predefs.c_shaders.c_framebuffer_shader;
 
     mat4x4 ortho;
     float half_width = framebuffer->width * 0.5f;

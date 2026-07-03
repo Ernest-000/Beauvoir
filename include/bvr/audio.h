@@ -26,12 +26,6 @@
 #endif
 
 
-#define BVR_AUDIO_FLOAT 0x8120u
-#define BVR_AUDIO_UINT8 0x0008u
-#define BVR_AUDIO_INT8  0x8008u
-#define BVR_AUDIO_INT16 0x8010u
-#define BVR_AUDIO_INT32 0x8020u
-
 #define BVR_AUDIO_TRACK0 0
 #define BVR_AUDIO_TRACK1 1
 #define BVR_AUDIO_TRACK2 2
@@ -46,6 +40,29 @@
 enum bvr_audio_device_e {
     BVR_AUDIO_DEFAULT_OUTPUT = 0xFFFFFFFFu,
     BVR_AUDIO_DEFAULT_INPUT = 0xFFFFFFFEu
+};
+
+enum bvr_audio_format_e {
+    BVR_AUDIO_FORMAT_FLOAT,
+    BVR_AUDIO_FORMAT_UINT8,
+    BVR_AUDIO_FORMAT_INT8,
+    BVR_AUDIO_FORMAT_INT16,
+    BVR_AUDIO_FORMAT_INT24,
+    BVR_AUDIO_FORMAT_INT32 
+};
+
+
+union bvr_audio_client_u {
+    struct {
+        void* context;
+    } win;
+
+    struct {
+        void* loop;
+        void* context;
+        void* core;
+        void* stream;        
+    } pipewire;
 };
 
 struct bvr_audio_command_s {
@@ -66,9 +83,12 @@ typedef struct bvr_audio_track_s {
 } bvr_audio_track_t;
 
 typedef struct bvr_audio_mixer_s {
-    void* context;
-    uint32 device_id;
+    union bvr_audio_client_u client;
 
+    // physical device id
+    enum bvr_audio_device_e device_id;
+
+    // number of output channels
     uint8 channels;
 
     /* frequency of each samples */
@@ -76,6 +96,8 @@ typedef struct bvr_audio_mixer_s {
 
     /* maximum amplitude for a sample */
     uint32 sample_depth;
+
+    enum bvr_audio_format_e format;
     
     /* global volume */
     float gain;
@@ -83,7 +105,7 @@ typedef struct bvr_audio_mixer_s {
     struct {
         bvr_audio_track_t tracks[BVR_MAX_AUDIO_TRACKS];
 
-        uint32 avail_buffer_length;
+        uint32 requested_length;
         short pcm[BVR_AUDIO_FRAME_COUNT];
     } master;
 

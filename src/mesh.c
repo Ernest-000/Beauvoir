@@ -1,7 +1,7 @@
 #include <bvr/mesh.h>
 #include <bvr/math.h>
-#include <bvr/memory.h>
-#include <bvr/file.h>
+#include <bvr/io.h>
+
 #include <bvr/physics.h>
 
 #include <malloc.h>

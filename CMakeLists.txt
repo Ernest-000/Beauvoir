@@ -21,6 +21,7 @@ message(STATUS "BVR_LIB_DIR = ${BVR_LIB_DIR}")
 message(STATUS "BVR_BUILD_DIR = ${BVR_BUILD_DIR}")
 message(STATUS "BVR_BIN_DIR = ${BVR_BIN_DIR}")
 
+set(BVR_THIRD_PARTY_MODULES "")
 
 if(NOT BVR_TARGET_SHARED AND NOT BVR_TARGET_STATIC)
     set(BVR_MAIN_FILE "${BVR_DEMO_DIR}/main.c")
@@ -34,9 +35,23 @@ if(WIN32)
     endif()
 elseif(UNIX)
     set(BVR_THIRD_PARTY_NAMES z json-c)
+
+    # include pkg
+    find_package(PkgConfig REQUIRED)
+
+    # find correct pipewire version
+    execute_process(
+        COMMAND bash -c "pkg-config --list-all | grep -o 'libpipewire-[0-9.]*' | sort -V | tail -1"
+        OUTPUT_VARIABLE PIPEWIRE_PKG_NAME
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    # add pipewire
+    pkg_check_modules(PIPEWIRE REQUIRED IMPORTED_TARGET ${PIPEWIRE_PKG_NAME})
+    list(APPEND BVR_THIRD_PARTY_MODULES PkgConfig::PIPEWIRE)
 endif()
 
-set(BVR_THIRD_PARTY_MODULES "")
+# loop and find each third party libs
 foreach(name ${BVR_THIRD_PARTY_NAMES})
     find_library(LIB_${name} NAMES ${name} PATHS ${BVR_LIB_DIR} NO_DEFAULT_PATH REQUIRED)
     if(LIB_${name})

@@ -9,7 +9,7 @@ extern "C" {
 #include <bvr/common.h>
 #include <bvr/math.h>
 
-#include <bvr/scene.h>
+#include <bvr/book.h>
 #include <bvr/landscape.h>
 #include <bvr/assets.h>
 

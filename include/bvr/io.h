@@ -1,10 +1,14 @@
 #pragma once
 
 #include <bvr/config.h>
+
 #include <bvr/collections/string.h>
 
-#include <stdint.h>
 #include <stdio.h>
+
+#ifndef BVR_BUFFER_SIZE
+    #define BVR_BUFFER_SIZE 1024
+#endif
 
 #define BVR_BE_TO_LE_U16 __bswap_constant_16
 #define BVR_BE_TO_LE_U32 __bswap_constant_32
@@ -23,6 +27,11 @@ int bvr_read_file(bvr_string_t* string, FILE* file);
     Read a single signed short from a stream.
 */
 short bvr_fread16_le(FILE* file);
+
+/*
+    Read a single signed int from a stream.
+*/
+int bvr_fread24_le(FILE* file);
 
 /*
     Read a single signed int from a stream.

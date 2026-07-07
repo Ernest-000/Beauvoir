@@ -107,7 +107,7 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
     struct bvri_pngPLTE_s plte;
     struct bvri_pngIDAT_s idat;
 
-    // width and height tells if the idhr chunck
+    // width and height tells if the idhr chunk
     // has been read before loading pixel data
     ihdr.width = 0;
     ihdr.height = 0;
@@ -120,7 +120,7 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
     struct bvri_pngchunk_s chunk;
 
     do {
-        // read chunck infos
+        // read chunk infos
         chunk.length = bvr_freadu32_be(file);
         chunk.name[0] = bvr_freadu8_be(file);
         chunk.name[1] = bvr_freadu8_be(file);
@@ -145,7 +145,7 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
             idat.avail_length -= chunk.length;
         }
         else if(bvri_is_chunk_type(&chunk, "PLTE")){
-            // chunck size must contains 3 color components
+            // chunk size must contains 3 color components
             BVR_ASSERT(chunk.length % 3 == 0);
 
             for (size_t i = 0; i < chunk.length / 3; i += 3)

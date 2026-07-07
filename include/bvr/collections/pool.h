@@ -2,38 +2,12 @@
 
 #include <bvr/config.h>
 
-#ifndef BVR_POOL_SIZE
-    #define BVR_POOL_SIZE 2048
-#endif
-
-// #ifdef __GNUC__
-//     /**
-//      *  This macro creates a for loop that interates through a pool.
-//      *  It will define each `_v` as a pointer to the current used value.
-//      */
-//     #define BVR_POOL_FOR_EACH(_v, _pool) for (struct bvr_pool_block_s* b = _pool.first; b->next; b++)\
-//                                             if (b && (void*)memcpy(&_v, b, _pool.elemsize) != NULL)
-//     // Clang specific macro
-// #elif defined(__clang__) || defined(_MSC_VER)
-//     /**
-//      *  This macro creates a for loop that interates through a pool.
-//      *  It will define each `_v` as the current used value.
-//      */
-//     #define BVR_POOL_FOR_EACH(_v, _pool) for (struct bvr_pool_block_u* b = _pool.first; b->next; b++)\
-//                                             if (b->data && (void*)memcpy(&_v, &b->data, sizeof(uint64)) != NULL)
-// #else
-//     /**
-//      *  This macro creates a for loop that interates through a pool.
-//      *  It will define each `_v` as the current used value.
-//      */
-//     #define BVR_POOL_FOR_EACH(_v, _pool) for (struct bvr_pool_block_u* b = _pool.first; b->next; b++)\
-//                                             if (b->data && (void*)memcpy(&_v, &b->data, sizeof(uint64)) != NULL)
-// #endif
-
-#define BVR_POOL_FOR_EACH(_v, _pool) while(0)
+#define BVR_POOL_FOR_EACH(pool, value) \
+    for(uint64 _i = 0; _i < (pool).capacity; _i++) \
+    if(bvr_pool_is_available(&(pool), (pool).data + _i * (pool).chunk_size) && ((value) = (pool).data + _i * (pool).chunk_size, 1))
 
 /**
- * Chunck of memory in a pool
+ * chunk of memory in a pool
  */
 union bvr_pool_block_u {
     void* data;
@@ -45,13 +19,22 @@ union bvr_pool_block_u {
  * Each element is link to another.
  */
 typedef struct bvr_pool_s {
-    // malloc entry point
+    // linked list entry point
     void* data;
 
+    // store chunk usage as bitflags
+    uint8* usage;
+
+    // next free block
     union bvr_pool_block_u* next_free;
 
+    // size of each element
     uint32 elemsize;
-    uint32 chunck_size;
+
+    // size of each chunk
+    uint32 chunk_size;
+
+    // maximum number of elements
     uint32 capacity;
 } bvr_pool_t;
 
@@ -65,6 +48,11 @@ void* bvr_pool_alloc(bvr_pool_t* pool);
 /**
     Deallocate a memory block.
 */
-void bvr_pool_free(bvr_pool_t* pool, void* ptr);
+void bvr_pool_free(bvr_pool_t* pool, void* chunk);
+
+/**
+ * Return if a chunk is available or not.
+ */
+int bvr_pool_is_available(bvr_pool_t* pool, void* chunk);
 
 void bvr_destroy_pool(bvr_pool_t* pool);

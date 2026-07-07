@@ -1539,7 +1539,7 @@ void bvr_destroy_mesh(bvr_mesh_t* mesh){
     BVR_ASSERT(mesh);
 
     bvr_vertex_group_t* group;
-    BVR_POOL_FOR_EACH(group, mesh->vertex_groups){
+    BVR_POOL_FOR_EACH(mesh->vertex_groups, group){
         //TODO: find why this fucking vertex group mess up string's pointer
         bvr_destroy_string(&group->name);
     }

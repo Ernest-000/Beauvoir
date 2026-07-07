@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 
+#include <bvr/config.h>
+
 #ifdef _WIN32
     #include <io.h>
     
@@ -93,23 +95,23 @@ void bvr_nameof(const int type, char* name);
 /*
     java hash function
 */
-unsigned int bvr_hash(const char* string);
+uint32 bvr_hash(const char* string);
 
 /*
     decode a base64 string
 */
-unsigned char* bvr_base64_decode(const char* string, size_t length, size_t* decoded_length);
+uint8* bvr_base64_decode(const char* string, size_t length, size_t* decoded_length);
 
 /*
     Create a new uuid
 */
-void bvr_create_uuid(bvr_uuid_t uuid);
-void bvr_copy_uuid(bvr_uuid_t src, bvr_uuid_t dest);
+// void bvr_create_uuid(bvr_uuid_t uuid);
+// void bvr_copy_uuid(bvr_uuid_t src, bvr_uuid_t dest);
 
 /*
     Check if two uuid are equals
 */
-int bvr_uuid_equals(bvr_uuid_t const a, bvr_uuid_t const b);
+// int bvr_uuid_equals(bvr_uuid_t const a, bvr_uuid_t const b);
 
 // check if a flag is true
 #define BVR_HAS_FLAG(x, f) ((int)((x & f) == f))

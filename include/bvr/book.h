@@ -11,7 +11,7 @@
 #endif
 
 #define BVR_INSTANCE() (bvr_create_book(NULL))
-#define BVR_CAN_QUIT() (!bvr_create_book(NULL)->window.awake)
+#define BVR_CAN_QUIT() (!BVR_INSTANCE()->window.awake)
 
 typedef struct bvr_page_s {
 

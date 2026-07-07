@@ -288,7 +288,7 @@ void bvr_destroy_animation(bvr_animation_t* anim){
     }
     
     bvr_animation_handle_t* handle;
-    BVR_POOL_FOR_EACH(handle, anim->tracks){
+    BVR_POOL_FOR_EACH(anim->tracks, handle){
         bvr_destroy_string(&handle->name);
     }
 

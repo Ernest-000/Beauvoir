@@ -1120,16 +1120,6 @@ static int bvri_load_vorbis(FILE* file, bvr_audio_t* audio){
 
 #endif
 
-static short bvri_int8_to_short(int8* v){
-    return *v << 2;
-}
-
-static short bvri_int32_to_short(int8* v){
-    int32 rounded = *((int32*)v) + 0xff;
-    if(rounded > BVR_INT32_MAX) rounded = BVR_INT32_MAX; // avoid overflow
-    return (short)(rounded >> 16);
-}
-
 static void bvri_quantize_audio(bvr_audio_t* audio, const bvr_audio_mixer_t* mixer){
     BVR_ASSERT(audio);
 
@@ -1143,18 +1133,9 @@ static void bvri_quantize_audio(bvr_audio_t* audio, const bvr_audio_mixer_t* mix
     }
 
     if(audio->sample_depth != mixer->sample_depth){
-        BVR_PRINT("sample depth doesn't match");
-
-        short (*convert_short_func)(int8*) = NULL;
-        switch (audio->format)
-        {
-        case BVR_AUDIO_FORMAT_INT8: convert_short_func = bvri_int8_to_short; break;
-        case BVR_AUDIO_FORMAT_INT32: convert_short_func = bvri_int32_to_short; break;
-        default:
-            break;
+        if(audio->format == BVR_AUDIO_FORMAT_INT24){
+            BVR_PRINT("signed 24bit normalization should be done when loading the file, not through post-process normalization!");
         }
-
-        BVR_ASSERT(convert_short_func);
 
         uint32 src_length = audio->wave_length;
         uint32 new_length = (uint32)((float)audio->wave_length / ((float)audio->sample_depth / (float)mixer->sample_depth));
@@ -1167,7 +1148,20 @@ static void bvri_quantize_audio(bvr_audio_t* audio, const bvr_audio_mixer_t* mix
 
         for (size_t i = 0; i < src_length / audio->sample_depth; i++)
         {
-            dest[i] = convert_short_func(src);
+            // convert int8 to int6
+            if(audio->format == BVR_AUDIO_FORMAT_INT8){
+                dest[i] = *((int8*)src) << 2;
+            }
+            else if(audio->format == BVR_AUDIO_FORMAT_INT32){
+                int32 r = *((int32*)src) + 0xff; // round the number
+                if(r > BVR_INT32_MAX) r = BVR_INT32_MAX; // avoid overflow
+                dest[i] = (short)(r >> 16);
+            }
+            else {
+                // no op, just copy raw data
+                dest[i] = (short)*src;
+            }
+
             src += audio->sample_depth;
         }
         
@@ -1215,10 +1209,11 @@ int bvr_create_audiof(bvr_audio_t* audio, FILE* file, const char* name){
     // normalize audio for the targetted output
     bvri_quantize_audio(audio, mixer);
 
-    BVR_PRINTF(
-        "audio infos: \nduration: %fs\nsample rate: %i\nsample depth: %i\nchannels: %i\n", 
-        audio->duration, audio->sample_rate, audio->sample_depth, audio->channels
-    );
+    // dump audio informations
+    // BVR_PRINTF(
+    //     "audio infos: \nduration: %fs\nsample rate: %i\nsample depth: %i\nchannels: %i\n", 
+    //     audio->duration, audio->sample_rate, audio->sample_depth, audio->channels
+    // );
 
     return status;
 }

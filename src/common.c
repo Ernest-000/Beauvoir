@@ -155,19 +155,20 @@ void bvr_nameof(const int type, char* name){
     The Java hash, but really no-one seems to know where it came from, see
     https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4045622
 */
-unsigned int bvr_hash(const char* string)
+uint32 bvr_hash(const char* string)
 {
-    unsigned int h = 0;
-    unsigned int len = strlen(string);
+    uint32 h = 0;
+    uint32 len = strlen(string);
 
     while (len) {
         h = 31 * h + *string++;
         --len;
     }
+    
     return h;
 }
 
-unsigned char* bvr_base64_decode(const char* string, size_t length, size_t* decoded_length){
+uint8* bvr_base64_decode(const char* string, size_t length, size_t* decoded_length){
     const uint8 bvri_base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     uint8 dtable[256], *out, *pos, block[4], tmp;
 	size_t i, count, olen;
@@ -229,28 +230,28 @@ unsigned char* bvr_base64_decode(const char* string, size_t length, size_t* deco
 	return out;
 }
 
-void bvr_create_uuid(bvr_uuid_t uuid){
-    const char hex_digits[] = "0123456789abcdefABCDEF";
-
-    for (uint64 i = 0; i < 36; i++)
-    {
-        (uuid)[i] = hex_digits[rand() % 22];
-    }
-    
-    uuid[8] = '-';
-    uuid[13] = '-';
-    uuid[18] = '-';
-    uuid[23] = '-';
-    uuid[36] = '\0';
-}
-
-void bvr_copy_uuid(bvr_uuid_t src, bvr_uuid_t dest){
-    memcpy(dest, src, sizeof(bvr_uuid_t));
-}
-
-int bvr_uuid_equals(bvr_uuid_t const a, bvr_uuid_t const b){
-    return strncmp(a, b, sizeof(bvr_uuid_t)) == 0;
-}
+// void bvr_create_uuid(bvr_uuid_t uuid){
+//     const char hex_digits[] = "0123456789abcdefABCDEF";
+// 
+//     for (uint64 i = 0; i < 36; i++)
+//     {
+//         (uuid)[i] = hex_digits[rand() % 22];
+//     }
+//     
+//     uuid[8] = '-';
+//     uuid[13] = '-';
+//     uuid[18] = '-';
+//     uuid[23] = '-';
+//     uuid[36] = '\0';
+// }
+// 
+// void bvr_copy_uuid(bvr_uuid_t src, bvr_uuid_t dest){
+//     memcpy(dest, src, sizeof(bvr_uuid_t));
+// }
+// 
+// int bvr_uuid_equals(bvr_uuid_t const a, bvr_uuid_t const b){
+//     return strncmp(a, b, sizeof(bvr_uuid_t)) == 0;
+// }
 
 #ifndef BVR_NO_DEBUG
 

@@ -21,6 +21,7 @@
 #define BVR_BUFFER_COUNT(buffer) ((uint64)((buffer).size / (buffer).elemsize))
 
 #ifndef BVR_NO_GROWTH
+    // MUST BE A POWER OF 2
     #define BVR_GROWTH_FACTOR 2
 
     /**

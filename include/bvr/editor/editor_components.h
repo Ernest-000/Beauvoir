@@ -231,7 +231,7 @@ static void bvr_nk_draw_transform_component(bvr_canvas_t* context, void* user){
 
         nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
         nk_property_float(&context->context, "size", 0.0f, &scale, 100000.0f, 0.1f, 0.1f);
-        BVR_SCALE_VEC3(transform->scale, scale);
+        BVR_SET_VEC3(transform->scale, scale);
         nk_tree_pop(&context->context);
     }
 
@@ -623,7 +623,7 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
         int layer = 0;
         vec2 screen, tile;
         vec3 world, local_world;
-        BVR_SCALE_VEC3(screen, 0);
+        BVR_SET_VEC3(screen, 0);
         
         bvr_mouse_position(&screen[0], &screen[1]);
         bvr_screen_to_world(&BVR_INSTANCE()->page->camera, screen, world);

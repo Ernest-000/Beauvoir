@@ -1,4 +1,5 @@
 #include <bvr/gui.h>
+#include <bvr/window.h>
 #include <bvr/io.h>
 
 // #include <SDL3/SDL.h>
@@ -147,90 +148,112 @@ void bvr_canvas_new_frame(bvr_canvas_t* context){
     BVR_ASSERT(context);
 
     nk_input_begin(&context->context);
-
-    // context->device.texture_offset = -1;
-    /*
-    if(((context->win->events & SDL_EVENT_KEY_DOWN) == SDL_EVENT_KEY_DOWN) ||
-        (context->win->events & SDL_EVENT_KEY_UP) == SDL_EVENT_KEY_UP){
-        const uint8* state = (Uint8*)SDL_GetKeyboardState(0);
-        
+    
+    if(BVR_HAS_FLAG(context->win->events, BVR_EVENT_KEY)){
         if(context->win->inputs.keys[BVR_KEY_RIGHT_SHIFT] ||
            context->win->inputs.keys[BVR_KEY_LEFT_SHIFT]) {
             nk_input_key(&context->context, NK_KEY_SHIFT, 
-                NK_MAX(context->win->inputs.keys[BVR_KEY_LEFT_SHIFT] - 1, 
-                    context->win->inputs.keys[BVR_KEY_RIGHT_SHIFT] - 1)
+                NK_MAX(context->win->inputs.keys[BVR_KEY_LEFT_SHIFT] == BVR_INPUT_DOWN ? 0 : 1, 
+                    context->win->inputs.keys[BVR_KEY_RIGHT_SHIFT] == BVR_INPUT_DOWN ? 0 : 1
+                )
             );
 
             if(context->win->inputs.keys[BVR_KEY_Z]){
                 nk_input_key(&context->context, NK_KEY_TEXT_UNDO, 
-                    context->win->inputs.keys[BVR_KEY_Z] - 1);
+                    context->win->inputs.keys[BVR_KEY_Z] == BVR_INPUT_DOWN ? 0 : 1
+                );
             }
             if(context->win->inputs.keys[BVR_KEY_R]){
                 nk_input_key(&context->context, NK_KEY_TEXT_REDO, 
-                    context->win->inputs.keys[BVR_KEY_R] - 1);
+                    context->win->inputs.keys[BVR_KEY_R] == BVR_INPUT_DOWN ? 0 : 1
+                );
             }
             if(context->win->inputs.keys[BVR_KEY_C]){
                 nk_input_key(&context->context, NK_KEY_COPY, 
-                    context->win->inputs.keys[BVR_KEY_C] - 1);
+                    context->win->inputs.keys[BVR_KEY_C] == BVR_INPUT_DOWN ? 0 : 1
+                );
             }
             if(context->win->inputs.keys[BVR_KEY_P]){
                 nk_input_key(&context->context, NK_KEY_PASTE, 
-                    context->win->inputs.keys[BVR_KEY_P] - 1);
+                    context->win->inputs.keys[BVR_KEY_P] == BVR_INPUT_DOWN ? 0 : 1
+                );
             }
             if(context->win->inputs.keys[BVR_KEY_X]){
                 nk_input_key(&context->context, NK_KEY_CUT, 
-                    context->win->inputs.keys[BVR_KEY_X] - 1);
+                    context->win->inputs.keys[BVR_KEY_X] == BVR_INPUT_DOWN ? 0 : 1
+                );
             }
         }
 
         if(context->win->inputs.keys[BVR_KEY_LEFT]){
-            int down = context->win->inputs.keys[BVR_KEY_LEFT] - 1;
-            if (state[SDL_SCANCODE_LCTRL])
-                nk_input_key(&context->context, NK_KEY_TEXT_WORD_LEFT, down);
-            else nk_input_key(&context->context, NK_KEY_LEFT, down);
-        }
-        if(context->win->inputs.keys[BVR_KEY_RIGHT]){
-            int down = context->win->inputs.keys[BVR_KEY_RIGHT] - 1;
-            if (state[SDL_SCANCODE_LCTRL])
-                nk_input_key(&context->context, NK_KEY_TEXT_WORD_RIGHT, down);
-            else nk_input_key(&context->context, NK_KEY_RIGHT, down);
-        }
-    }
+            if(context->win->inputs.keys[BVR_KEY_LEFT_CONTROL]){
+                nk_input_key(&context->context, NK_KEY_TEXT_WORD_LEFT, 
+                    context->win->inputs.keys[BVR_KEY_LEFT_CONTROL] == BVR_INPUT_DOWN ? 0 : 1
+                );
 
-    if(((context->win->events & SDL_EVENT_MOUSE_BUTTON_UP) == SDL_EVENT_MOUSE_BUTTON_UP) ||
-        (context->win->events & SDL_EVENT_MOUSE_BUTTON_DOWN) == SDL_EVENT_MOUSE_BUTTON_DOWN){
-
-        float x, y;
-        SDL_GetMouseState(&x, &y);
-
-        {
-            int down = context->win->inputs.buttons[BVR_MOUSE_BUTTON_LEFT];
-
-            if(context->win->inputs.buttons[BVR_MOUSE_BUTTON_LEFT] == BVR_MOUSE_BUTTON_DOUBLE_PRESSED){
-                nk_input_button(&context->context, NK_BUTTON_DOUBLE, (int)x, (int)y, down);
             }
-            nk_input_button(&context->context, NK_BUTTON_LEFT, (int)x, (int)y, down);
+            else {
+                nk_input_key(&context->context, NK_KEY_LEFT, 
+                    context->win->inputs.keys[BVR_KEY_LEFT] == BVR_INPUT_DOWN ? 0 : 1
+                );
+            }
+            
         }
-        
-        nk_input_button(&context->context, NK_BUTTON_MIDDLE, (int)x, (int)y, context->win->inputs.buttons[BVR_MOUSE_BUTTON_MIDDLE]);
-        nk_input_button(&context->context, NK_BUTTON_RIGHT, (int)x, (int)y, context->win->inputs.buttons[BVR_MOUSE_BUTTON_RIGHT]);
+
+        if(context->win->inputs.keys[BVR_KEY_RIGHT]){
+            if(context->win->inputs.keys[BVR_KEY_RIGHT_CONTROL]){
+                nk_input_key(&context->context, NK_KEY_TEXT_WORD_RIGHT, 
+                    context->win->inputs.keys[BVR_KEY_RIGHT_CONTROL] == BVR_INPUT_DOWN ? 0 : 1
+                );
+
+            }
+            else {
+                nk_input_key(&context->context, NK_KEY_RIGHT, 
+                    context->win->inputs.keys[BVR_KEY_RIGHT] == BVR_INPUT_DOWN ? 0 : 1
+                );
+            }   
+        }
     }
 
-    if((context->win->events & SDL_EVENT_MOUSE_MOTION) == SDL_EVENT_MOUSE_MOTION){
-        if (((struct nk_context*)&context->context)->input.mouse.grabbed) {
-            int x = (int)((struct nk_context*)&context->context)->input.mouse.prev.x;
-            int y = (int)((struct nk_context*)&context->context)->input.mouse.prev.y;
-            nk_input_motion(&context->context, x + context->win->inputs.relative_motion[0], y + context->win->inputs.relative_motion[1]);
+    if(BVR_HAS_FLAG(context->win->events, BVR_EVENT_MOUSE)){
+        int x = context->win->inputs.mouse_position[0];
+        int y = context->win->inputs.mouse_position[1];
+
+        if(context->win->inputs.buttons[BVR_MOUSE_BUTTON_LEFT] == BVR_MOUSE_BUTTON_DOUBLE_PRESSED){
+            nk_input_button(&context->context, NK_BUTTON_DOUBLE, (int)x, (int)y, context->win->inputs.buttons[BVR_MOUSE_BUTTON_LEFT] == BVR_INPUT_DOWN ? 0 : 1);
         }
-        else {
-            nk_input_motion(&context->context, context->win->inputs.motion[0], context->win->inputs.motion[1]);
-        }
+
+        nk_input_button(
+            &context->context, NK_BUTTON_LEFT, (int)x, (int)y, 
+            context->win->inputs.buttons[BVR_MOUSE_BUTTON_LEFT] == BVR_INPUT_DOWN ? 0 : 1
+        );
+        
+        nk_input_button(
+            &context->context, NK_BUTTON_MIDDLE, (int)x, (int)y, 
+            context->win->inputs.buttons[BVR_MOUSE_BUTTON_MIDDLE] == BVR_INPUT_DOWN ? 0 : 1
+        );
+        
+        nk_input_button(
+            &context->context, NK_BUTTON_RIGHT, (int)x, (int)y, 
+            context->win->inputs.buttons[BVR_MOUSE_BUTTON_RIGHT] == BVR_INPUT_DOWN ? 0 : 1
+        );
+
+        nk_input_scroll(&context->context, nk_vec2(0, context->win->inputs.scroll));
     }
-    if((context->win->events & SDL_EVENT_TEXT_INPUT) == SDL_EVENT_TEXT_INPUT){
+
+    if(BVR_HAS_FLAG(context->win->events, BVR_EVENT_MOTION)){
+        context->context.input.mouse.pos.x = context->win->inputs.mouse_position[0];
+        context->context.input.mouse.pos.y = context->win->inputs.mouse_position[1];
+        context->context.input.mouse.delta.x = context->win->inputs.mouse_motion[0];
+        context->context.input.mouse.delta.y = context->win->inputs.mouse_motion[1];
+    }
+
+    // not use for now
+    if(BVR_HAS_FLAG(context->win->events, BVR_EVENT_TEXT)){
         nk_glyph glyph;
         memcpy(glyph, context->win->inputs.text_input, NK_UTF_SIZE);
         nk_input_glyph(&context->context, glyph);
-    }*/
+    }
 
     nk_input_end(&context->context);
 }

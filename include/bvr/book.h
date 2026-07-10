@@ -80,11 +80,19 @@ typedef struct bvr_book_s {
 /**
  * @brief create a default game instance. If a book is already created, it will return the 
  * previously created instance.
- * 
  * @param book a preallocated book object that will be initialized.
  * @returns the pointer to initialized book objet.
  */
 bvr_book_t* bvr_create_book(bvr_book_t* book);
+
+/**
+ * @brief create a new game instance. If a book is already created, it will return the 
+ * previously created instance.
+ * @param book a preallocated book object that will be initialized.
+ * @param attributes a collection of attributes to customize your book.
+ * @returns the pointer to initialized book objet.
+ */
+bvr_book_t* bvr_create_book_attributes(bvr_book_t* book, struct bvr_book_attributes_s* attributes);
 
 /**
  * @brief prepare Beauvoir to render a new frame.
@@ -102,16 +110,6 @@ void bvr_flush(void);
  * flush the draw queue and swap buffers.
  */
 void bvr_render(void);
-
-/**
- * @brief create a new game instance. If a book is already created, it will return the 
- * previously created instance.
- * 
- * @param book a preallocated book object that will be initialized.
- * @param attributes a collection of attributes to customize your book.
- * @returns the pointer to initialized book objet.
- */
-bvr_book_t* bvr_create_book_attributes(bvr_book_t* book, struct bvr_book_attributes_s* attributes);
 
 /**
  * @brief destroy a game instance.

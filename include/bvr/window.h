@@ -17,6 +17,13 @@
 
 #define BVR_WINDOW_DEFAULT (BVR_WINDOW_RESIZABLE | BVR_WINDOW_CENTERED) 
 
+enum bvr_window_event_e {
+    BVR_EVENT_KEY = 0x1,
+    BVR_EVENT_MOUSE = 0x2,
+    BVR_EVENT_MOTION = 0x4,
+    BVR_EVENT_TEXT = 0x8
+};
+
 enum bvr_key_e {
     BVR_KEY_UNKNOWN = 0x00,
     BVR_KEY_A = 0x01,
@@ -200,10 +207,10 @@ typedef struct bvr_window_s {
         float scroll;
 
         // mouse position
-        short mouse[2]; 
+        short mouse_position[2]; 
 
         // delta mouse position
-        float motion[2]; 
+        float mouse_motion[2]; 
 
         // relative to the window mouse motion
         float relative_motion[2];

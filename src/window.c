@@ -459,6 +459,7 @@ LRESULT CALLBACK WndProc(HWND wnd, UINT msg, WPARAM wParam, LPARAM lParam){
             }
 
             __window->inputs.keys[key] = action;
+            __window->events |= BVR_EVENT_KEY;
         }
         break;
     
@@ -499,14 +500,17 @@ LRESULT CALLBACK WndProc(HWND wnd, UINT msg, WPARAM wParam, LPARAM lParam){
             int x = GET_X_LPARAM(lParam);
             int y = GET_Y_LPARAM(lParam);
 
-            __window->inputs.mouse[0] = x;
-            __window->inputs.mouse[1] = y;
+            // save previous mouse position
             __window->inputs.prev_mouse[0] = __window->inputs.mouse[0];
             __window->inputs.prev_mouse[1] = __window->inputs.mouse[1];
+
+            __window->inputs.mouse[0] = x;
+            __window->inputs.mouse[1] = y;
             __window->inputs.motion[0] = __window->inputs.prev_mouse[0] -  __window->inputs.mouse[0];
             __window->inputs.motion[0] = __window->inputs.prev_mouse[1] -  __window->inputs.mouse[1];
             __window->inputs.relative_motion[0] = __window->inputs.motion[0];
             __window->inputs.relative_motion[1] = __window->inputs.motion[1];
+            __window->events |= BVR_EVENT_MOTION;
         }
         break;
 
@@ -539,16 +543,18 @@ LRESULT CALLBACK WndProc(HWND wnd, UINT msg, WPARAM wParam, LPARAM lParam){
             }
 
             __window->inputs.buttons[button] = action;
+            __window->events |= BVR_EVENT_MOUSE;
         }
         break;
 
     // do y scroll
     case WM_MOUSEWHEEL:
         __window->inputs.scroll = (float)((short)HIWORD(wParam)/ (float)WHEEL_DELTA);
+        __window->events |= BVR_EVENT_MOUSE;
         break;
 
     case WM_MOUSEHWHEEL:
-        // no-op for w mouse wheel
+        // no-op for x mouse wheel
         break;
 
     // do window moving
@@ -938,12 +944,13 @@ static void bvri_window_poll_events_impl(bvr_window_t* window){
                 int action = event.type == KeyRelease ? BVR_INPUT_RELEASE : BVR_INPUT_PRESSED;
                 int key = __keycodes[XLookupKeysym(&event.xkey, 0)];
 
-                if (window->inputs.keys[key] == BVR_INPUT_PRESSED && action != BVR_INPUT_RELEASE)
+                if (window->inputs.keys[key] == BVR_INPUT_PRESSED)
                 {
                     action = BVR_INPUT_DOWN;
                 }
 
                 window->inputs.keys[key] = action;
+                window->events |= BVR_EVENT_KEY;
             }
             break;
 
@@ -960,26 +967,30 @@ static void bvri_window_poll_events_impl(bvr_window_t* window){
                 }
                 else
                 {
-                    if (window->inputs.buttons[button] == BVR_INPUT_PRESSED && action != BVR_INPUT_RELEASE)
+                    if (window->inputs.buttons[button] == BVR_INPUT_PRESSED)
                     {
                         action = BVR_INPUT_DOWN;
                     }
 
                     window->inputs.buttons[button] = action;
                 }
+                window->events |= BVR_EVENT_MOUSE;
             }
             break;
 
         case MotionNotify:
             {
-                window->inputs.mouse[0] = event.xmotion.x;
-                window->inputs.mouse[1] = event.xmotion.y;
-                window->inputs.prev_mouse[0] = window->inputs.mouse[0];
-                window->inputs.prev_mouse[1] = window->inputs.mouse[1];
-                window->inputs.motion[0] = window->inputs.prev_mouse[0] - window->inputs.mouse[0];
-                window->inputs.motion[0] = window->inputs.prev_mouse[1] - window->inputs.mouse[1];
-                window->inputs.relative_motion[0] = window->inputs.motion[0];
-                window->inputs.relative_motion[1] = window->inputs.motion[1];
+                // save previous mouse position
+                window->inputs.prev_mouse[0] = window->inputs.mouse_position[0];
+                window->inputs.prev_mouse[1] = window->inputs.mouse_position[1];
+
+                window->inputs.mouse_position[0] = event.xmotion.x;
+                window->inputs.mouse_position[1] = event.xmotion.y;
+                window->inputs.mouse_motion[0] = window->inputs.mouse_position[0] - window->inputs.prev_mouse[0];
+                window->inputs.mouse_motion[1] = window->inputs.mouse_position[1] - window->inputs.prev_mouse[1];
+                window->inputs.relative_motion[0] = window->inputs.mouse_motion[0];
+                window->inputs.relative_motion[1] = window->inputs.mouse_motion[1];
+                window->events |= BVR_EVENT_MOTION;
             }
             break;
 
@@ -1174,6 +1185,30 @@ int bvr_create_window(bvr_window_t* window, const uint16 width, const uint16 hei
 }
 
 void bvr_window_poll_events(bvr_window_t* window){
+    // reset event flags
+    window->events = 0;
+    
+    // clear release state for keys
+    for (size_t i = 0; i < BVR_KEYBOARD_SIZE; i++)
+    {
+        if(window->inputs.buttons[i] == BVR_INPUT_RELEASE){
+            window->inputs.buttons[i] = BVR_INPUT_NONE;
+        }
+    }
+
+    // clear release state for buttons
+    for (size_t i = 0; i < BVR_MOUSE_SIZE; i++)
+    {
+        if(window->inputs.buttons[i] == BVR_INPUT_RELEASE){
+            window->inputs.buttons[i] = BVR_INPUT_NONE;
+        }
+    }
+
+    window->inputs.scroll = 0.0f;
+    window->inputs.grab = false;
+    BVR_IDENTITY_VEC2(window->inputs.mouse_motion);
+    BVR_IDENTITY_VEC2(window->inputs.relative_motion);
+
     bvri_window_poll_events_impl(window);
 
     window->timer.current_time = bvr_get_frame();
@@ -1248,8 +1283,8 @@ int bvr_button_pressed(uint16 button){
 }
 
 void bvr_mouse_position(float* x, float* y){
-    *x = __window->inputs.mouse[0];
-    *y = __window->inputs.mouse[1];
+    *x = __window->inputs.mouse_position[0];
+    *y = __window->inputs.mouse_position[1];
 }
 
 void bvr_mouse_relative_position(float* x, float *y){

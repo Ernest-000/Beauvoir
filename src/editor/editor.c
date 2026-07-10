@@ -207,7 +207,20 @@ void bvr_editor_draw_inspector(){
 
     BVR_ASSERT(__editor->state == BVR_EDITOR_STATE_DRAWING);
 
-    if(nk_begin(&__editor->gui.context, BVR_FORMAT("inspector '%s'", __editor->inspector_cmd.name.string), 
+    if(nk_begin(&__editor->gui.context, "sample", nk_rect(100, 100, 200, 200), BVR_NK_WINDOW_DEFAULT | NK_WINDOW_MOVABLE)){
+        nk_layout_row_dynamic(&__editor->gui.context, 15, 2);
+
+
+        nk_label(&__editor->gui.context, "coucou", NK_TEXT_ALIGN_LEFT);
+        
+        if(nk_button_label(&__editor->gui.context, "BUTTON")){
+
+        }
+
+        nk_end(&__editor->gui.context);
+    }
+
+    /*if(nk_begin(&__editor->gui.context, BVR_FORMAT("inspector '%s'", __editor->inspector_cmd.name.string), 
         BVR_NK_RECT(__editor->inspector.viewport), 
         BVR_NK_WINDOW_DEFAULT | NK_WINDOW_MOVABLE)){
     
@@ -226,7 +239,7 @@ void bvr_editor_draw_inspector(){
         __editor->inspector.viewport.coords[1] = bounds.y;
 
         nk_end(&__editor->gui.context);
-    }
+    }*/
 }
 
 void bvr_editor_render(){

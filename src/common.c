@@ -230,29 +230,6 @@ uint8* bvr_base64_decode(const char* string, size_t length, size_t* decoded_leng
 	return out;
 }
 
-// void bvr_create_uuid(bvr_uuid_t uuid){
-//     const char hex_digits[] = "0123456789abcdefABCDEF";
-// 
-//     for (uint64 i = 0; i < 36; i++)
-//     {
-//         (uuid)[i] = hex_digits[rand() % 22];
-//     }
-//     
-//     uuid[8] = '-';
-//     uuid[13] = '-';
-//     uuid[18] = '-';
-//     uuid[23] = '-';
-//     uuid[36] = '\0';
-// }
-// 
-// void bvr_copy_uuid(bvr_uuid_t src, bvr_uuid_t dest){
-//     memcpy(dest, src, sizeof(bvr_uuid_t));
-// }
-// 
-// int bvr_uuid_equals(bvr_uuid_t const a, bvr_uuid_t const b){
-//     return strncmp(a, b, sizeof(bvr_uuid_t)) == 0;
-// }
-
 #ifndef BVR_NO_DEBUG
 
 #define BVR_UTILS_BUFFER_SIZE 100

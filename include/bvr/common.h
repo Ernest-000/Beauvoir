@@ -55,13 +55,17 @@
 #define BVR_TEXTURE_2D_LAYER_STRUCT 0x141E
 
 /**
- * Returns a boolean. Check if 't' (which is an int that enumarate a type) is a correct type.
+ * @brief check if a type is a correct beauvoir type.
+ * @param t the type to check
+ * @return returns true if t is a valid beauvoir type
  */
 #define BVR_IS_AVAIL_TYPE(t) (t >= BVR_TEXTURE_2D && t <= BVR_TEXTURE_2D_ARRAY)
 
-/*
-    Returns a boolean. Check if 't' (which is an int that enumerate a type) is a texture.
-*/
+/**
+ * @brief check if a type is an available texture type.
+ * @param t the type to check
+ * @return returns true if t is a valid texture type
+ */
 #define BVR_IS_AVAIL_TEXTURE(t) ( \\
     t == BVR_TEXTURE_2D || \\
     t == BVR_TEXTURE_3D || \\
@@ -72,7 +76,10 @@
 )
 
 /**
- * Return the biggest sizeof
+ * @brief compare two types and returns the biggest of these two.
+ * @param a the first type.
+ * @param b the second type.
+ * @return return the sizeof of the biggest of a or b.
  */
 #define BVR_MAX_SIZEOF(a, b) ((sizeof(a) > sizeof(b)) ? sizeof(a) : sizeof(b))
 
@@ -81,9 +88,11 @@
 
 typedef char bvr_uuid_t[37];
 
-/*
-    Return the size of a beauvoir type.
-*/
+/**
+ * @brief get the size in bytes of a Beauvoir's enum type
+ * @param type the type.
+ * @return the size, in byte of the target type, 
+ */
 int bvr_sizeof(const int type);
 
 /*
@@ -92,9 +101,11 @@ int bvr_sizeof(const int type);
 */
 void bvr_nameof(const int type, char* name);
 
-/*
-    java hash function
-*/
+/**
+ * @brief hash a string input and return the corresponding hashed unsigned int.
+ * @param string the source char array.
+ * @return the corresponding hash.
+ */
 uint32 bvr_hash(const char* string);
 
 /*
@@ -102,22 +113,21 @@ uint32 bvr_hash(const char* string);
 */
 uint8* bvr_base64_decode(const char* string, size_t length, size_t* decoded_length);
 
-/*
-    Create a new uuid
-*/
-// void bvr_create_uuid(bvr_uuid_t uuid);
-// void bvr_copy_uuid(bvr_uuid_t src, bvr_uuid_t dest);
+/**
+ * @brief check if a number contains a bitflag.
+ * @param n the number that might contain the bitflag.
+ * @param f the bitflag.
+ * @return return true if the flag is marked and false otherwise.
+ */
+#define BVR_HAS_FLAG(n, f) ((int)((n & f) == f))
 
-/*
-    Check if two uuid are equals
-*/
-// int bvr_uuid_equals(bvr_uuid_t const a, bvr_uuid_t const b);
-
-// check if a flag is true
-#define BVR_HAS_FLAG(x, f) ((int)((x & f) == f))
-
-// try to call a callback
-#define BVR_CALL(callback, ...) ((callback) ? callback(__VA_ARGS__) : 0)
+/**
+ * @brief try to call a function from a function pointer.
+ * @param func the function's pointer.
+ * @param args the argument that will be passed to the function.
+ * @return returns the same as the return valud of func.
+ */
+#define BVR_CALL(func, ...) ((callback) ? func(__VA_ARGS__) : 0)
 
 /*          DEBUG                   */
 /*                                  */
@@ -134,18 +144,59 @@ void bvri_break(const char* __file, unsigned long long __line);
 
 #define BVR_STR(macro) #macro
 #define BVR_MACRO_STR(macro) (char*)BVR_STR(macro)
+
+/**
+ * @brief format a string, just like printf, and retruns it.
+ * @param message a string that specifies the data to be formated. 
+ * It can also contains placeholder to print any variable types.
+ * @param args variables or values corresponding to the format specifier.
+ * @return Returns the formatted string. **DO NOT FREE THIS STRING.** 
+ */
 #define BVR_FORMAT(message, ...)(char*)(bvri_string_format(message, __VA_ARGS__))
 
-#define BVR_PRINT(message)(void)(bvri_wmessage(bvr_stdout, __LINE__, __FILE__, message))
+/**
+ * @brief print a formated string to the standard output.
+ * @param message a string that specifies the data to be printed. 
+ * It can also contains placeholder to print any variable types.
+ * @param args variables or values corresponding to the format specifier.
+ */
 #define BVR_PRINTF(message, ...)(void)(bvri_wmessage(bvr_stdout, __LINE__, __FILE__, message, __VA_ARGS__))
 
-#define BVR_PRINT_VEC3(message, vec3)(void)(bvri_wmessage(bvr_stdout, __LINE__, __FILE__, "%s (%f %f %f)", message, vec3[0], vec3[1], vec3[2]))
+/**
+ * @brief print an object or a value to the standard output.
+ * @param t the object/value to print.
+ */
+#define BVR_PRINT(t) _Generic((t),          \
+    char* : BVR_PRINTF("%s", t),            \
+    short : BVR_PRINTF("%i", t),            \
+    int : BVR_PRINTF("%i", t),              \
+    long : BVR_PRINTF("%i", t),             \
+    unsigned short : BVR_PRINTF("%u", t),   \
+    unsigned int : BVR_PRINTF("%u", t),     \
+    unsigned long : BVR_PRINTF("%u", t),    \
+    double : BVR_PRINTF("%f", t),           \
+    float : BVR_PRINTF("%f", t),            \
+    default : BVR_PRINTF("%s", t)           \
+)
+
+// depreciated
+// #define BVR_PRINTSTR(message)(void)(bvri_wmessage(bvr_stdout, __LINE__, __FILE__, message))
 
 #ifndef BVR_ASSERT_FORCE_EXIT
+    /**
+     * @brief check if an expression is true. If the expression is false, 
+     * it will force the program to exit.
+     * @param expression the expression tested.
+     */
     #define BVR_ASSERT(expression) (void) (                                         \
         (((expression) == 0) ? bvri_wassert_break(#expression, __FILE__, __LINE__) : 0)  \
     )
 #elif
+    /**
+     * @brief check if an expression is true. If the expression is false, 
+     * it will add a break point and break.
+     * @param expression the expression tested.
+     */
     #define BVR_ASSERT(expression) (void) (                                         \
         (((expression) == 0) ? bvri_wassert(#expression, __FILE__, __LINE__) : 0)  \
     )

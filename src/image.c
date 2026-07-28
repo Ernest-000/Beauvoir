@@ -43,6 +43,7 @@ static int bvri_get_sformat(bvr_image_t* image){
 
 #define BVR_PNG_HEADER_LENGTH 8
 #define BVR_PNG_PLTE_MAX_ENTRIES 256
+#define BVR_PNG_TRNS_CHUNKS 256
 
 struct bvri_pngchunk_s {
     uint64 offset;
@@ -58,6 +59,9 @@ struct bvri_pngIHDR_s {
     uint8 compression_mode;
     uint8 filter_mode;
     uint8 interlacing_mode;
+
+    uint8 channels;
+    uint32 color_format;
 };
 
 struct bvri_pngPHYS_s {
@@ -67,7 +71,12 @@ struct bvri_pngPHYS_s {
 };
 
 struct bvri_pngIDAT_s {
-    uint8* buffer;
+    // raw data from the IDAT chunk
+    uint8* packed;
+
+    // uncompressed data
+    uint8* unpacked;
+
     uint32 packed_length;
     uint32 avail_length;
 
@@ -79,8 +88,22 @@ struct bvri_pngPLTE_s {
         uint8 r;
         uint8 g;
         uint8 b;
+        uint8 a;
     } colors[BVR_PNG_PLTE_MAX_ENTRIES];
 };
+
+#define BVRI_PNG_FORMAT_GRAYSCALE 0
+#define BVRI_PNG_FORMAT_RGB 2
+#define BVRI_PNG_FORMAT_INDEX 3
+#define BVRI_PNG_FORMAT_GRAYSCALE_ALPHA 4
+#define BVRI_PNG_FORMAT_RGBA 6
+
+#define BVRI_PNG_FILTER_NONE 0
+#define BVRI_PNG_FILTER_SUB 1
+#define BVRI_PNG_FILTER_ADD 2
+#define BVRI_PNG_FILTER_AVERAGE 3
+#define BVRI_PNG_FILTER_PAETH 4
+#define BVRI_PNG_FILTER_AVERAGE_F 5
 
 static int bvri_is_png(FILE* __file) {
     fseek(__file, 0, SEEK_SET);
@@ -96,8 +119,162 @@ static int bvri_is_chunk_type(struct bvri_pngchunk_s* chunk, const char* name){
     return strncmp(chunk->name, name, 4) == 0;
 }
 
+static int bvri_paeth(int a, int b, int c){
+    int p = a + b - c;
+    int distance_a = abs(p - a);
+    int distance_b = abs(p - b);
+    int distance_c = abs(p - c);
+    if(distance_a <= distance_b && distance_a <= distance_c) return a;
+    if(distance_b <= distance_c) return b;
+    return c;
+}
+
+/**
+ * create a pixel array from a post deflated and unfiltered idat.
+ * @param ihdr ihdr bloc
+ * @param idat idat bloc
+ * @param plte plte bloc
+ * @param trns trns bloc
+ * @param pixels pixel array destination
+ * @param width destination width 
+ * @param height destination load
+ */
+static int bvri_load_png_raw(struct bvri_pngIHDR_s* ihdr, struct bvri_pngIDAT_s* idat, 
+    uint8* pixels, uint32 width, uint32 height){
+
+    // filter png's data after interlacing
+    uint8 channels = ihdr->channels;
+    if(ihdr->color_mode == BVRI_PNG_FORMAT_INDEX){
+        // setup for palette
+        channels = 1;
+    }
+
+    const uint32 byte_per_pixel = (ihdr->bit_depth * channels + 7) / 8;
+    const uint32 byte_per_line = (ihdr->width * ihdr->bit_depth * channels + 7) / 8;
+    const uint32 stride = ihdr->width * channels;
+
+    const uint8 first_row_filter[5] = {
+        BVRI_PNG_FILTER_NONE,
+        BVRI_PNG_FILTER_SUB,
+        BVRI_PNG_FILTER_NONE,
+        BVRI_PNG_FILTER_AVERAGE_F,
+        BVRI_PNG_FILTER_SUB
+    };
+
+    uint8* buffer = calloc(2, byte_per_line); 
+    BVR_ASSERT(buffer);
+
+    uint8* current = buffer;
+    uint8* prior = buffer + byte_per_line;
+
+    for (size_t y = 0; y < height; y++)
+    {
+        uint8* row = idat->unpacked + (y * (byte_per_line + 1));
+        uint8* pixel = pixels + (height - 1 - y) * stride;
+
+        int filter = *row++;
+
+        // invalid filter
+        if(filter > 5){
+            free(buffer);
+            return BVR_FALSE;
+        }
+
+        if(y == 0){
+            filter = first_row_filter[filter];
+        }
+
+        switch (filter)
+        {
+        case BVRI_PNG_FILTER_NONE: // no filter
+            memcpy(current, row, byte_per_line);
+            break;
+        
+        case BVRI_PNG_FILTER_SUB: // sub filter
+            for (size_t i = 0; i < byte_per_line; i++)
+            {
+                uint8 p = (i >= byte_per_pixel) ? current[i - byte_per_pixel] : 0;
+                current[i] = (uint8)(row[i] + p);
+            }
+            break;
+
+        case BVRI_PNG_FILTER_ADD: // add filter
+            for (size_t i = 0; i < byte_per_line; i++)
+            {
+                current[i] = (uint8)(row[i] + prior[i]);
+            }
+            break;
+
+        case BVRI_PNG_FILTER_AVERAGE: // avg filter
+            for (size_t i = 0; i < byte_per_line; i++)
+            {
+                uint8 p = (i >= byte_per_pixel) ? current[i - byte_per_pixel] : 0;
+                current[i] = (uint8)(row[i] + (uint8)((int)(p + prior[i]) / 2));
+            }
+            break;
+
+        case BVRI_PNG_FILTER_AVERAGE_F: // avg filter for first row
+            for (size_t i = 0; i < byte_per_line; i++)
+            {
+                uint8 p = (i >= byte_per_pixel) ? current[i - byte_per_pixel] : 0;
+                current[i] = (uint8)(row[i] + (int)((int)p / 2));
+            }
+            break;
+            
+        case BVRI_PNG_FILTER_PAETH:
+            for (size_t i = 0; i < byte_per_line; i++)
+            {
+                uint8 a = (i >= byte_per_pixel) ? current[i - byte_per_pixel] : 0;
+                uint8 b = prior[i];
+                uint8 c = (i >= byte_per_pixel) ? prior[i - byte_per_pixel] : 0;
+                current[i] = (uint8)(row[i] + bvri_paeth(a, b, c));
+            }
+            
+            break;
+
+        default: // fallback, normally not used
+            memcpy(current, row, byte_per_line);
+            break;
+        }
+
+        if(ihdr->bit_depth < 8){
+            // grayscale ?
+            // idk what to do here :<
+            memcpy(pixel, current, stride);
+        }
+        else if(ihdr->bit_depth == 8){
+            memcpy(pixel, current, stride);
+        }
+        else {
+            //memcpy(pixel, current, stride);
+
+            uint8* dest = pixel;
+            uint16* src = (uint16*)current;
+            for (size_t i = 0; i < stride; i++, ++pixel, ++current)
+            {
+                dest[0] = (uint8)(current[0] >> 8);
+            }
+            
+        }
+        // TODO: 
+        //- normalize for < 8 bits (expend each component)
+        //- normalize for >= 16 bits (convert to 8bits images)
+        // BVR_ASSERT(ihdr->bit_depth == 8);
+
+        // swap row
+        uint8* t = prior;
+        prior = current;
+        current = t;
+    }
+
+    free(buffer);
+
+    return BVR_TRUE;
+}
+
 /*
     https://www.libpng.org/pub/png/spec/1.2/PNG-Contents.html
+    https://www.w3.org/TR/PNG-Filters.html
 */
 static int bvri_load_png(bvr_image_t* image, FILE* file){
     fseek(file, BVR_PNG_HEADER_LENGTH, SEEK_SET);
@@ -112,8 +289,10 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
     ihdr.width = 0;
     ihdr.height = 0;
 
-    idat.buffer = NULL;
+    idat.packed = NULL;
+    idat.unpacked = NULL;
     idat.packed_length = 0;
+    idat.unpacked_length = 0;
     idat.avail_length = 0;
 
     // chunch buffer
@@ -128,7 +307,7 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
         chunk.name[3] = bvr_freadu8_be(file);
         chunk.offset = ftell(file);
 
-        BVR_PRINTF("%i %i %i", chunk.length, chunk.offset, 0);
+        // BVR_PRINTF("%i %i %i", chunk.length, chunk.offset, 0);
  
         if(bvri_is_chunk_type(&chunk, "IDAT")){
             BVR_ASSERT(ihdr.width > 0 && ihdr.height > 0);
@@ -136,11 +315,11 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
             // realloc if needed
             if(idat.avail_length <= chunk.length){
                 idat.avail_length = idat.avail_length + chunk.length * 2;
-                idat.buffer = realloc(idat.buffer, idat.avail_length + idat.packed_length);
-                BVR_ASSERT(idat.buffer);
+                idat.packed = realloc(idat.packed, idat.avail_length + idat.packed_length);
+                BVR_ASSERT(idat.packed);
             }
 
-            fread(&idat.buffer[idat.packed_length], sizeof(char), chunk.length, file);
+            fread(&idat.packed[idat.packed_length], sizeof(char), chunk.length, file);
             idat.packed_length += chunk.length;
             idat.avail_length -= chunk.length;
         }
@@ -148,17 +327,35 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
             // chunk size must contains 3 color components
             BVR_ASSERT(chunk.length % 3 == 0);
 
-            for (size_t i = 0; i < chunk.length / 3; i += 3)
+            for (size_t i = 0; i < chunk.length / 3; i++)
             {
                 plte.colors[i].r = bvr_freadu8_be(file); // red
                 plte.colors[i].g = bvr_freadu8_be(file); // green
                 plte.colors[i].b = bvr_freadu8_be(file); // blue
+                plte.colors[i].a = 255;
             }
         }
         else if(bvri_is_chunk_type(&chunk, "pHYs")){
             phys.pixel_per_unit_x = bvr_freadu32_be(file);
             phys.pixel_per_unit_y = bvr_freadu32_be(file);
             phys.specifier = bvr_freadu8_be(file);
+        }
+        else if(bvri_is_chunk_type(&chunk, "tRNS")){
+            // read plte alphas
+            if(ihdr.color_mode == BVRI_PNG_FORMAT_INDEX){
+                
+                // use trns
+                ihdr.channels = 4;
+                ihdr.color_format = BVR_RGBA;
+
+                for (size_t i = 0; i < chunk.length; i++)
+                {
+                    plte.colors[i].a = bvr_freadu8_be(file);
+                }
+            }
+            else {
+                BVR_PRINT("tRNS chunk founded but ignored. tRNS is yet not implemented for grayscales and truecolor");
+            }
         }
         else if(bvri_is_chunk_type(&chunk, "IHDR")){
             // read ihdr informations
@@ -169,6 +366,39 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
             ihdr.compression_mode = bvr_freadu8_be(file);
             ihdr.filter_mode = bvr_freadu8_be(file);
             ihdr.interlacing_mode = bvr_freadu8_be(file);
+
+            switch (ihdr.color_mode)
+            {
+            case BVRI_PNG_FORMAT_GRAYSCALE:
+                ihdr.channels = 1;
+                ihdr.color_format = BVR_R;
+                break; /* grayscale*/
+
+            case BVRI_PNG_FORMAT_RGB:
+                ihdr.channels = 3;
+                ihdr.color_format = BVR_RGB;
+                break; /* rgb */
+
+            case BVRI_PNG_FORMAT_INDEX:
+                ihdr.channels = 3;
+                ihdr.color_format = BVR_RGB;
+                break; /* index */
+
+            case BVRI_PNG_FORMAT_GRAYSCALE_ALPHA:
+                ihdr.channels = 2;
+                ihdr.color_format = BVR_RG;
+                break; /* grayscale + alpha */
+
+            case BVRI_PNG_FORMAT_RGBA:
+                ihdr.channels = 4;
+                ihdr.color_format = BVR_RGBA;
+                break; /* rgba */
+
+            default:
+                ihdr.channels = 1;
+                ihdr.color_format = BVR_R;
+                break;
+            }
         }
         else if(bvri_is_chunk_type(&chunk, "IEND")){
             // no-op
@@ -182,68 +412,105 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
 
     } while(chunk.length > 0);
 
-    if(idat.buffer == NULL || idat.packed_length == 0){
+    if(idat.packed == NULL || idat.packed_length == 0){
         BVR_PRINT("failed to read png's data :/");
         
-        free(idat.buffer);
+        free(idat.packed);
         return BVR_FALSE;
     }
 
     if(ihdr.width == 0 && ihdr.height == 0){
         BVR_PRINT("IHDR chunk is missing!");
 
-        free(idat.buffer);
+        free(idat.packed);
         return BVR_FALSE;
+    }
+
+    // uncompress raw data
+    {
+        uint32 byte_per_line = (ihdr.width * ihdr.bit_depth + 7) / 8;
+        uint32 raw_size = byte_per_line * ihdr.height * ihdr.channels + ihdr.height; // we add the filter mode per row
+        idat.unpacked_length = raw_size; // assume this is the correct size
+        idat.unpacked = malloc(idat.unpacked_length);
+        BVR_ASSERT(idat.unpacked);
+
+        z_stream stream = {0};
+        stream.next_in = idat.packed;
+        stream.avail_in = idat.packed_length;
+        stream.next_out = idat.unpacked;
+        stream.avail_out = idat.unpacked_length;
+
+        BVR_ASSERT(inflateInit(&stream) == Z_OK);
+
+        int status = inflate(&stream, Z_FINISH);
+        inflateEnd(&stream);
+
+        BVR_ASSERT(status == Z_STREAM_END);
     }
 
     image->width = ihdr.width;
     image->height = ihdr.height;
-    image->depth = ihdr.bit_depth;
+    image->channels = ihdr.channels;
+    image->depth = 8; // images are normalized for 
+    image->format = ihdr.color_format;
+    image->sformat = bvri_get_sformat(image);
 
-    // find channel count
-    switch (ihdr.color_mode)
-    {
-    case 0:
-        /* grayscale*/
-        image->channels = 1;
-        break;
+    image->pixels = malloc(ihdr.width * ihdr.height * ihdr.channels);
+    BVR_ASSERT(image->pixels);
 
-    case 2:
-        /* rgb */
-        image->channels = 3;
-        break;
-
-    case 3:
-        /* index */
-        image->channels = 4;
-        break;
-
-    case 4:
-        /* grayscale + alpha */
-        image->channels = 2;
-        break;
-
-    case 6:
-        /* rgba */
-        image->channels = 4;
-        break;
-    
-    default:
-        break;
+    // do do-interlacing
+    if(ihdr.interlacing_mode){
+        BVR_ASSERT(0);
     }
-
-    // do filtering
-    {
-        if(ihdr.filter_mode == 0){
-            // no filter
-        }
-        else if(ihdr.filter_mode == 1){
-
+    else {
+        if(!bvri_load_png_raw(&ihdr, &idat, image->pixels, ihdr.width, ihdr.height)){
+            free(idat.packed);
+            free(idat.unpacked);
+            return BVR_FALSE;
         }
     }
 
-    free(idat.buffer);
-    idat.buffer = NULL;
+    if(ihdr.color_mode == BVRI_PNG_FORMAT_INDEX){
+        uint32 byte_per_line = ihdr.width;
+        uint8* indexed_pixels = malloc(byte_per_line * ihdr.height);
+        BVR_ASSERT(indexed_pixels);
+
+        memcpy(indexed_pixels, image->pixels, byte_per_line * ihdr.height);
+        
+        uint8* pixel = image->pixels;
+        if(ihdr.channels == 3){
+            // do rgb
+            for (size_t i = 0; i < ihdr.width * ihdr.height; i++)
+            {
+                pixel[0] = plte.colors[indexed_pixels[i]].r;
+                pixel[1] = plte.colors[indexed_pixels[i]].g;
+                pixel[2] = plte.colors[indexed_pixels[i]].b;
+                pixel += 3;
+            }
+            
+        }
+        else {
+            // do rgba
+            for (size_t i = 0; i < ihdr.width * ihdr.height; i++)
+            {
+                pixel[0] = plte.colors[indexed_pixels[i]].r;
+                pixel[1] = plte.colors[indexed_pixels[i]].g;
+                pixel[2] = plte.colors[indexed_pixels[i]].b;
+                pixel[3] = plte.colors[indexed_pixels[i]].a;
+                pixel += 4;
+            }
+            
+        }
+
+        free(indexed_pixels);
+    }
+
+    free(idat.packed);
+    free(idat.unpacked);
+    idat.packed = NULL;
+    idat.unpacked = NULL;
+
+    return BVR_TRUE;
 }
 
 #endif

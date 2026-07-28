@@ -239,7 +239,7 @@ static int bvri_load_landscapejson(bvr_landscape_t* landscape, FILE* file){
             // zlib compression
             else if (compression == 0x003917CB)
             {
-                /*buffer.elemsize = sizeof(uint8);
+                buffer.elemsize = sizeof(uint8);
                 buffer.size = landscape->grid.tile_per_row * landscape->grid.tile_per_column * buffer.elemsize;
                 buffer.data = malloc(buffer.size);
                 BVR_ASSERT(buffer.data);
@@ -250,14 +250,12 @@ static int bvri_load_landscapejson(bvr_landscape_t* landscape, FILE* file){
                 stream.next_out = buffer.data;
                 stream.avail_out = buffer.size;
 
-                BVR_ASSERT(inflateInit(&stream) == Z_OK);*/
+                BVR_ASSERT(inflateInit(&stream) == Z_OK);
 
-                // int status = inflate(&stream, Z_FINISH);
-                // inflateEnd(&stream);
+                int status = inflate(&stream, Z_FINISH);
+                inflateEnd(&stream);
 
-                // BVR_ASSERT(status == Z_STREAM_END);
-
-                BVR_ASSERT(0 && "do deflate here!!");
+                BVR_ASSERT(status == Z_STREAM_END);
             }
             else {
                 buffer.elemsize = sizeof(uint8);

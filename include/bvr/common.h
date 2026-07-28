@@ -127,7 +127,7 @@ uint8* bvr_base64_decode(const char* string, size_t length, size_t* decoded_leng
  * @param args the argument that will be passed to the function.
  * @return returns the same as the return valud of func.
  */
-#define BVR_CALL(func, ...) ((callback) ? func(__VA_ARGS__) : 0)
+#define BVR_CALL(func, ...) ((func) ? func(__VA_ARGS__) : 0)
 
 /*          DEBUG                   */
 /*                                  */

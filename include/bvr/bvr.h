@@ -9,10 +9,9 @@ extern "C" {
 #include <bvr/common.h>
 #include <bvr/math.h>
 
-#include <bvr/scene.h>
+#include <bvr/book.h>
 #include <bvr/landscape.h>
 #include <bvr/assets.h>
-#include <bvr/assets.book.h>
 
 #ifndef BVR_NO_NUKLEAR
     #include <bvr/gui.h>

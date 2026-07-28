@@ -1,7 +1,3 @@
-#include "libbvr.h"
-
-int entry(void){
-    BVR_PRINT("hello, world");
-    
+int main(void){
     return 0;
 }

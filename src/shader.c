@@ -1,0 +1,693 @@
+#include <bvr/shader.h>
+#include <bvr/math.h>
+#include <bvr/io.h>
+#include <bvr/image.h>
+
+#include <string.h>
+#include <memory.h>
+#include <malloc.h>
+
+#include <bvr/gl.h>
+
+#define BVR_MAX_GLSL_HEADER_SIZE 100
+
+// vertex shader struct
+static const char* __ext_s_vdata = "struct V_DATA {\n"
+	"   vec3 position;\n"
+	"   vec2 uvs;\n"
+    "   vec3 normals;\n"
+    "};\n";
+
+// light shader struct
+static const char* __ext_s_vlight = "struct V_LIGHT {\n"
+"	vec4 position;\n"
+"	vec4 direction;\n"
+"	vec4 color;\n"
+"};\n";
+
+static const char* __ext_s_layer = "struct L_DATA {\n"
+"	int index;\n"
+"	int blend;\n"
+"	float opacity;\n"
+"};\n";
+
+// light related function(s)
+static const char* __ext_f_light = "vec4 calc_light(vec4 color, V_LIGHT light, V_DATA vertex){\n"
+"	vec3 l_color;\n"
+"	float intensity = light.color.a / 255;\n"
+"	float ambiant_intensity = light.position.w / 255;\n"
+"	vec3 norm = normalize(vertex.normals);\n"
+"	vec3 light_direction = normalize(light.position.xyz - vertex.position);\n"
+"	vec3 diffuse = vec3(intensity) * max(dot(norm, light_direction), 0.0);\n"
+"	vec3 ambiant = vec3(ambiant_intensity);\n"
+"	l_color = diffuse + ambiant;\n"
+"	return vec4(l_color, 1.0) * vec4(light.color.rgb, 1.0);\n"
+"}\n";
+
+static const char* __ext_f_layer = "L_DATA create_layer(int layer){\n"
+"	L_DATA info;\n"
+"   info.index = 0xFF & layer;\n"
+"   info.blend = (0xFF00 & layer) >> 8;\n"
+"   info.opacity = ((0xFF0000 & layer) >> 16) / 255.0;\n"
+"	return info;\n"
+"}\n"
+"vec4 calc_blending(vec4 composite, vec4 pixel, L_DATA layer){\n"
+"    vec3 blend = pixel.rgb;\n"
+"    float alpha = pixel.a * layer.opacity;\n"
+    // normal and passthrough
+"    if(layer.blend == 0 || layer.blend == 1){ return mix(composite, pixel, alpha);}"
+    // multiply
+"    if(layer.blend == 4){blend = composite.rgb * pixel.rgb;}\n"
+    // screen
+"    else if(layer.blend == 9){ blend = 1.0 - (1.0 - composite.rgb) * (1.0 - pixel.rgb);}\n"
+    // overlay
+"    else if(layer.blend == 13){\n"
+"        blend = mix(2.0 * composite.rgb * pixel.rgb, \n"
+"       1.0 - 2.0*(1.0-composite.rgb)*(1.0-pixel.rgb),\n"
+"            step(0.5, composite.rgb));\n"
+"    }\n"
+    // darken
+"    else if(layer.blend == 3){blend = min(composite.rgb, pixel.rgb);}\n"
+    // lighten
+"    else if(layer.blend == 8){blend = max(composite.rgb, pixel.rgb);}\n"
+"    return mix(composite, vec4(blend, 1.0), alpha);\n"
+"}\n";
+
+static int bvri_compile_shader(uint32* shader, bvr_string_t* const content, int type);
+static int bvri_compile_shader_raw(uint32* shader, const char* content, int type);
+static int bvri_link_shader(const uint32 program);
+
+static int bvri_register_shader_stage(bvr_shader_t* program, 
+    bvr_shader_stage_t* shader, bvr_string_t* content, 
+    const char* header, const char* name, int type
+);
+
+static int bvri_compile_shader(uint32* shader, bvr_string_t* const content, int type){
+    *shader = glCreateShader(type);
+
+    glShaderSource(*shader, 1, (const char**)&content->string, NULL);
+    glCompileShader(*shader);
+
+    int state;
+    glGetShaderiv(*shader, GL_COMPILE_STATUS, &state);
+    if(!state){
+        char buffer[BVR_BUFFER_SIZE];
+        glGetShaderInfoLog(*shader, BVR_BUFFER_SIZE, NULL, buffer);
+        BVR_PRINT(buffer);
+
+        return BVR_FALSE;
+    }
+
+    return BVR_TRUE;
+}
+
+static int bvri_compile_shader_raw(uint32* shader, const char* content, int type){
+    bvr_string_t string;
+    int status = BVR_FALSE;
+
+    bvr_create_string(&string, content);
+    status = bvri_compile_shader(shader, &string, type);
+    bvr_destroy_string(&string);
+
+    return status;
+}
+
+static int bvri_link_shader(const uint32 program) {
+    glLinkProgram(program);
+
+    int state;
+    glGetProgramiv(program, GL_LINK_STATUS, &state);
+    if(!state){
+        char buffer[BVR_BUFFER_SIZE];
+        glGetProgramInfoLog(program, BVR_BUFFER_SIZE, NULL, buffer);
+        BVR_PRINT(buffer);
+
+        return BVR_FALSE;
+    }
+
+    return BVR_TRUE;
+}
+
+static int bvri_register_shader_stage(bvr_shader_t* program, bvr_shader_stage_t* shader, bvr_string_t* content, 
+    const char* header, const char* name, int type){
+    
+    BVR_ASSERT(shader);
+    BVR_ASSERT(content);
+    BVR_ASSERT(header);
+    BVR_ASSERT(name);
+
+    char shader_header_str[BVR_BUFFER_SIZE];
+    memset(shader_header_str, 0, BVR_BUFFER_SIZE);
+
+    bvr_string_t shader_str;
+
+    strncpy(shader_header_str, header, strnlen(header, 100));
+    strncat(shader_header_str, "#define \0", 10);
+    strncat(shader_header_str, name, strnlen(name, 100));
+    strncat(shader_header_str, "\n", 1);
+
+    bvr_create_string(&shader_str, shader_header_str);
+
+#ifndef BVR_NO_SHADER_EXT
+    /*  extensions */
+    {
+        // default v_data
+        bvr_string_concat(&shader_str, __ext_s_vdata);
+
+        // light extension
+        if(BVR_HAS_FLAG(program->flags, BVR_SHADER_EXT_LIGHT)){
+            bvr_string_concat(&shader_str, __ext_s_vlight);
+
+            // only add light related functions for fragment shader
+            if(type == GL_FRAGMENT_SHADER){
+                bvr_string_concat(&shader_str, __ext_f_light);
+            }
+        }
+
+        if(BVR_HAS_FLAG(program->flags, BVR_SHADER_EXT_SHARE_LAYERS)){
+            bvr_string_concat(&shader_str, __ext_s_layer);
+
+            bvr_string_concat(&shader_str, __ext_f_layer);
+        }
+    }
+#endif    
+
+    bvr_string_concat(&shader_str, content->string);
+
+    if (type && shader_str.length) {
+        if (bvri_compile_shader(&shader->shader, &shader_str, type)) {
+            glAttachShader(program->program, shader->shader);
+            shader->type = type;
+        }
+        else {
+            BVR_PRINTF("failed to compile shader '%s'!", name);
+            return BVR_FALSE;
+        }
+    }
+
+    bvr_destroy_string(&shader_str);
+    return BVR_TRUE;
+}
+
+int bvr_create_shaderf(bvr_shader_t* shader, FILE* file, const int flags){
+    BVR_ASSERT(shader);
+    BVR_ASSERT(file);
+
+    int success = BVR_TRUE;
+    int version_offset = 0;
+    char version_header_content[BVR_MAX_GLSL_HEADER_SIZE];
+    bvr_string_t file_content;
+
+
+    { // retrieve the end offset of the #version header
+        fseek(file, 0, SEEK_SET);
+        do
+        {
+            version_header_content[version_offset] = getc(file);
+            version_offset++;
+
+        } while(
+            version_header_content[version_offset - 1] != EOF  &&
+            version_header_content[version_offset - 1] != '\n' &&
+            version_offset < BVR_MAX_GLSL_HEADER_SIZE - 1
+        );
+        version_header_content[version_offset] = '\0';
+    }
+
+    // read file
+    bvr_create_string(&file_content, NULL);
+    BVR_ASSERT(bvr_read_file(&file_content, file));
+    
+    // create shader's program
+    shader->program = glCreateProgram();
+    shader->flags = flags;
+    shader->shader_count = 0;
+
+    // by default there is:
+    // - camera block
+    // -
+    shader->block_count = 1;
+
+    // by default there is
+    // - transformation uniform
+    //
+    shader->uniform_count = 1;
+
+    /*
+        Framebuffers shader must jump over vertex and fragment sections
+    */
+    if(BVR_HAS_FLAG(flags, BVR_FRAMEBUFFER_SHADER)){
+        success &= bvri_register_shader_stage(shader,
+            &shader->shaders[shader->shader_count++], &file_content,
+            version_header_content, "_VERTEX_", GL_VERTEX_SHADER
+        );
+        
+        success &= bvri_register_shader_stage(shader,
+            &shader->shaders[shader->shader_count++], &file_content,
+            version_header_content, "_FRAGMENT_", GL_FRAGMENT_SHADER
+        );
+
+        goto shader_ctr_bindings;
+    }
+
+    // check if it contains a vertex shader and create vertex shader stage.
+    if (BVR_HAS_FLAG(flags, BVR_VERTEX_SHADER)) {
+        success &= bvri_register_shader_stage(shader,
+            &shader->shaders[shader->shader_count++], &file_content,
+            version_header_content, "_VERTEX_", GL_VERTEX_SHADER
+        );
+    }
+    else {
+        BVR_PRINT("missing vertex shader!");
+    }
+
+    // check if it contains a fragment shader and create fragment shader stage.
+    if (BVR_HAS_FLAG(flags, BVR_FRAGMENT_SHADER)) {
+        success &= bvri_register_shader_stage(shader,
+            &shader->shaders[shader->shader_count++], &file_content,
+            version_header_content, "_FRAGMENT_", GL_FRAGMENT_SHADER
+        );
+    }
+    else {
+        BVR_PRINT("missing fragment shader!");
+    }
+
+shader_ctr_bindings:
+    // try to compile shader
+    if (!bvri_link_shader(shader->program)) {
+        BVR_PRINT("failed to link the shader!");
+        success = GL_FALSE;
+    }
+
+    if(BVR_HAS_FLAG(flags, BVR_FRAMEBUFFER_SHADER)){
+        bvr_destroy_string(&file_content);
+        return BVR_TRUE;
+    }
+
+    // create default blocks
+    
+    // create camera block
+    shader->blocks[0].type = BVR_MAT4;
+    shader->blocks[0].count = 2;
+    shader->blocks[0].location = glGetUniformBlockIndex(shader->program, BVR_UNIFORM_CAMERA_NAME);
+    if (shader->blocks[0].location == -1) {
+        BVR_PRINT("cannot find camera block uniform!");
+    }
+    else {
+        glUniformBlockBinding(shader->program, shader->blocks[0].location, BVR_UNIFORM_BLOCK_CAMERA);
+    }
+
+#ifndef BVR_SHADER_NO_EXT
+    if(BVR_HAS_FLAG(flags, BVR_SHADER_EXT_GLOBAL_ILLUMINATION)){
+        shader->block_count++;
+        
+        shader->blocks[shader->block_count].type = BVR_VEC4;
+        shader->blocks[shader->block_count].count = 3;
+        shader->blocks[shader->block_count].location = glGetUniformBlockIndex(shader->program, BVR_UNIFORM_GLOBAL_ILLUMINATION_NAME);
+        if (shader->blocks[shader->block_count].location == -1) {
+            BVR_PRINT("cannot find global illumination block uniform!");
+            shader->block_count--;
+        }
+        else {
+            glUniformBlockBinding(shader->program, shader->blocks[shader->block_count].location, BVR_UNIFORM_BLOCK_GLOBAL_ILLUMINATION);
+        }
+    }
+#endif
+
+    // create transform uniform
+    shader->uniforms[0].location = glGetUniformLocation(shader->program, BVR_UNIFORM_TRANSFORM_NAME);
+    shader->uniforms[0].memory.data = NULL;
+    shader->uniforms[0].memory.size = sizeof(mat4x4);
+    shader->uniforms[0].memory.elemsize = sizeof(mat4x4);
+    shader->uniforms[0].name.string = NULL;
+    shader->uniforms[0].name.length = 0;
+    shader->uniforms[0].type = BVR_MAT4;
+    shader->uniforms[0].tags = BVR_UNIFORM_TRANSFORM;
+    if (shader->blocks[0].location == -1) {
+        BVR_PRINT("cannot find transform uniform!");
+    }
+
+    bvr_destroy_string(&file_content);
+
+    // if initialization failed, we destroy the shader
+    if(success == BVR_FALSE){
+        BVR_PRINTF("failed to create shader '%i'", shader->program);
+        bvr_destroy_shader(shader);
+    }
+
+    return success;
+}
+
+int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int flags){
+    BVR_ASSERT(shader);
+    BVR_ASSERT(strings);
+
+    shader->program = glCreateProgram();
+    shader->flags = flags;
+
+    shader->shader_count = 0;
+    shader->uniform_count = 1;
+    shader->block_count = 1;
+
+    // if there is a vertex shader stage
+    if(BVR_HAS_FLAG(flags, BVR_VERTEX_SHADER)){
+        shader->shaders[shader->shader_count].type = GL_VERTEX_SHADER;
+
+        bvri_compile_shader_raw(&shader->shaders[shader->shader_count].shader, 
+            strings[shader->shader_count],
+            GL_VERTEX_SHADER
+        );
+
+        glAttachShader(shader->program, shader->shaders[shader->shader_count++].shader);
+    }
+
+    // if there is a fragment shader stage
+    if(BVR_HAS_FLAG(flags, BVR_FRAGMENT_SHADER)){
+        shader->shaders[shader->shader_count].type = GL_FRAGMENT_SHADER;
+
+        bvri_compile_shader_raw(&shader->shaders[shader->shader_count].shader, 
+            strings[shader->shader_count],
+            GL_FRAGMENT_SHADER
+        );
+
+        glAttachShader(shader->program, shader->shaders[shader->shader_count++].shader);
+    }
+
+    // failed if there is no shader attached to
+    if(shader->shader_count == 0){
+        BVR_PRINT("could not find shader stage!");
+        glDeleteProgram(shader->program);
+        return BVR_FALSE;
+    }
+
+    // failed if opengl could not link the shader
+    if (!bvri_link_shader(shader->program)) {
+        BVR_PRINT("failed to compile shader!");
+        glDeleteProgram(shader->program);
+        return BVR_FALSE;
+    }
+
+    // try to get uniform block,
+    // but instead of bvr_create_shader, we consider the situation where the shader
+    // does not need a transform.
+    shader->uniforms[0].location = glGetUniformLocation(shader->program, BVR_UNIFORM_TRANSFORM_NAME);
+    if (shader->blocks[0].location != -1) {
+        shader->uniforms[0].memory.data = NULL;
+        shader->uniforms[0].memory.size = sizeof(mat4x4);
+        shader->uniforms[0].memory.elemsize = sizeof(mat4x4);
+        shader->uniforms[0].name.string = NULL;
+        shader->uniforms[0].name.length = 0;
+        shader->uniforms[0].type = BVR_MAT4;
+        shader->uniforms[0].tags = BVR_UNIFORM_TRANSFORM;
+    }
+    else {
+        shader->uniforms[0].location = 0;
+        shader->uniform_count = 0;
+    }
+
+    shader->blocks[0].location = glGetUniformBlockIndex(shader->program, BVR_UNIFORM_CAMERA_NAME);
+    if (shader->blocks[0].location != -1) {
+        glUniformBlockBinding(shader->program, shader->blocks[0].location, BVR_UNIFORM_BLOCK_CAMERA);
+        shader->blocks[0].type = BVR_MAT4;
+        shader->blocks[0].count = 2;
+    }
+    else {
+        shader->blocks[0].location = 0;
+        shader->block_count = 0;
+    }
+
+    return BVR_TRUE;
+}
+
+/*int bvri_create_shader_vert_frag(bvr_shader_t* shader, const char* vert, const char* frag){
+    BVR_ASSERT(shader);
+    BVR_ASSERT(vert);
+    BVR_ASSERT(frag);
+
+    shader->program = glCreateProgram();
+    shader->flags = 0;
+    shader->shader_count = 2;
+    shader->uniform_count = 1;
+    shader->block_count = 1;
+
+    bvr_string_t vertex;
+    bvr_string_t fragment;
+
+    bvr_create_string(&vertex, vert);
+    bvr_create_string(&fragment, frag);
+
+    bvri_compile_shader(&shader->shaders[0].shader, &vertex, GL_VERTEX_SHADER);
+    bvri_compile_shader(&shader->shaders[1].shader, &fragment, GL_FRAGMENT_SHADER);
+    
+    glAttachShader(shader->program, shader->shaders[0].shader);
+    glAttachShader(shader->program, shader->shaders[1].shader);
+
+    bvri_link_shader(shader->program);
+}*/
+
+void bvr_create_uniform_buffer(uint32* buffer, uint64 size, uint32 binding_point){
+    glGenBuffers(1, buffer);
+    glBindBuffer(GL_UNIFORM_BUFFER, *buffer);
+    glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    glBindBufferRange(GL_UNIFORM_BUFFER, binding_point, *buffer, 0, size);
+}
+
+void bvr_enable_uniform_buffer(uint32 buffer){
+    glBindBuffer(GL_UNIFORM_BUFFER, buffer);
+}
+
+void bvr_uniform_buffer_set(uint32 offset, uint64 size, void* data){
+    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
+}
+
+void* bvr_uniform_buffer_map(uint32 offset, uint64 size){
+    return glMapBufferRange(GL_UNIFORM_BUFFER, offset, size, GL_MAP_READ_BIT);
+}
+
+void bvr_uniform_buffer_close(){
+    glUnmapBuffer(GL_UNIFORM_BUFFER);
+}
+
+void bvr_destroy_uniform_buffer(uint32* buffer){
+    if(!buffer){
+        return;
+    }
+
+    glDeleteBuffers(1, buffer);
+}
+
+bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type, enum bvr_uniform_tag_e tag, int count, const char* name){
+    BVR_ASSERT(shader);
+    BVR_ASSERT(name);
+    BVR_ASSERT(BVR_IS_AVAIL_TYPE(type));
+
+    // when you cannot add another uniform
+    if (shader->uniform_count + 1 >= BVR_MAX_UNIFORM_COUNT) {
+        BVR_PRINTF("uniform maximum capacity reached for shader '%i'!", shader->program);
+        return NULL;
+    }
+
+    const size_t elemsize = bvr_sizeof(type);
+    int location = glGetUniformLocation(shader->program, name);
+    
+    if(elemsize == 0){
+        BVR_PRINTF("invalid type when creating uniform '%s' :<", name);
+        return NULL;
+    }
+
+    if(location != -1){
+        shader->uniforms[shader->uniform_count].location = location;
+        shader->uniforms[shader->uniform_count].type = type;
+        shader->uniforms[shader->uniform_count].tags = tag;
+
+        // memory buffer store only store a pointer
+        shader->uniforms[shader->uniform_count].memory.elemsize = elemsize;
+        shader->uniforms[shader->uniform_count].memory.size = count * elemsize;
+
+        // no need to allocate something, just avoid bad freeing
+        shader->uniforms[shader->uniform_count].memory.data = NULL;
+
+        bvr_create_string(&shader->uniforms[shader->uniform_count].name, name);
+
+        return &shader->uniforms[shader->uniform_count++];
+    }
+
+    BVR_PRINTF("cannot find uniform '%s'!", name);
+    return NULL;
+}
+
+bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type, void* texture, const char* name)
+{
+    BVR_ASSERT(shader);
+    BVR_ASSERT(name);
+
+    // TODO: find another test?
+    BVR_ASSERT(BVR_IS_AVAIL_TYPE(type));
+
+    // create a new uniform
+    bvr_shader_uniform_t* uniform = bvr_shader_register_uniform(shader, type, BVR_UNIFORM_TEXTURE, 1, name);
+    if(uniform){
+        // just copy texture's pointer
+        uniform->memory.data = texture;
+    }
+    else {
+        BVR_PRINT("failed to register texture's uniform");
+    }
+    return uniform;
+}
+
+bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* name, int type, int count, int index){
+    BVR_ASSERT(shader);
+    BVR_ASSERT(count > 0);
+    BVR_ASSERT(BVR_IS_AVAIL_TYPE(type));
+
+    if(shader->block_count + 1 >= BVR_MAX_SHADER_BLOCK_COUNT){
+        BVR_PRINTF("block maximum capacity reached for shader '%i'!", shader->program);
+        return NULL;
+    }
+
+    if(name && index >= 0){
+        shader->blocks[shader->block_count].type = type;
+        shader->blocks[shader->block_count].count = count;
+        shader->blocks[shader->block_count].location = glGetUniformBlockIndex(shader->program, name);
+        if(shader->blocks[shader->block_count].location == -1){
+            BVR_PRINT("cannot find unfirm block!");
+            return NULL;
+        }
+
+        glUniformBlockBinding(shader->program, shader->blocks[shader->block_count].location, index);
+        return &shader->blocks[shader->block_count++];
+    }
+    else {
+        BVR_PRINT("cannot find uniform block!");
+        return NULL;
+    }
+}
+
+int bvr_shader_set_uniform_raw(bvr_shader_uniform_t* uniform, void* data){
+    if(!uniform) {
+        return BVR_FALSE;
+    }
+
+    uniform->memory.data = data;
+}
+
+int bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data){
+    BVR_ASSERT(shader);
+    BVR_ASSERT(name);
+
+    return bvr_shader_set_uniform_raw(bvr_find_uniform(shader, name), data);
+}
+
+void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
+    if(!uniform) {
+        return;
+    }
+
+    // if uniform is not initialize
+    if(uniform->location == -1){
+        return;
+    }
+
+    // if user does input custom data, it will use 
+    // uniform memory's data 
+    if(!data){
+        data = uniform->memory.data;
+    }
+
+    if(data){
+        switch (uniform->type)
+        {
+        case BVR_FLOAT: 
+            glUniform1fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data); 
+            break;
+
+        case BVR_INT32: 
+            glUniform1iv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (int*)data); 
+            break;
+        
+        case BVR_VEC2:
+            glUniform2fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data);
+            break;
+
+        case BVR_VEC3:
+            glUniform3fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data);
+            break;
+
+        case BVR_VEC4:
+            glUniform4fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data);
+            break;
+
+        case BVR_MAT4: 
+            glUniformMatrix4fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), GL_FALSE, (float*)data); 
+            break;
+        
+        case BVR_TEXTURE_2D:
+        case BVR_TEXTURE_2D_LAYER:
+        case BVR_TEXTURE_2D_ARRAY:            
+            {
+                bvr_texture_t* texture = (bvr_texture_t*)data;
+
+                bvr_texture_enable(texture);
+                glUniform1i(uniform->location, (int)texture->unit);
+            }
+            break;
+
+        case BVR_TEXTURE_2D_LAYER_STRUCT:
+            glUniform1iv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (int*)data);
+            break;
+
+        case BVR_TEXTURE_2D_COMPOSITE:
+            {
+                bvr_composite_t* composite = (bvr_composite_t*)data;
+
+                bvr_composite_prepare(composite);
+                glUniform1i(uniform->location, (int)0);
+            }
+
+        default:
+            break;
+        }
+    }
+}
+
+void bvr_shader_enable(bvr_shader_t* shader){
+    glUseProgram(shader->program);
+
+    // iterate through each uniforms
+    for (uint64 uniform = 0; uniform < shader->uniform_count; uniform++)
+    {
+        bvr_shader_use_uniform(&shader->uniforms[uniform], NULL);
+    }
+}
+
+void bvr_shader_disable(void){
+    glUseProgram(0);
+}
+
+void bvr_destroy_shader(bvr_shader_t* shader){
+    BVR_ASSERT(shader);
+
+    for (uint64 shader_i = 0; shader_i < shader->shader_count; shader_i++)
+    {
+        glDeleteShader(shader->shaders[shader_i].shader);
+    }
+
+    for (uint64 uniform = 0; uniform < shader->uniform_count; uniform++)
+    {
+        bvr_destroy_string(&shader->uniforms[uniform].name);
+        shader->uniforms[uniform].memory.data = NULL;
+    }
+
+    glDeleteProgram(shader->program);
+
+    // will trigger 'invalid shader' when 
+    // an un-initialized shader will be used to 
+    // draw something on the screen
+    shader->program = 0;
+    shader->uniform_count = 0;
+    shader->block_count = 0;
+    shader->shader_count = 0;
+}

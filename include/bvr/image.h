@@ -1,9 +1,10 @@
 #pragma once
 
-#include <bvr/buffer.h>
 #include <bvr/common.h>
-#include <bvr/assets.h>
 #include <bvr/math.h>
+
+#include <bvr/collections/buffer.h>
+#include <bvr/collections/string.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -160,7 +161,6 @@ typedef struct bvr_image_s {
     uint8* pixels;
 
     struct bvr_buffer_s layers;
-    struct bvr_asset_reference_s asset;
 } bvr_image_t;
 
 /**
@@ -220,12 +220,6 @@ typedef struct bvr_composite_s {
 int bvr_create_imagef(bvr_image_t* image, FILE* file);
 BVR_H_FUNC int bvr_create_image(bvr_image_t* image, const char* path){
     BVR_FILE_EXISTS(path);
-    
-    bvr_uuid_t* id = bvr_register_asset(path, BVR_OPEN_READ);
-    if(id){
-        image->asset.origin = BVR_ASSET_ORIGIN_PATH;
-        bvr_copy_uuid(*id, image->asset.pointer.asset_id);
-    }
 
     FILE* file = fopen(path, "rb");
     int success = bvr_create_imagef(image, file);
@@ -283,12 +277,6 @@ int bvr_create_texturef(bvr_texture_t* texture, FILE* file, int filter, int wrap
 BVR_H_FUNC int bvr_create_texture(bvr_texture_t* texture, const char* path, int filter, int wrap){
     BVR_FILE_EXISTS(path);
 
-    bvr_uuid_t* id = bvr_register_asset(path, BVR_OPEN_READ);
-    if(id){
-        texture->image.asset.origin = BVR_ASSET_ORIGIN_PATH;
-        bvr_copy_uuid(*id, texture->image.asset.pointer.asset_id);
-    }
-
     FILE* file = fopen(path, "rb");
     int success = bvr_create_texturef(texture, file, filter, wrap);
     fclose(file);
@@ -311,12 +299,6 @@ int bvr_create_texture_atlasf(bvr_texture_t* texture, FILE* file, bvr_atlas_desc
 
 BVR_H_FUNC int bvr_create_texture_atlas(bvr_texture_t* texture, const char* path, bvr_atlas_desc_t* desc, int filter, int wrap){
     BVR_FILE_EXISTS(path);
-    
-    bvr_uuid_t* id = bvr_register_asset(path, BVR_OPEN_READ);
-    if(id){
-        texture->image.asset.origin = BVR_ASSET_ORIGIN_PATH;
-        bvr_copy_uuid(*id, texture->image.asset.pointer.asset_id);
-    }
 
     FILE* file = fopen(path, "rb");
     int success = bvr_create_texture_atlasf(texture, file, desc, filter, wrap);
@@ -324,24 +306,6 @@ BVR_H_FUNC int bvr_create_texture_atlas(bvr_texture_t* texture, const char* path
     return success;
 }
 
-/* LAYERED TEXTURE 
- *int bvr_create_texture_3d(bvr_texture_t* texture, FILE* file, int filter, int wrap);
- *
- *BVR_H_FUNC int bvr_create_layered_texture(bvr_texture_t* texture, const char* path, int filter, int wrap){
- *    BVR_FILE_EXISTS(path);
- *    
- *    bvr_uuid_t* id = bvr_register_asset(path, BVR_OPEN_READ);
- *    if(id){
- *        texture->image.asset.origin = BVR_ASSET_ORIGIN_PATH;
- *        bvr_copy_uuid(*id, texture->image.asset.pointer.asset_id);
- *    }
- *
- *    FILE* file = fopen(path, "rb");
- *    int success = bvr_create_layered_texturef(texture, file, filter, wrap);
- *    fclose(file);
- *    return success;
- *}
- */
 
 /*
     Create a new composite. A composite is a buffer that will store an image's result before rendering it to the screen.

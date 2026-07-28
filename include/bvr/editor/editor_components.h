@@ -60,11 +60,11 @@ static void bvr_nk_draw_dynamic_actor_component(bvr_canvas_t* context, void* use
 static void bvr_nk_draw_texture_actor_component(bvr_canvas_t* context, void* user);
 static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* user);
 
-BVR_H_FUNC void bvr_nk_draw_button_actor(bvr_editor_t* editor, struct bvr_actor_s* actor){
+BVR_H_FUNC void bvr_nk_draw_button_actor(bvr_editor_t* editor, void* actor){
     BVR_ASSERT(editor);
     BVR_ASSERT(actor);
     
-    if(!actor->name.string){
+    /*if(!actor->name.string){
         return;
     }
 
@@ -95,7 +95,7 @@ BVR_H_FUNC void bvr_nk_draw_button_actor(bvr_editor_t* editor, struct bvr_actor_
         default:
             break;
         }
-    }
+    }*/
 }
 
 BVR_H_FUNC void bvr_nk_draw_button(bvr_editor_t* editor, const char* name, uint32 type, void* object){
@@ -153,7 +153,7 @@ BVR_H_FUNC void bvr_nk_view_image(bvr_canvas_t* context, bvr_texture_t* texture,
     if(nk_tree_push(&context->context, NK_TREE_NODE, "view", NK_MAXIMIZED)){
        
         // if texture has tiles
-        if(!draw_has_tileset && (texture->tiles.tile_per_column > 1 || texture->tiles.tile_per_row > 1)){
+        if(draw_has_tileset || (texture->tiles.tile_per_column > 1 || texture->tiles.tile_per_row > 1)){
             rect.w = texture->tiles.width;
             rect.h = texture->tiles.height;
 
@@ -231,7 +231,7 @@ static void bvr_nk_draw_transform_component(bvr_canvas_t* context, void* user){
 
         nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
         nk_property_float(&context->context, "size", 0.0f, &scale, 100000.0f, 0.1f, 0.1f);
-        BVR_SCALE_VEC3(transform->scale, scale);
+        BVR_SET_VEC3(transform->scale, scale);
         nk_tree_pop(&context->context);
     }
 
@@ -241,14 +241,14 @@ static void bvr_nk_draw_transform_component(bvr_canvas_t* context, void* user){
 static void bvr_nk_draw_actor_component(bvr_canvas_t* context, void* user){
     struct bvr_actor_s* actor = (struct bvr_actor_s*)user;
 
-    if(nk_tree_push(&context->context, NK_TREE_TAB, "actor", NK_MAXIMIZED)){
+    /*if(nk_tree_push(&context->context, NK_TREE_TAB, "actor", NK_MAXIMIZED)){
         nk_checkbox_label(&context->context, "is active?", (nk_bool*)&actor->active);
         nk_property_short(&context->context, "draw order", 0, &actor->order_in_layer, BVR_INT16_MAX, 1, 1);
         bvr_nk_draw_transform_component(context, &actor->transform);
         nk_tree_pop(&context->context);
     }
 
-    nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
+    nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);*/
 }
 
 static void bvr_nk_draw_image_component(bvr_canvas_t* context, void* user){
@@ -399,26 +399,26 @@ static void bvr_nk_draw_audio_component(bvr_canvas_t* context, void* user){
 static void bvr_nk_draw_camera_component(bvr_canvas_t* context, void* user){
     BVR_ASSERT(user);
 
-    bvr_camera_t* camera = (bvr_camera_t*)user;
-
-    if(nk_tree_push(&context->context, NK_TREE_TAB, "camera", NK_MAXIMIZED)){
-
-        nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 2);
-                    
-        nk_label(&context->context, BVR_FORMAT("width %i", camera->framebuffer->width), NK_TEXT_ALIGN_LEFT);
-        nk_label(&context->context, BVR_FORMAT("height %i", camera->framebuffer->height), NK_TEXT_ALIGN_LEFT);
-        
-        nk_label(&context->context, BVR_FORMAT("near %f", camera->near), NK_TEXT_ALIGN_LEFT);
-        nk_label(&context->context, BVR_FORMAT("far %f", camera->far), NK_TEXT_ALIGN_LEFT);
-
-        nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
-        nk_property_float(&context->context, "scale", 0.0f, &camera->field_of_view.scale, 100000.0f, 0.1f, 0.1f);
-
-        bvr_nk_draw_transform_component(context, &camera->transform);
-        nk_tree_pop(&context->context);
-    }
- 
-    nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
+    //bvr_camera_t* camera = (bvr_camera_t*)user;
+    //
+    //if(nk_tree_push(&context->context, NK_TREE_TAB, "camera", NK_MAXIMIZED)){
+    //
+    //    nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 2);
+    //                
+    //    nk_label(&context->context, BVR_FORMAT("width %i", camera->framebuffer->width), NK_TEXT_ALIGN_LEFT);
+    //    nk_label(&context->context, BVR_FORMAT("height %i", camera->framebuffer->height), NK_TEXT_ALIGN_LEFT);
+    //    
+    //    nk_label(&context->context, BVR_FORMAT("near %f", camera->near), NK_TEXT_ALIGN_LEFT);
+    //    nk_label(&context->context, BVR_FORMAT("far %f", camera->far), NK_TEXT_ALIGN_LEFT);
+    //
+    //    nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
+    //    nk_property_float(&context->context, "scale", 0.0f, &camera->field_of_view.scale, 100000.0f, 0.1f, 0.1f);
+    //
+    //    bvr_nk_draw_transform_component(context, &camera->transform);
+    //    nk_tree_pop(&context->context);
+    //}
+    //
+    //nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
 }
 
 static void bvr_nk_draw_gpipeline_component(bvr_canvas_t* context, void* user){
@@ -428,6 +428,10 @@ static void bvr_nk_draw_gpipeline_component(bvr_canvas_t* context, void* user){
 
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     BVR_NK_CHECKBOX(pipeline->rendering_pass.flags, BVR_WIREFRAME_ENABLE, "wireframe");
+
+    // nk_label(&context->context, BVR_FORMAT("deta time: %f", BVR_INSTANCE()->timer.delta_time), NK_TEXT_ALIGN_LEFT);
+    // nk_label(&context->context, BVR_FORMAT("render time: %f", BVR_INSTANCE()->timer.average_render_time), NK_TEXT_ALIGN_LEFT);
+    // nk_label(&context->context, BVR_FORMAT("frame count: %f", BVR_INSTANCE()->timer.current_time), NK_TEXT_ALIGN_LEFT);
 }
 
 static void bvr_nk_draw_global_illumination_component(bvr_canvas_t* context, void* user){
@@ -444,7 +448,7 @@ static void bvr_nk_draw_user_component(bvr_canvas_t* context, void* user){
 static void bvr_nk_draw_layer_actor_component(bvr_canvas_t* context, void* user){
     BVR_ASSERT(user);
 
-    bvr_layer_actor_t* actor = (bvr_layer_actor_t*)user;
+    /*bvr_layer_actor_t* actor = (bvr_layer_actor_t*)user;
 
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     nk_label_wrap(&context->context, BVR_FORMAT("%s (bvr_layer_actor_t)", actor->self.name.string));
@@ -454,12 +458,32 @@ static void bvr_nk_draw_layer_actor_component(bvr_canvas_t* context, void* user)
 
     BVR_NK_SEPARATOR(&context->context);
     nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));
+
+    bvr_nk_view_image(context, &actor->texture, false);
+
+    if(nk_tree_push(&context->context, NK_TREE_TAB, "Layers", NK_MAXIMIZED)){
+        bvr_layer_t* layer;
+        for (size_t i = 0; i < BVR_BUFFER_COUNT(actor->texture.image.layers); i++)
+        {
+            layer = &((bvr_layer_t*)actor->texture.image.layers.data)[i];
+
+            if(nk_tree_push(&context->context, NK_TREE_NODE, layer->name.string, NK_MAXIMIZED)){
+                
+                
+                nk_tree_pop(&context->context);
+            }
+        }
+
+        nk_tree_pop(&context->context);
+    }
+    */
+    
 }
 
 static void bvr_nk_draw_static_actor_component(bvr_canvas_t* context, void* user){
     BVR_ASSERT(user);
 
-    bvr_static_actor_t* actor = (bvr_static_actor_t*)user;
+    /*bvr_static_actor_t* actor = (bvr_static_actor_t*)user;
 
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     nk_label_wrap(&context->context, BVR_FORMAT("%s (bvr_static_actor_t)", actor->self.name.string));
@@ -468,13 +492,13 @@ static void bvr_nk_draw_static_actor_component(bvr_canvas_t* context, void* user
     bvr_nk_draw_actor_component(context, user);
 
     BVR_NK_SEPARATOR(&context->context);
-    nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));
+    nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));*/
 }
 
 static void bvr_nk_draw_dynamic_actor_component(bvr_canvas_t* context, void* user){
     BVR_ASSERT(user);
 
-    bvr_dynamic_actor_t* actor = (bvr_dynamic_actor_t*)user;
+    /*bvr_dynamic_actor_t* actor = (bvr_dynamic_actor_t*)user;
 
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     nk_label_wrap(&context->context, BVR_FORMAT("%s (bvr_dynamic_actor_t)", actor->self.name.string));
@@ -483,13 +507,13 @@ static void bvr_nk_draw_dynamic_actor_component(bvr_canvas_t* context, void* use
     bvr_nk_draw_actor_component(context, user);
 
     BVR_NK_SEPARATOR(&context->context);
-    nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));
+    nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));*/
 }
 
 static void bvr_nk_draw_texture_actor_component(bvr_canvas_t* context, void* user){
     BVR_ASSERT(user);
 
-    bvr_texture_actor_t* actor = (bvr_texture_actor_t*)user;
+    /*bvr_texture_actor_t* actor = (bvr_texture_actor_t*)user;
 
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     nk_label_wrap(&context->context, BVR_FORMAT("%s (bvr_texture_actor_t)", actor->self.name.string));
@@ -500,13 +524,13 @@ static void bvr_nk_draw_texture_actor_component(bvr_canvas_t* context, void* use
     bvr_nk_draw_shader_component(context, &actor->shader);
 
     BVR_NK_SEPARATOR(&context->context);
-    nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));
+    nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));*/
 }
 
 static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* user){
     BVR_ASSERT(user);
 
-    bvr_landscape_actor_t* actor = (bvr_landscape_actor_t*)user;
+    /*bvr_landscape_actor_t* actor = (bvr_landscape_actor_t*)user;
 
     nk_layout_row_dynamic(&context->context, BVR_ROW_HEIGHT, 1);
     nk_label_wrap(&context->context, BVR_FORMAT("%s (bvr_landscape_actor_t)", actor->self.name.string));
@@ -518,7 +542,7 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
     nk_label_wrap(&context->context, BVR_FORMAT("%s", actor->self.id));
 
     if(nk_button_label(&context->context, "focus")){
-        bvr_camera_t* camera = &bvr_get_instance()->page->camera;
+        bvr_camera_t* camera = &BVR_INSTANCE()->page->camera;
         
         vec3 center;
         float distance;
@@ -599,10 +623,10 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
         int layer = 0;
         vec2 screen, tile;
         vec3 world, local_world;
-        BVR_SCALE_VEC3(screen, 0);
+        BVR_SET_VEC3(screen, 0);
         
         bvr_mouse_position(&screen[0], &screen[1]);
-        bvr_screen_to_world(&bvr_get_instance()->page->camera, screen, world);
+        bvr_screen_to_world(&BVR_INSTANCE()->page->camera, screen, world);
     
 
         // draw tile gizmo
@@ -652,7 +676,7 @@ static void bvr_nk_draw_landscape_actor_component(bvr_canvas_t* context, void* u
             bvr_landscape_set_tile(&actor->landscape, tile[0], tile[1], layer, p_tile);
         }
     }
-
+*/
     
 }
 

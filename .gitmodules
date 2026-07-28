@@ -1,0 +1,9 @@
+[submodule "extern/Zlib"]
+	path = extern/Zlib
+	url = https://github.com/madler/zlib
+[submodule "extern/json-c"]
+	path = extern/json-c
+	url = https://github.com/json-c/json-c
+[submodule "extern/Nuklear"]
+	path = extern/Nuklear
+	url = https://github.com/Ernest-000/Nuklear

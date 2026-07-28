@@ -2,7 +2,7 @@
 
 #ifndef BVR_NO_NUKLEAR
 
-#include <bvr/scene.h>
+#include <bvr/book.h>
 
 struct bvr_free_camera_s {
     float forward_speed;

@@ -4,6 +4,8 @@
 #include <bvr/common.h>
 #include <bvr/math.h>
 
+#include <bvr/collections/buffer.h>
+
 #include <bvr/mesh.h>
 
 #if !defined(BVR_CREATE_LANDSCAPE)

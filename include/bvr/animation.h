@@ -1,7 +1,9 @@
 #pragma once
 
-#include <bvr/buffer.h>
 #include <bvr/image.h>
+#include <bvr/collections/buffer.h>
+#include <bvr/collections/pool.h>
+#include <bvr/collections/string.h>
 
 #if !defined(BVR_INTERPOLATE)
     #define BVR_LINEAR_INTERPOLATE(_start, _end, t) (_start + ((_end - _start) * t))
@@ -173,7 +175,7 @@ BVR_H_FUNC int bvr_animation_add_keyframe(bvr_animation_t* anim, const char* tra
     BVR_ASSERT(track);
 
     bvr_animation_handle_t* handle;
-    BVR_POOL_FOR_EACH(handle, anim->tracks)
+    BVR_POOL_FOR_EACH(anim->tracks, handle)
     {
         if(!handle->name.length){
             continue;

@@ -3,7 +3,9 @@
 #include <stdint.h>
 
 #include <bvr/common.h>
-#include <bvr/buffer.h>
+#include <bvr/collections/string.h>
+#include <bvr/collections/buffer.h>
+#include <bvr/collections/pool.h>
 
 #include <bvr/math.h>
 

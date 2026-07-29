@@ -4,6 +4,14 @@
 #include <malloc.h>
 #include <memory.h>
 
+#ifdef __unix__
+    #include <unistd.h>
+    #include <sys/stat.h>
+#elif _WIN32
+    #error plz implement file systems for win32
+#else
+#endif
+
 uint64 bvr_fsize(FILE* file){
     uint64 cursor = ftell(file);
     
@@ -12,6 +20,37 @@ uint64 bvr_fsize(FILE* file){
     fseek(file, cursor, SEEK_SET);
     
     return size;
+}
+
+
+int bvr_fexists(const char* path){
+    if(path == NULL) return BVR_FALSE;
+
+#ifdef __unix__
+    FILE* f = fopen(path, "r");
+    int access = f != NULL;
+    fclose(f);
+    return access;
+#elif _WIN32
+
+#endif
+}
+
+int bvr_direxists(const char* path){
+    if(path == NULL) return BVR_FALSE;
+
+#ifdef __unix__
+    struct stat stats;
+    stat(path, &stats);
+    
+    if(S_ISDIR(stats.st_mode)) {
+        return BVR_TRUE;
+    }
+
+    return BVR_FALSE;
+#elif _WIN32
+
+#endif
 }
 
 int bvr_read_file(bvr_string_t* string, FILE* file){

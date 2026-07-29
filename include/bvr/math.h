@@ -147,12 +147,12 @@ struct bvr_bounds_s {
  * @brief return the next power of two of x.
  */
 BVR_H_FUNC int npow2(int x){
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-    x |= x >> 32;
+    x |= (x >> 1);
+    x |= (x >> 2);
+    x |= (x >> 4);
+    x |= (x >> 8);
+    x |= (x >> 16);
+    x |= (x >> 32);
     return x;
 }
 

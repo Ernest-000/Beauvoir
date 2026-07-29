@@ -74,6 +74,7 @@ else()
 endif()
 
 find_package(OpenGL REQUIRED)
+find_package (Threads REQUIRED)
 add_subdirectory(${BVR_TINYCC_DIR})
 
 file(GLOB_RECURSE BVR_ENGINE_SOURCES "${BVR_SOURCE_DIR}/*.c")
@@ -90,6 +91,7 @@ target_include_directories(beauvoir
 
 target_link_libraries(beauvoir PUBLIC
     OpenGL::GL
+    Threads::Threads
     ${BVR_THIRD_PARTY_MODULES}
 )
 

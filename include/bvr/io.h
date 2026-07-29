@@ -13,6 +13,20 @@
 #define BVR_BE_TO_LE_U16 __bswap_constant_16
 #define BVR_BE_TO_LE_U32 __bswap_constant_32
 
+/**
+ * @brief check if a file exists by using it's path.
+ * @param path the path to the file to check
+ * @return BVR_TRUE if the file exists.
+ */
+int bvr_fexists(const char* path);
+
+/**
+ * @brief check if a directory exists by using it's path.
+ * @param path the path to the directory to check
+ * @return BVR_TRUE if the dir exists.
+ */
+int bvr_direxists(const char* path);
+
 /*
     Return size of a file.
 */

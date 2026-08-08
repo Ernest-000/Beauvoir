@@ -27,12 +27,12 @@
 /**
  * return 1 if two strings are equals
  */
-#define BVR_STRCMP(_a, _b) (strcmp(_a, _b) == 0)
+#define BVR_STRCMP(_a, _b) (strcmp((_a), (_b)) == 0)
 
 /**
  * return 1 if two strings are equals
  */
-#define BVR_STRNCMP(_a, _b, _n) (strncmp(_a, _b, _n) == 0)
+#define BVR_STRNCMP(_a, _b, _n) (strncmp((_a), (_b), (_n)) == 0)
 
 /**
  * Pascal typed string

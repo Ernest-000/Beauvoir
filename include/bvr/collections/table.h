@@ -2,6 +2,8 @@
 
 #include <bvr/config.h>
 
+#include <bvr/collections/string.h>
+
 /**
  * @brief loop through each element of a table. 
  * Table for loops can be use as such ```struct client_s* client; BVR_TABLE_FOR_EACH(table, client) {}```.

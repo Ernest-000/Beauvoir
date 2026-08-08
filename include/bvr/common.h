@@ -154,6 +154,7 @@ void bvri_break(const char* __file, unsigned long long __line);
  */
 #define BVR_FORMAT(message, ...)(char*)(bvri_string_format(message, __VA_ARGS__))
 
+#if defined(BVR_DEBUG)
 /**
  * @brief print a formated string to the standard output.
  * @param message a string that specifies the data to be printed. 
@@ -161,12 +162,17 @@ void bvri_break(const char* __file, unsigned long long __line);
  * @param args variables or values corresponding to the format specifier.
  */
 #define BVR_PRINTF(message, ...)(void)(bvri_wmessage(bvr_stdout, __LINE__, __FILE__, message, __VA_ARGS__))
+#else 
+#define BVR_PRINTF(message, ...) do {} while (0);
+#endif
 
+#if defined(BVR_DEBUG)
 /**
  * @brief print an object or a value to the standard output.
  * @param t the object/value to print.
  */
 #define BVR_PRINT(t) _Generic((t),          \
+    void* : BVR_PRINTF("%x", t),            \
     char* : BVR_PRINTF("%s", t),            \
     short : BVR_PRINTF("%i", t),            \
     int : BVR_PRINTF("%i", t),              \
@@ -176,12 +182,16 @@ void bvri_break(const char* __file, unsigned long long __line);
     unsigned long : BVR_PRINTF("%u", t),    \
     double : BVR_PRINTF("%f", t),           \
     float : BVR_PRINTF("%f", t),            \
-    default : BVR_PRINTF("%s", t)           \
+    default : BVR_PRINTF("%x", t)           \
 )
+#else 
+#define BVR_PRINT(t) do {} while (0);
+#endif
 
 // depreciated
 // #define BVR_PRINTSTR(message)(void)(bvri_wmessage(bvr_stdout, __LINE__, __FILE__, message))
 
+#if defined(BVR_DEBUG)
 #ifndef BVR_ASSERT_FORCE_EXIT
     /**
      * @brief check if an expression is true. If the expression is false, 
@@ -199,6 +209,11 @@ void bvri_break(const char* __file, unsigned long long __line);
      */
     #define BVR_ASSERT(expression) (void) (                                         \
         (((expression) == 0) ? bvri_wassert(#expression, __FILE__, __LINE__) : 0)  \
+    )
+#endif
+#else 
+#define BVR_ASSERT(expression) (                                         \
+        (((expression) == 0) ? bvri_break(__FILE__, __LINE__) : 0)  \
     )
 #endif
 

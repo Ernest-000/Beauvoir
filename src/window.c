@@ -827,6 +827,33 @@ static void bvri_create_keymap_layout(){
     __keycodes[XK_Y] = BVR_KEY_Y; 
     __keycodes[XK_Z] = BVR_KEY_Z; 
 
+    __keycodes[XK_a] = BVR_KEY_A; 
+    __keycodes[XK_b] = BVR_KEY_B; 
+    __keycodes[XK_c] = BVR_KEY_C; 
+    __keycodes[XK_d] = BVR_KEY_D; 
+    __keycodes[XK_e] = BVR_KEY_E; 
+    __keycodes[XK_f] = BVR_KEY_F; 
+    __keycodes[XK_g] = BVR_KEY_G; 
+    __keycodes[XK_h] = BVR_KEY_H; 
+    __keycodes[XK_i] = BVR_KEY_I; 
+    __keycodes[XK_j] = BVR_KEY_J; 
+    __keycodes[XK_k] = BVR_KEY_K; 
+    __keycodes[XK_l] = BVR_KEY_L; 
+    __keycodes[XK_m] = BVR_KEY_M; 
+    __keycodes[XK_n] = BVR_KEY_N; 
+    __keycodes[XK_o] = BVR_KEY_O; 
+    __keycodes[XK_p] = BVR_KEY_P; 
+    __keycodes[XK_q] = BVR_KEY_Q; 
+    __keycodes[XK_r] = BVR_KEY_R; 
+    __keycodes[XK_s] = BVR_KEY_S; 
+    __keycodes[XK_t] = BVR_KEY_T; 
+    __keycodes[XK_u] = BVR_KEY_U; 
+    __keycodes[XK_v] = BVR_KEY_V; 
+    __keycodes[XK_w] = BVR_KEY_W; 
+    __keycodes[XK_x] = BVR_KEY_X; 
+    __keycodes[XK_y] = BVR_KEY_Y; 
+    __keycodes[XK_z] = BVR_KEY_Z; 
+
     // system
     __keycodes[XK_semicolon] = BVR_KEY_SEMICOLON;
     __keycodes[XK_slash] = BVR_KEY_SLASH;
@@ -909,7 +936,23 @@ static void bvri_window_poll_events_impl(bvr_window_t* window){
 
     // reset scroll
     window->inputs.scroll = 0.0f;
+    for (size_t i = 0; i < BVR_KEYBOARD_SIZE; i++)
+    {
+        // we need to update press state 
+        // because the Xevent is not called every frame
+        // so it will not update the state each frame
+        if(window->inputs.keys[i] == BVR_INPUT_PRESSED){
+            window->inputs.keys[i] = BVR_INPUT_DOWN;
+        }
+    }
 
+    for (size_t i = 0; i < BVR_MOUSE_SIZE; i++)
+    {
+        if(window->inputs.buttons[i] == BVR_INPUT_PRESSED){
+            window->inputs.buttons[i] = BVR_INPUT_DOWN;
+        }
+    }
+    
     // poll events
     while(XPending(window->handle.x11.xdisplay)){
         XNextEvent(window->handle.x11.xdisplay, &event);
@@ -942,9 +985,10 @@ static void bvri_window_poll_events_impl(bvr_window_t* window){
         case KeyRelease:
             {
                 int action = event.type == KeyRelease ? BVR_INPUT_RELEASE : BVR_INPUT_PRESSED;
-                int key = __keycodes[XLookupKeysym(&event.xkey, 0)];
-
-                if (window->inputs.keys[key] == BVR_INPUT_PRESSED)
+                uint32 key = __keycodes[(int)XLookupKeysym(&event.xkey, 0)];
+                
+                if (action == BVR_INPUT_PRESSED && 
+                    (window->inputs.keys[key] == BVR_INPUT_PRESSED || window->inputs.keys[key] == BVR_INPUT_DOWN))
                 {
                     action = BVR_INPUT_DOWN;
                 }
@@ -967,7 +1011,8 @@ static void bvri_window_poll_events_impl(bvr_window_t* window){
                 }
                 else
                 {
-                    if (window->inputs.buttons[button] == BVR_INPUT_PRESSED)
+                    if (action == BVR_INPUT_PRESSED && 
+                        (window->inputs.buttons[button] == BVR_INPUT_PRESSED || window->inputs.buttons[button] == BVR_INPUT_DOWN))
                     {
                         action = BVR_INPUT_DOWN;
                     }

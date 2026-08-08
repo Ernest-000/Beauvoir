@@ -1,15 +1,13 @@
 #include "include/assert.h"
+#include "include/lbvr.h"
 
 #include "help.c"
 
-int main(void){
-    BVR_PRINTF("coucou %i", help(5, 5));
+void draw(){
+    BVR_PRINTF("delta %f", bvr_get_delta_time());
+}
 
-    while (1)
-    {
-        /* code */
-        
-    }
-    
+int main(void){
+    BVR_PRINT("RELOAD");
     return 0;
 }

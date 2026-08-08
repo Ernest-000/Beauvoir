@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 project(beauvoir LANGUAGES C)
 
+option(BVR_DEBUG "Enable debugging" ON)
 option(BVR_TARGET_SHARED "Build shared library" ON)
 option(BVR_TARGET_STATIC "Build static library" OFF)
 
+message(STATUS "BVR_DEBUG = ${BVR_DEBUG}")
 message(STATUS "BVR_TARGET_SHARED = ${BVR_TARGET_SHARED}")
 message(STATUS "BVR_TARGET_STATIC = ${BVR_TARGET_STATIC}")
 
@@ -80,6 +82,9 @@ add_subdirectory(${BVR_TINYCC_DIR})
 file(GLOB_RECURSE BVR_ENGINE_SOURCES "${BVR_SOURCE_DIR}/*.c")
 
 target_sources(beauvoir PRIVATE ${BVR_ENGINE_SOURCES})
+if(BVR_DEBUG)
+    target_compile_definitions(beauvoir PRIVATE BVR_DEBUG=${BVR_DEBUG})
+endif()
 
 target_include_directories(beauvoir
     PUBLIC

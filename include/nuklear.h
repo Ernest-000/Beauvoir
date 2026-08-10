@@ -3457,8 +3457,6 @@ NK_API float nk_slide_float(struct nk_context*, float min, float val, float max,
 NK_API int nk_slide_int(struct nk_context*, int min, int val, int max, int step);
 NK_API nk_bool nk_slider_float(struct nk_context*, float min, float *val, float max, float step);
 NK_API nk_bool nk_slider_int(struct nk_context*, int min, int *val, int max, int step);
-NK_API nk_bool nk_vertical_slider_float(struct nk_context *ctx, float min, float *value, float max, float step);
-NK_API nk_bool nk_vertical_slider_int(struct nk_context *ctx, int min, int *value, int max, int step);
 
 /* =============================================================================
  *
@@ -3581,8 +3579,6 @@ NK_API nk_bool nk_color_pick(struct nk_context*, struct nk_colorf*, enum nk_colo
  * \param[in] inc_per_pixel   | Value per pixel added or subtracted on dragging
  */
 NK_API void nk_property_int(struct nk_context*, const char *name, int min, int *val, int max, int step, float inc_per_pixel);
-
-NK_API void nk_property_short(struct nk_context *ctx, const char *name, short min, short *val, short max, int step, float inc_per_pixel);
 
 /**
  * # # nk_property_float
@@ -4937,7 +4933,6 @@ NK_API nk_bool nk_input_is_mouse_click_down_in_rect(const struct nk_input *i, en
 NK_API nk_bool nk_input_any_mouse_click_in_rect(const struct nk_input*, struct nk_rect);
 NK_API nk_bool nk_input_is_mouse_prev_hovering_rect(const struct nk_input*, struct nk_rect);
 NK_API nk_bool nk_input_is_mouse_hovering_rect(const struct nk_input*, struct nk_rect);
-NK_API nk_bool nk_input_is_mouse_moved(const struct nk_input*);
 NK_API nk_bool nk_input_mouse_clicked(const struct nk_input*, enum nk_buttons, struct nk_rect);
 NK_API nk_bool nk_input_is_mouse_down(const struct nk_input*, enum nk_buttons);
 NK_API nk_bool nk_input_is_mouse_pressed(const struct nk_input*, enum nk_buttons);
@@ -8388,7 +8383,7 @@ nk_utf_decode(const char *c, nk_rune *u, int clen)
     *u = NK_UTF_INVALID;
 
     udecoded = nk_utf_decode_byte(c[0], &len);
-    if (!NK_BETWEEN(len, 1, NK_UTF_SIZE+1)) /* +1 because NK_BETWEEN uses strict upper bound ((a) <= (x) && (x) < (b)) */
+    if (!NK_BETWEEN(len, 1, NK_UTF_SIZE))
         return 1;
 
     for (i = 1, j = 1; i < clen && j < len; ++i, ++j) {
@@ -18439,12 +18434,6 @@ nk_input_is_mouse_released(const struct nk_input *i, enum nk_buttons id)
     return (!i->mouse.buttons[id].down && i->mouse.buttons[id].clicked);
 }
 NK_API nk_bool
-nk_input_is_mouse_moved(const struct nk_input *i)
-{
-    if (!i) return nk_false;
-    return i->mouse.delta.x != 0 || i->mouse.delta.y != 0;
-}
-NK_API nk_bool
 nk_input_is_key_pressed(const struct nk_input *i, enum nk_keys key)
 {
     const struct nk_key *k;
@@ -20392,7 +20381,7 @@ nk_panel_end(struct nk_context *ctx)
 
     /* hide scroll if no user input */
     if (window->flags & NK_WINDOW_SCROLL_AUTO_HIDE) {
-        int has_input = nk_input_is_mouse_moved(&ctx->input) || ctx->input.mouse.scroll_delta.y != 0;
+        int has_input = ctx->input.mouse.delta.x != 0 || ctx->input.mouse.delta.y != 0 || ctx->input.mouse.scroll_delta.y != 0;
         int is_window_hovered = nk_window_is_hovered(ctx);
         int any_item_active = (ctx->last_widget_state & NK_WIDGET_STATE_MODIFIED);
         if ((!has_input && is_window_hovered) || (!is_window_hovered && !any_item_active))
@@ -20964,7 +20953,7 @@ nk_window_is_hovered(const struct nk_context *ctx)
         return 0;
     else {
         struct nk_rect actual_bounds = ctx->current->bounds;
-        if (ctx->current->flags & NK_WINDOW_MINIMIZED) {
+        if (ctx->begin->flags & NK_WINDOW_MINIMIZED) {
             actual_bounds.h = ctx->current->layout->header_height;
         }
         return nk_input_is_mouse_hovering_rect(&ctx->input, actual_bounds);
@@ -26073,249 +26062,7 @@ nk_slider_int(struct nk_context *ctx, int min, int *val, int max, int step)
     return ret;
 }
 
-NK_LIB float
-nk_vertical_slider_behavior(nk_flags *state, struct nk_rect *logical_cursor,
-    struct nk_rect *visual_cursor, struct nk_input *in,
-    struct nk_rect bounds, float slider_min, float slider_max, float slider_value,
-    float slider_step, float slider_steps)
-{
-    int left_mouse_down;
-    int left_mouse_click_in_cursor;
 
-    /* check if visual cursor is being dragged */
-    nk_widget_state_reset(state);
-    left_mouse_down = in && in->mouse.buttons[NK_BUTTON_LEFT].down;
-    left_mouse_click_in_cursor = in && nk_input_has_mouse_click_down_in_rect(in,
-            NK_BUTTON_LEFT, *visual_cursor, nk_true);
-
-    if (left_mouse_down && left_mouse_click_in_cursor) {
-        float ratio = 0;
-        const float d = in->mouse.pos.y - (visual_cursor->y+visual_cursor->h*0.5f);
-        const float pxstep = bounds.h / slider_steps;
-
-        /* only update value if the next slider step is reached */
-        *state = NK_WIDGET_STATE_ACTIVE;
-        if (NK_ABS(d) >= pxstep) {
-            const float steps = (float)((int)(NK_ABS(d) / pxstep));
-            slider_value += (d > 0) ? (slider_step*steps) : -(slider_step*steps);
-            slider_value = NK_CLAMP(slider_min, slider_value, slider_max);
-            ratio = (slider_value - slider_min)/slider_step;
-            logical_cursor->y = bounds.y + (logical_cursor->h * ratio);
-            in->mouse.buttons[NK_BUTTON_LEFT].clicked_pos.y = logical_cursor->y;
-        }
-    }
-
-    /* slider widget state */
-    if (nk_input_is_mouse_hovering_rect(in, bounds))
-        *state = NK_WIDGET_STATE_HOVERED;
-    if (*state & NK_WIDGET_STATE_HOVER &&
-        !nk_input_is_mouse_prev_hovering_rect(in, bounds))
-        *state |= NK_WIDGET_STATE_ENTERED;
-    else if (nk_input_is_mouse_prev_hovering_rect(in, bounds))
-        *state |= NK_WIDGET_STATE_LEFT;
-    return slider_value;
-}
-
-NK_LIB void
-nk_draw_vertical_slider(struct nk_command_buffer *out, nk_flags state,
-    const struct nk_style_slider *style, const struct nk_rect *bounds,
-    const struct nk_rect *visual_cursor, float min, float value, float max)
-{
-    struct nk_rect fill;
-    struct nk_rect bar;
-    const struct nk_style_item *background;
-
-    /* select correct slider images/colors */
-    struct nk_color bar_color;
-    const struct nk_style_item *cursor;
-
-    NK_UNUSED(min);
-    NK_UNUSED(max);
-    NK_UNUSED(value);
-
-    if (state & NK_WIDGET_STATE_ACTIVED) {
-        background = &style->active;
-        bar_color = style->bar_active;
-        cursor = &style->cursor_active;
-    } else if (state & NK_WIDGET_STATE_HOVER) {
-        background = &style->hover;
-        bar_color = style->bar_hover;
-        cursor = &style->cursor_hover;
-    } else {
-        background = &style->normal;
-        bar_color = style->bar_normal;
-        cursor = &style->cursor_normal;
-    }
-
-    /* calculate slider background bar */
-    bar.x = (visual_cursor->x + visual_cursor->w/2) - bounds->w/12;
-    bar.y = bounds->y;
-    bar.w = bounds->w/6;
-    bar.h = bounds->h;
-
-    /* filled background bar style */
-    fill.w = bar.w;
-    fill.x = bar.x;
-    fill.y = bar.y;
-    fill.h = ((visual_cursor->y) - (visual_cursor->h/2.0f)) - bar.y / 2;
-
-    /* draw background */
-    switch(background->type) {
-        case NK_STYLE_ITEM_IMAGE:
-            nk_draw_image(out, *bounds, &background->data.image, nk_rgb_factor(nk_white, style->color_factor));
-            break;
-        case NK_STYLE_ITEM_NINE_SLICE:
-            nk_draw_nine_slice(out, *bounds, &background->data.slice, nk_rgb_factor(nk_white, style->color_factor));
-            break;
-        case NK_STYLE_ITEM_COLOR:
-            nk_fill_rect(out, *bounds, style->rounding, nk_rgb_factor(background->data.color, style->color_factor));
-            nk_stroke_rect(out, *bounds, style->rounding, style->border, nk_rgb_factor(style->border_color, style->color_factor));
-            break;
-    }
-
-    /* draw slider bar */
-    nk_fill_rect(out, bar, style->rounding, nk_rgb_factor(bar_color, style->color_factor));
-    nk_fill_rect(out, fill, style->rounding, nk_rgb_factor(style->bar_filled, style->color_factor));
-
-    /* draw cursor */
-    if (cursor->type == NK_STYLE_ITEM_IMAGE)
-        nk_draw_image(out, *visual_cursor, &cursor->data.image, nk_rgb_factor(nk_white, style->color_factor));
-    else
-        nk_fill_circle(out, *visual_cursor, nk_rgb_factor(cursor->data.color, style->color_factor));
-}
-
-NK_LIB float
-nk_do_vertical_slider(nk_flags *state,
-    struct nk_command_buffer *out, struct nk_rect bounds,
-    float min, float val, float max, float step,
-    const struct nk_style_slider *style, struct nk_input *in,
-    const struct nk_user_font *font)
-{
-    float slider_range;
-    float slider_min;
-    float slider_max;
-    float slider_value;
-    float slider_steps;
-    float cursor_offset;
-
-    struct nk_rect visual_cursor;
-    struct nk_rect logical_cursor;
-
-    NK_ASSERT(style);
-    NK_ASSERT(out);
-    if (!out || !style)
-        return 0;
-
-    /* remove padding from slider bounds */
-    bounds.x = bounds.x + style->padding.x;
-    bounds.y = bounds.y + style->padding.y;
-    bounds.h = NK_MAX(bounds.h, 2*style->padding.y);
-    bounds.w = NK_MAX(bounds.w, 2*style->padding.x);
-    bounds.w -= 2 * style->padding.x;
-    bounds.h -= 2 * style->padding.y;
-
-    /* optional buttons */
-    if (style->show_buttons) {
-        nk_flags ws;
-        struct nk_rect button;
-        button.y = bounds.y;
-        button.w = bounds.h;
-        button.h = bounds.h;
-
-        /* decrement button */
-        button.x = bounds.x;
-        if (nk_do_button_symbol(&ws, out, button, style->dec_symbol, NK_BUTTON_DEFAULT,
-            &style->dec_button, in, font))
-            val -= step;
-
-        /* increment button */
-        button.x = (bounds.x + bounds.w) - button.w;
-        if (nk_do_button_symbol(&ws, out, button, style->inc_symbol, NK_BUTTON_DEFAULT,
-            &style->inc_button, in, font))
-            val += step;
-
-        bounds.x = bounds.x + button.w + style->spacing.x;
-        bounds.w = bounds.w - (2*button.w + 2*style->spacing.x);
-    }
-
-    /* remove one cursor size to support visual cursor */
-    // bounds.y += style->cursor_size.y*0.5f;
-    // bounds.h -= style->cursor_size.y;
-
-    /* make sure the provided values are correct */
-    slider_max = NK_MAX(min, max);
-    slider_min = NK_MIN(min, max);
-    slider_value = NK_CLAMP(slider_min, val, slider_max);
-    slider_range = slider_max - slider_min;
-    slider_steps = slider_range / step;
-    cursor_offset = (slider_value - slider_min) / step;
-
-    /* calculate cursor
-    Basically you have two cursors. One for visual representation and interaction
-    and one for updating the actual cursor value. */
-    logical_cursor.h = bounds.h / slider_steps;
-    logical_cursor.w = bounds.w;
-    logical_cursor.x = bounds.x;
-    logical_cursor.y = bounds.y + (logical_cursor.h * cursor_offset);
-
-    visual_cursor.h = style->cursor_size.y;
-    visual_cursor.w = style->cursor_size.x;
-    visual_cursor.y = logical_cursor.y - visual_cursor.h*0.5f;
-    visual_cursor.x = (bounds.x + bounds.w*0.5f) - visual_cursor.w*0.5f;
-
-    slider_value = nk_vertical_slider_behavior(state, &logical_cursor, &visual_cursor,
-        in, bounds, slider_min, slider_max, slider_value, step, slider_steps);
-    visual_cursor.y = logical_cursor.y - visual_cursor.h*0.5f;
-
-    /* draw slider */
-    if (style->draw_begin) style->draw_begin(out, style->userdata);
-    nk_draw_vertical_slider(out, *state, style, &bounds, &visual_cursor, slider_min, slider_value, slider_max);
-    if (style->draw_end) style->draw_end(out, style->userdata);
-    return slider_value;
-}
-
-NK_API nk_bool
-nk_vertical_slider_float(struct nk_context *ctx, float min_value, float *value, float max_value,
-    float value_step)
-{
-    struct nk_window *win;
-    struct nk_panel *layout;
-    struct nk_input *in;
-    const struct nk_style *style;
-
-    int ret = 0;
-    float old_value;
-    struct nk_rect bounds;
-    enum nk_widget_layout_states state;
-
-    NK_ASSERT(ctx);
-    NK_ASSERT(ctx->current);
-    NK_ASSERT(ctx->current->layout);
-    NK_ASSERT(value);
-    if (!ctx || !ctx->current || !ctx->current->layout || !value)
-        return ret;
-
-    win = ctx->current;
-    style = &ctx->style;
-    layout = win->layout;
-
-    state = nk_widget(&bounds, ctx);
-    if (!state) return ret;
-    in = (/*state == NK_WIDGET_ROM || */ state == NK_WIDGET_DISABLED || layout->flags & NK_WINDOW_ROM) ? 0 : &ctx->input;
-
-    old_value = *value;
-    *value = nk_do_vertical_slider(&ctx->last_widget_state, &win->buffer, bounds, min_value,
-                old_value, max_value, value_step, &style->slider, in, style->font);
-    return (old_value > *value || old_value < *value);
-}
-
-NK_API nk_bool nk_vertical_slider_int(struct nk_context *ctx, int min, int *val, int max, int step){
-    int ret;
-    float value = (float)*val;
-    ret = nk_slider_float(ctx, (float)min, &value, (float)max, (float)step);
-    *val =  (int)value;
-    return ret;
-}
 
 
 
@@ -27487,13 +27234,17 @@ retry:
         break;
 
     case NK_KEY_TEXT_INSERT_MODE:
-        state->mode = NK_TEXT_EDIT_MODE_INSERT;
+        if (state->mode == NK_TEXT_EDIT_MODE_VIEW)
+            state->mode = NK_TEXT_EDIT_MODE_INSERT;
         break;
     case NK_KEY_TEXT_REPLACE_MODE:
-        state->mode = NK_TEXT_EDIT_MODE_REPLACE;
+        if (state->mode == NK_TEXT_EDIT_MODE_VIEW)
+            state->mode = NK_TEXT_EDIT_MODE_REPLACE;
         break;
     case NK_KEY_TEXT_RESET_MODE:
-        state->mode = NK_TEXT_EDIT_MODE_VIEW;
+        if (state->mode == NK_TEXT_EDIT_MODE_INSERT ||
+            state->mode == NK_TEXT_EDIT_MODE_REPLACE)
+            state->mode = NK_TEXT_EDIT_MODE_VIEW;
         break;
 
     case NK_KEY_LEFT:
@@ -28309,7 +28060,7 @@ nk_do_edit(nk_flags *state, struct nk_command_buffer *out,
             in->mouse.buttons[NK_BUTTON_LEFT].clicked) {
             nk_textedit_click(edit, mouse_x, mouse_y, font, row_height);
         } else if (is_hovered && in->mouse.buttons[NK_BUTTON_LEFT].down &&
-            nk_input_is_mouse_moved(in)) {
+            (in->mouse.delta.x != 0.0f || in->mouse.delta.y != 0.0f)) {
             nk_textedit_drag(edit, mouse_x, mouse_y, font, row_height);
             cursor_follow = nk_true;
         } else if (is_hovered && in->mouse.buttons[NK_BUTTON_RIGHT].clicked &&
@@ -29319,7 +29070,6 @@ nk_property(struct nk_context *ctx, const char *name, struct nk_property_variant
         win->property.name = hash;
         win->property.select_start = *select_begin;
         win->property.select_end = *select_end;
-        win->edit.active = nk_true;
         if (*state == NK_PROPERTY_DRAG) {
             ctx->input.mouse.grab = nk_true;
             ctx->input.mouse.grabbed = nk_true;
@@ -29335,7 +29085,6 @@ nk_property(struct nk_context *ctx, const char *name, struct nk_property_variant
         win->property.select_start = 0;
         win->property.select_end = 0;
         win->property.active = 0;
-        win->edit.active = nk_false;
     }
 }
 NK_API void
@@ -29351,20 +29100,6 @@ nk_property_int(struct nk_context *ctx, const char *name,
     variant = nk_property_variant_int(*val, min, max, step);
     nk_property(ctx, name, &variant, inc_per_pixel, NK_FILTER_INT);
     *val = variant.value.i;
-}
-NK_API void
-nk_property_short(struct nk_context *ctx, const char *name,
-    short min, short *val, short max, int step, float inc_per_pixel)
-{
-    struct nk_property_variant variant;
-    NK_ASSERT(ctx);
-    NK_ASSERT(name);
-    NK_ASSERT(val);
-
-    if (!ctx || !ctx->current || !name || !val) return;
-    variant = nk_property_variant_int(*val, min, max, step);
-    nk_property(ctx, name, &variant, inc_per_pixel, NK_FILTER_INT);
-    *val = (short)variant.value.i;
 }
 NK_API void
 nk_property_float(struct nk_context *ctx, const char *name,
@@ -30991,14 +30726,9 @@ nk_tooltipfv(struct nk_context *ctx, const char *fmt, va_list args)
 ///   - [y]: Minor version with non-breaking API and library changes
 ///   - [z]: Patch version with no direct changes to the API
 ///
-/// - 2025/11/15 (4.13.0) - Fix: nk_property not updating 'win->edit.active'
-///                         Add new updated demo: sdl3_renderer
 /// - 2025/10/08 (4.12.8) - Fix nk_widget_text to use NK_TEXT_ALIGN_LEFT by default,
 ///                         instead of silently failing when no x-axis alignment is provided,
 ///                         and refactor this function to keep the code style consistent
-/// - 2025/09/12 (4.12.8) - Fix nk_window_is_hovered to use current window flags
-                          - Fix nk_utf_decode length check (allow len == NK_UTF_SIZE)
-/// - 2025/04/28 (4.12.8) - Allow switching between TEXT_INSERT and TEXT_REPLACE modes directly
 /// - 2025/04/06 (4.12.7) - Fix text input navigation and mouse scrolling
 /// - 2025/03/29 (4.12.6) - Fix unitialized data in nk_input_char
 /// - 2025/03/05 (4.12.5) - Fix scrolling knob also scrolling parent window, remove dead code

@@ -1,12 +1,16 @@
 cmake_minimum_required(VERSION 3.16)
 project(beauvoir LANGUAGES C)
 
+# beauvoir options
+option(BVR_DEBUG "Enable debugging" ON)
 option(BVR_TARGET_SHARED "Build shared library" ON)
 option(BVR_TARGET_STATIC "Build static library" OFF)
 
+message(STATUS "BVR_DEBUG = ${BVR_DEBUG}")
 message(STATUS "BVR_TARGET_SHARED = ${BVR_TARGET_SHARED}")
 message(STATUS "BVR_TARGET_STATIC = ${BVR_TARGET_STATIC}")
 
+# beauvoir global variables
 set(BVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(BVR_SOURCE_DIR ${BVR_ROOT_DIR}/src)
 set(BVR_INCLUDE_DIR ${BVR_ROOT_DIR}/include)
@@ -15,11 +19,14 @@ set(BVR_BUILD_DIR ${BVR_ROOT_DIR}/build)
 set(BVR_BIN_DIR ${BVR_ROOT_DIR}/bin)
 set(BVR_DEMO_DIR ${BVR_ROOT_DIR}/intern)
 
+set(BVR_TINYCC_DIR ${BVR_ROOT_DIR}/tinycc)
+
 message(STATUS "BVR_SOURCE_DIR = ${BVR_SOURCE_DIR}")
 message(STATUS "BVR_INCLUDE_DIR = ${BVR_INCLUDE_DIR}")
 message(STATUS "BVR_LIB_DIR = ${BVR_LIB_DIR}")
 message(STATUS "BVR_BUILD_DIR = ${BVR_BUILD_DIR}")
 message(STATUS "BVR_BIN_DIR = ${BVR_BIN_DIR}")
+message(STATUS "BVR_TINYCC_DIR = ${BVR_TINYCC_DIR}")
 
 set(BVR_THIRD_PARTY_MODULES "")
 
@@ -71,20 +78,30 @@ else()
 endif()
 
 find_package(OpenGL REQUIRED)
+find_package (Threads REQUIRED)
+
+if(EXISTS ${BVR_TINYCC_DIR})
+    add_subdirectory(${BVR_TINYCC_DIR})    
+endif()
 
 file(GLOB_RECURSE BVR_ENGINE_SOURCES "${BVR_SOURCE_DIR}/*.c")
 
 target_sources(beauvoir PRIVATE ${BVR_ENGINE_SOURCES})
+if(BVR_DEBUG)
+    target_compile_definitions(beauvoir PRIVATE BVR_DEBUG=${BVR_DEBUG})
+endif()
 
 target_include_directories(beauvoir
     PUBLIC
         $<BUILD_INTERFACE:${BVR_INCLUDE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<BUILD_INTERFACE:${BVR_SOURCE_DIR}>
         $<INSTALL_INTERFACE:include>
 )
 
 target_link_libraries(beauvoir PUBLIC
     OpenGL::GL
+    Threads::Threads
     ${BVR_THIRD_PARTY_MODULES}
 )
 

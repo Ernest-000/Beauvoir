@@ -106,6 +106,7 @@ bvr_book_t* bvr_create_book_attributes(bvr_book_t* book, struct bvr_book_attribu
         book->slots[i].is_active = false;
         book->slots[i].is_assigned = false;
     }
+    book->active_slot = -1;
     
     bvr_create_memstream(&book->garbage, attributes.garbage_stream_size);
     bvr_create_memstream(&book->assets, attributes.asset_stream_size);
@@ -127,8 +128,16 @@ void bvr_new_frame(void){
     bvr_pipeline_state_enable(&__book->graphics.rendering_pass);
 
     __book->graphics.command_count = 0;
+    
+    // get the current page
+    bvr_page_t* page = BVR_PAGE();
 
-    // prepare opengl uniform buffers
+    if(page){
+        // prepare opengl uniform buffers
+        // update camera
+        bvr_update_camera(&page->camera);
+    }
+    
 }
 
 void bvr_flush(void){
@@ -190,11 +199,15 @@ void bvr_destroy_book(bvr_book_t* book){
     bvr_destroy_memstream(&book->assets);
 }
 
-void bvr_create_page(bvr_page_t* page, const char* name){
-    BVR_ASSERT(page);
+bvr_page_t* bvr_create_page(bvr_page_t* page, const char* name){
+    if(page == NULL){
+        // if it's null, we return the current scene
+        return &BVR_INSTANCE()->slots[clampi(BVR_INSTANCE()->active_slot, 0, BVR_MAX_PAGE - 1)].page;
+    }
 
     bvr_create_string(&page->name, name);
     bvr_create_table(&page->actors, sizeof(struct bvr_actor_s*), 64);
+    return page;
 }
 
 bvr_page_t* bvr_enable_page(uint32 index){
@@ -202,9 +215,25 @@ bvr_page_t* bvr_enable_page(uint32 index){
         return NULL;
     }
 
+    if(index == BVR_INSTANCE()->active_slot){
+        // when it's already the active scene
+        return bvr_create_page(NULL, 0);
+    }
+
+    if(BVR_INSTANCE()->active_slot >= 0){
+        // disable the current slot
+        struct bvr_page_slot_s* prev = &BVR_INSTANCE()->slots[BVR_INSTANCE()->active_slot];
+        prev->is_active = false;
+        prev->is_assigned = false;
+    }
+
     struct bvr_page_slot_s* slot = &BVR_INSTANCE()->slots[index];
     slot->is_active = true;
     slot->is_assigned = true;
+
+    // update the current slot
+    BVR_INSTANCE()->active_slot = index;
+
     return &slot->page;
 }
 

@@ -9,9 +9,12 @@
 
 typedef union bvr_camera_u {
     struct bvr_camera_ortho_s {
-        uint8 mode;
-
+        // that block MUST be aligned
+        uint16 mode;
+        bvr_transform_t transform;
+        
         uint32 buffer_object;
+        // end
     
         float width;
         float height;
@@ -21,13 +24,15 @@ typedef union bvr_camera_u {
 
         float scale;
 
-        bvr_transform_t transform;
     } __struct_align16 ortho;
 
     struct bvr_camera_perspective_s {
-        uint8 mode;
-
+        // that block MUST be aligned
+        uint16 mode;
+        bvr_transform_t transform;
+        
         uint32 buffer_object;
+        // end
     
         float aspect;
 
@@ -35,24 +40,36 @@ typedef union bvr_camera_u {
         float far;
 
         float fov;
-
-        bvr_transform_t transform;
     } __struct_align16 perspective;
 } bvr_camera_t;
 
 /**
- * @brief create a new camera
+ * @brief create a new orthographic camera
  * 
  * @param camera
- * @param target
- * @param mode ```BVR_CAMERA_ORTHOGRAPHIC``` or ```BVR_CAMERA_PERSPECTIVE```
+ * @param width the viewport width
+ * @param height the viewport height
  * @param near near plane distance
  * @param far far plane distance
- * @param scale fov or camera's scale (depending on camera's mode)
+ * @param scale the camera's viewport scale
  * 
  * @return (void)
  */
-void bvr_create_camera(bvr_camera_t* camera, const bvr_framebuffer_t* target, int mode, float near, float far, float scale);
+void bvr_create_ortho_camera(bvr_camera_t* camera, float width, float height, float near, float far, float scale);
+
+/**
+ * @brief create a new perspective camera
+ * 
+ * @param camera
+ * @param width the viewport width
+ * @param height the viewport height
+ * @param near near plane distance
+ * @param far far plane distance
+ * @param fov the field of view of the camera
+ * 
+ * @return (void)
+ */
+void bvr_create_persp_camera(bvr_camera_t* camera, float width, float height, float near, float far, float fov);
 
 /**
  * @brief update camera's view matrix
@@ -68,7 +85,7 @@ void bvr_update_camera(bvr_camera_t* camera);
  * @param up
  * @return (void)
  */
-void bvr_camera_lookat(bvr_camera_t*, const vec3 target, const vec3 up);
+void bvr_camera_lookat(bvr_camera_t* camera, const vec3 target, const vec3 up);
 
 /**
  * @brief transform a screen coordinate to a world coordinate

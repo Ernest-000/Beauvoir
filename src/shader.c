@@ -9,69 +9,10 @@
 
 #include <bvr/gl.h>
 
+// add extensions
+#include "shaderext.c"
+
 #define BVR_MAX_GLSL_HEADER_SIZE 100
-
-// vertex shader struct
-static const char* __ext_s_vdata = "struct V_DATA {\n"
-	"   vec3 position;\n"
-	"   vec2 uvs;\n"
-    "   vec3 normals;\n"
-    "};\n";
-
-// light shader struct
-static const char* __ext_s_vlight = "struct V_LIGHT {\n"
-"	vec4 position;\n"
-"	vec4 direction;\n"
-"	vec4 color;\n"
-"};\n";
-
-static const char* __ext_s_layer = "struct L_DATA {\n"
-"	int index;\n"
-"	int blend;\n"
-"	float opacity;\n"
-"};\n";
-
-// light related function(s)
-static const char* __ext_f_light = "vec4 calc_light(vec4 color, V_LIGHT light, V_DATA vertex){\n"
-"	vec3 l_color;\n"
-"	float intensity = light.color.a / 255;\n"
-"	float ambiant_intensity = light.position.w / 255;\n"
-"	vec3 norm = normalize(vertex.normals);\n"
-"	vec3 light_direction = normalize(light.position.xyz - vertex.position);\n"
-"	vec3 diffuse = vec3(intensity) * max(dot(norm, light_direction), 0.0);\n"
-"	vec3 ambiant = vec3(ambiant_intensity);\n"
-"	l_color = diffuse + ambiant;\n"
-"	return vec4(l_color, 1.0) * vec4(light.color.rgb, 1.0);\n"
-"}\n";
-
-static const char* __ext_f_layer = "L_DATA create_layer(int layer){\n"
-"	L_DATA info;\n"
-"   info.index = 0xFF & layer;\n"
-"   info.blend = (0xFF00 & layer) >> 8;\n"
-"   info.opacity = ((0xFF0000 & layer) >> 16) / 255.0;\n"
-"	return info;\n"
-"}\n"
-"vec4 calc_blending(vec4 composite, vec4 pixel, L_DATA layer){\n"
-"    vec3 blend = pixel.rgb;\n"
-"    float alpha = pixel.a * layer.opacity;\n"
-    // normal and passthrough
-"    if(layer.blend == 0 || layer.blend == 1){ return mix(composite, pixel, alpha);}"
-    // multiply
-"    if(layer.blend == 4){blend = composite.rgb * pixel.rgb;}\n"
-    // screen
-"    else if(layer.blend == 9){ blend = 1.0 - (1.0 - composite.rgb) * (1.0 - pixel.rgb);}\n"
-    // overlay
-"    else if(layer.blend == 13){\n"
-"        blend = mix(2.0 * composite.rgb * pixel.rgb, \n"
-"       1.0 - 2.0*(1.0-composite.rgb)*(1.0-pixel.rgb),\n"
-"            step(0.5, composite.rgb));\n"
-"    }\n"
-    // darken
-"    else if(layer.blend == 3){blend = min(composite.rgb, pixel.rgb);}\n"
-    // lighten
-"    else if(layer.blend == 8){blend = max(composite.rgb, pixel.rgb);}\n"
-"    return mix(composite, vec4(blend, 1.0), alpha);\n"
-"}\n";
 
 static int bvri_compile_shader(uint32* shader, bvr_string_t* const content, int type);
 static int bvri_compile_shader_raw(uint32* shader, const char* content, int type);
@@ -445,38 +386,38 @@ int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int 
     bvri_link_shader(shader->program);
 }*/
 
-void bvr_create_uniform_buffer(uint32* buffer, uint64 size, uint32 binding_point){
-    glGenBuffers(1, buffer);
-    glBindBuffer(GL_UNIFORM_BUFFER, *buffer);
-    glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-    glBindBufferRange(GL_UNIFORM_BUFFER, binding_point, *buffer, 0, size);
-}
-
-void bvr_enable_uniform_buffer(uint32 buffer){
-    glBindBuffer(GL_UNIFORM_BUFFER, buffer);
-}
-
-void bvr_uniform_buffer_set(uint32 offset, uint64 size, void* data){
-    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
-}
-
-void* bvr_uniform_buffer_map(uint32 offset, uint64 size){
-    return glMapBufferRange(GL_UNIFORM_BUFFER, offset, size, GL_MAP_READ_BIT);
-}
-
-void bvr_uniform_buffer_close(){
-    glUnmapBuffer(GL_UNIFORM_BUFFER);
-}
-
-void bvr_destroy_uniform_buffer(uint32* buffer){
-    if(!buffer){
-        return;
-    }
-
-    glDeleteBuffers(1, buffer);
-}
+// void bvr_create_uniform_buffer(uint32* buffer, uint64 size, uint32 binding_point){
+//     glGenBuffers(1, buffer);
+//     glBindBuffer(GL_UNIFORM_BUFFER, *buffer);
+//     glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
+//     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+// 
+//     glBindBufferRange(GL_UNIFORM_BUFFER, binding_point, *buffer, 0, size);
+// }
+// 
+// void bvr_enable_uniform_buffer(uint32 buffer){
+//     glBindBuffer(GL_UNIFORM_BUFFER, buffer);
+// }
+// 
+// void bvr_uniform_buffer_set(uint32 offset, uint64 size, void* data){
+//     glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
+// }
+// 
+// void* bvr_uniform_buffer_map(uint32 offset, uint64 size){
+//     return glMapBufferRange(GL_UNIFORM_BUFFER, offset, size, GL_MAP_READ_BIT);
+// }
+// 
+// void bvr_uniform_buffer_close(){
+//     glUnmapBuffer(GL_UNIFORM_BUFFER);
+// }
+// 
+// void bvr_destroy_uniform_buffer(uint32* buffer){
+//     if(!buffer){
+//         return;
+//     }
+// 
+//     glDeleteBuffers(1, buffer);
+// }
 
 bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type, enum bvr_uniform_tag_e tag, int count, const char* name){
     BVR_ASSERT(shader);

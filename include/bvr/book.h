@@ -2,6 +2,7 @@
 
 #include <bvr/audio.h>
 #include <bvr/window.h>
+#include <bvr/camera.h>
 #include <bvr/graphics.h>
 
 #include <bvr/collections/table.h>
@@ -18,6 +19,16 @@
 #define BVR_INSTANCE() (bvr_create_book(NULL))
 
 /**
+ * @brief return the active scene.
+ */
+#define BVR_PAGE() (bvr_create_page(NULL, 0))
+
+/**
+ * @brief return the current active camera.
+ */
+#define BVR_CAMERA() (&BVR_PAGE()->camera)
+
+/**
  * @brief verify if the window is sill awake or not.
  * @returns returns true if the 
  */
@@ -28,6 +39,7 @@
 typedef struct bvr_page_s {
     bvr_string_t name;
 
+    bvr_camera_t camera;
     bvr_table_t actors;
 } bvr_page_t;
 
@@ -85,6 +97,9 @@ typedef struct bvr_book_s {
     /// @brief game's global variables and static components
     struct bvr_predefs predefs;
 
+    /// @brief current active scene slot index
+    int8 active_slot;
+
     struct bvr_page_slot_s slots[BVR_MAX_PAGE];
 
     struct bvr_memstream_s garbage;
@@ -131,9 +146,11 @@ void bvr_render(void);
 void bvr_destroy_book(bvr_book_t* book);
 
 /**
- * @brief create a new page
+ * @brief create a new page. 
+ * @param page the scene to create. If NULL, it will return the current scene.
+ * @param name the name of the scene.
  */
-void bvr_create_page(bvr_page_t* page, const char* name);
+bvr_page_t* bvr_create_page(bvr_page_t* page, const char* name);
 
 /**
  * @brief enable a page slot.

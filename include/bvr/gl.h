@@ -61,7 +61,6 @@ extern "C" {
 #endif
 
 // loader functions
-
 int bvr_load_gles(GLADloadproc proc);
 int bvr_load_glcore(GLADloadproc proc);
 int bvr_load_gl(GLADloadproc proc);

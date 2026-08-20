@@ -32,7 +32,6 @@ static int bvri_abstract_draw(struct bvr_actor_s* actor, int drawmode, bvr_mesh_
     bvr_vertex_group_t* group;
     BVR_POOL_FOR_EACH(mesh->vertex_groups, group){
         cmd.vertex_group = *group;
-        BVR_PRINTF("%i %i", group->element_offset, group->element_count);
 
         bvr_pipeline_add_draw_cmd(&cmd);
     }
@@ -71,6 +70,7 @@ static void bvri_abstract_calc_transform(struct bvr_actor_s* actor){
 
 void bvr_static_mesh_draw(struct bvr_actor_s* self, int drawmode){
     bvr_static_mesh_t* sm = (bvr_static_mesh_t*)self;
+    BVR_ASSERT(sm);
     
     bvri_abstract_calc_transform(self);
     bvri_abstract_draw(self, drawmode, &sm->mesh, &sm->shader);
@@ -81,11 +81,17 @@ void bvr_static_mesh_update(struct bvr_actor_s* self){
 }
 
 void bvr_static_mesh_destroy(struct bvr_actor_s* self){
+    bvr_static_mesh_t* sm = (bvr_static_mesh_t*)self;
+    BVR_ASSERT(sm);
 
+    bvr_destroy_mesh(&sm->mesh);
+    bvr_destroy_shader(&sm->shader);
+    bvr_destroy_image(&sm->image);
 }
 
 void bvr_dynamic_mesh_draw(struct bvr_actor_s* self, int drawmode){
     bvr_dynamic_mesh_t* dm = (bvr_dynamic_mesh_t*)self;
+    BVR_ASSERT(dm);
     
     bvri_abstract_calc_transform(self);
     bvri_abstract_draw(self, drawmode, &dm->mesh, &dm->shader);
@@ -96,5 +102,10 @@ void bvr_dynamic_mesh_update(struct bvr_actor_s* self){
 }
 
 void bvr_dynamic_mesh_destroy(struct bvr_actor_s* self){
+    bvr_dynamic_mesh_t* dm = (bvr_dynamic_mesh_t*)self;
+    BVR_ASSERT(dm);
 
+    bvr_destroy_mesh(&dm->mesh);
+    bvr_destroy_shader(&dm->shader);
+    bvr_destroy_image(&dm->image);
 }

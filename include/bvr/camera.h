@@ -7,23 +7,37 @@
 #define BVR_CAMERA_ORTHOGRAPHIC 0x1
 #define BVR_CAMERA_PERSPECTIVE  0x2
 
-typedef struct bvr_camera_s {
-    uint32 mode;
+typedef union bvr_camera_u {
+    struct bvr_camera_ortho_s {
+        uint8 mode;
 
-    struct bvr_transform_s transform;
-    bvr_framebuffer_t* framebuffer;
-    uint32 buffer; /* uniform buffer object reference */
+        uint32 buffer_object;
     
-    float near;
-    float far;
-    union bvr_camera_field_of_view_u
-    {
-        // ortho scale
+        float width;
+        float height;
+
+        float near;
+        float far;
+
         float scale;
 
-        // perspective scale
+        bvr_transform_t transform;
+    } __struct_align16 ortho;
+
+    struct bvr_camera_perspective_s {
+        uint8 mode;
+
+        uint32 buffer_object;
+    
+        float aspect;
+
+        float near;
+        float far;
+
         float fov;
-    } field_of_view;
+
+        bvr_transform_t transform;
+    } __struct_align16 perspective;
 } bvr_camera_t;
 
 /**

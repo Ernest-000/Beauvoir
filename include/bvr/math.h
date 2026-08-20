@@ -13,13 +13,16 @@ typedef float quat[4];
 
 typedef vec4 mat4x4[4];
 
-typedef struct bvr_transform_s {
+struct bvr_transform_s {
     vec3 position;
     vec3 scale;
     quat rotation;
 
-    mat4x4 matrix;
-} bvr_transform_t;
+    mat4x4 local;
+    mat4x4 world;
+} __struct_align16;
+
+typedef struct bvr_transform_s bvr_transform_t;
 
 struct bvr_bounds_s {
     vec2 coords;
@@ -152,7 +155,7 @@ BVR_H_FUNC int npow2(int x){
     x |= x >> 4;
     x |= x >> 8;
     x |= x >> 16;
-    x |= x >> 32;
+    // x |= x >> 32;
     return x;
 }
 
@@ -525,6 +528,19 @@ BVR_H_FUNC void mat4_ortho(mat4x4 result, float left, float right, float bottom,
     result[3][1] = -(top + bottom) * tb;
     result[3][2] = -(far + near) * fn;
     result[3][3] = 1.0f;
+}
+
+
+/**
+ * @brief copy a matrix to another
+ * @param result the matrix that will be copied to.
+ * @param mat the matrix where the values will came from.
+ */
+BVR_H_FUNC void mat4_copy(mat4x4 result, mat4x4 mat){
+    vec4_copy(result[0], mat[0]);
+    vec4_copy(result[1], mat[1]);
+    vec4_copy(result[2], mat[2]);
+    vec4_copy(result[3], mat[3]);
 }
 
 /**

@@ -377,14 +377,14 @@ static void bvr_nk_draw_audio_component(bvr_canvas_t* context, void* user){
     nk_layout_row_dynamic(&context->context, 200, BVR_MAX_AUDIO_TRACKS + 1);  
 
     // master
-    nk_vertical_slider_float(&context->context, 0.0f, &mixer->gain, 1.0f, 0.01f);
+    //nk_vertical_slider_float(&context->context, 0.0f, &mixer->gain, 1.0f, 0.01f);
     
     for (size_t i = 0; i < BVR_MAX_AUDIO_TRACKS; i++)
     {
         if(nk_group_begin(&context->context, "", NK_WINDOW_NO_SCROLLBAR)){ 
             nk_layout_row_dynamic(&context->context, 100, 1);
 
-            nk_vertical_slider_float(&context->context, 0.0f, &mixer->master.tracks[i].gain, 1.0f, 0.01f);
+            // nk_vertical_slider_float(&context->context, 0.0f, &mixer->master.tracks[i].gain, 1.0f, 0.01f);
 
             nk_layout_row_dynamic(&context->context, 20, 1);
             nk_knob_float(&context->context, -100.0, &mixer->master.tracks[i].pan, 100.0, 0.1, NK_HEADER_LEFT, 0.0f);

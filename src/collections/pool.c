@@ -61,6 +61,7 @@ void* bvr_pool_alloc(bvr_pool_t* pool){
 }
 
 int bvr_pool_is_available(bvr_pool_t* pool, void* chunk){
+    BVR_ASSERT(pool->data);
     return bvri_get_chunk_usage(pool, chunk);
 }
 

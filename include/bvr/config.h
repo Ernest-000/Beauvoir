@@ -68,12 +68,22 @@ typedef float float32;
 #define BVR_UINT64_MIN (0x0000000000000000ULL)
 #define BVR_UINT64_MAX (0xFFFFFFFFFFFFFFFFULL)
 
+/**
+ * define compiler specific macros  
+*/ 
+
 #if defined(__clang__)
     #define typeof(x) __typeof__(x)
+
+    #define __struct_align16 __attribute__((aligned(16)))
 #elif defined(_MSC_VER)
     #define typeof(x) __typeof__(x)
+
+    #define __struct_align16 __declspec(align(#))
 #else
     #define typeof(x) __typeof(x)
+
+    #define __struct_align16 __attribute__((aligned(16)))
 #endif
 
 /**

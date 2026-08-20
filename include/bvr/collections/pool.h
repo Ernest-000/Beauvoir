@@ -4,7 +4,7 @@
 
 #define BVR_POOL_FOR_EACH(pool, value) \
     for(uint64 _i = 0; _i < (pool).capacity; _i++) \
-    if(bvr_pool_is_available(&(pool), ((pool).data)->data + _i * (pool).chunk_size) && ((value) = ((pool).data)->data + _i * (pool).chunk_size, 1))
+    if(bvr_pool_is_available(&(pool), ((char*)(pool).data) + _i * (pool).chunk_size) && (((value) = (void*)((char*)(pool).data) + _i * (pool).chunk_size, 1)))
 
 /**
  * chunk of memory in a pool

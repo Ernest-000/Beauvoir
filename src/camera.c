@@ -135,7 +135,7 @@ void bvr_create_camera(bvr_camera_t* camera, const bvr_framebuffer_t* target, in
     BVR_IDENTITY_VEC3(camera->transform.position);
     BVR_IDENTITY_VEC4(camera->transform.rotation);
     BVR_IDENTITY_VEC3(camera->transform.scale);
-    BVR_IDENTITY_MAT4(camera->transform.matrix);
+    BVR_IDENTITY_MAT4(camera->transform.local);
 
     bvr_create_uniform_buffer(&camera->buffer, 2 * sizeof(mat4x4), BVR_UNIFORM_BLOCK_CAMERA);
 }
@@ -157,9 +157,9 @@ void bvr_update_camera(bvr_camera_t* camera){
 
     // calculate directionds
     const vec3 up_axis = {0.0f, 1.0f, 0.0f};
-    front[0] = cos(deg_to_rad(camera->transform.rotation[2]) + M_PI_2) * cos(deg_to_rad(camera->transform.rotation[1]));
+    front[0] = cos(deg_to_rad(camera->transform.rotation[2]) + BVR_HALF_PI) * cos(deg_to_rad(camera->transform.rotation[1]));
     front[1] = sin(deg_to_rad(camera->transform.rotation[1]));
-    front[2] = sin(deg_to_rad(camera->transform.rotation[2]) + M_PI_2) * cos(deg_to_rad(camera->transform.rotation[1]));
+    front[2] = sin(deg_to_rad(camera->transform.rotation[2]) + BVR_HALF_PI) * cos(deg_to_rad(camera->transform.rotation[1]));
 
     // normalize direction
     vec3_norm(front, front);

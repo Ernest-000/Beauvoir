@@ -4,17 +4,31 @@
 #include <bvr/window.h>
 #include <bvr/graphics.h>
 
+#include <bvr/collections/table.h>
+#include <bvr/collections/string.h>
 #include <bvr/collections/memstream.h>
 
 #ifndef BVR_MAX_PAGE
     #define BVR_MAX_PAGE 8
 #endif
 
+/**
+ * @brief return the current instanciate book.
+ */
 #define BVR_INSTANCE() (bvr_create_book(NULL))
+
+/**
+ * @brief verify if the window is sill awake or not.
+ * @returns returns true if the 
+ */
 #define BVR_CAN_QUIT() (!BVR_INSTANCE()->window.awake)
 
-typedef struct bvr_page_s {
+#define BVR_ALLOC_ACTOR(page, name, type) ((type*)(bvr_alloc_actor(page, name, sizeof(type))))
 
+typedef struct bvr_page_s {
+    bvr_string_t name;
+
+    bvr_table_t actors;
 } bvr_page_t;
 
 struct bvr_page_slot_s {
@@ -115,3 +129,25 @@ void bvr_render(void);
  * @brief destroy a game instance.
  */
 void bvr_destroy_book(bvr_book_t* book);
+
+/**
+ * @brief create a new page
+ */
+void bvr_create_page(bvr_page_t* page, const char* name);
+
+/**
+ * @brief enable a page slot.
+ * @param index the index of the slot.
+ */
+bvr_page_t* bvr_enable_page(uint32 index);
+
+/**
+ * @brief allocate a new actor. The allocated actor will be linked to a targetted page.
+ * @param page the page the actor will be linked to.
+ * @param name the name of the new actor. 
+ * @param size the size allocated for the actor.
+ * @returns a generic pointer to the allocated actor.
+ */
+struct bvr_actor_s* bvr_alloc_actor(bvr_page_t* page, const char* name, const uint32 size);
+
+void bvr_destroy_page(bvr_page_t* page);

@@ -1,12 +1,14 @@
 #include <bvr/book.h>
 #include <bvr/io.h>
 #include <bvr/math.h>
+#include <bvr/actors.h>
 
 #include <stdlib.h>
 
 #define BVRI_DEFAULT_WINWIDTH 800
 #define BVRI_DEFAULT_WINHEIGHT 800
-#define BVRI_DEFAULT_STREAM_SIZE (BVR_BUFFER_SIZE * 4)
+
+#define BVRI_DEFAULT_STREAM_SIZE (sizeof(struct bvr_actor_s) * 32)
 
 // binded book
 static bvr_book_t* __book = NULL;
@@ -186,4 +188,71 @@ void bvr_destroy_book(bvr_book_t* book){
     // free garbage streams
     bvr_destroy_memstream(&book->garbage);
     bvr_destroy_memstream(&book->assets);
+}
+
+void bvr_create_page(bvr_page_t* page, const char* name){
+    BVR_ASSERT(page);
+
+    bvr_create_string(&page->name, name);
+    bvr_create_table(&page->actors, sizeof(struct bvr_actor_s*), 64);
+}
+
+bvr_page_t* bvr_enable_page(uint32 index){
+    if(index >= BVR_MAX_PAGE){
+        return NULL;
+    }
+
+    struct bvr_page_slot_s* slot = &BVR_INSTANCE()->slots[index];
+    slot->is_active = true;
+    slot->is_assigned = true;
+    return &slot->page;
+}
+
+struct bvr_actor_s* bvr_alloc_actor(bvr_page_t* page, const char* name, const uint32 size){
+    BVR_ASSERT(page);
+
+    if(size == 0){
+        // allocation failed
+        return NULL;
+    }
+
+    struct bvr_actor_s** pp_actor = bvr_table_add(&page->actors, name, 0);
+    struct bvr_actor_s* p_actor = NULL;
+    BVR_ASSERT(pp_actor);
+
+    if(BVR_INSTANCE()->garbage.cursor == 0){
+        // check for memstream errors
+        BVR_PRINT("invalid garbage stream");
+        return NULL;
+    }
+
+    p_actor = (struct bvr_actor_s*)BVR_INSTANCE()->garbage.cursor;
+    BVR_ASSERT(p_actor);
+
+    bvr_memstream_write(&BVR_INSTANCE()->garbage, NULL, size);
+    
+    // clear up memory
+    memset(p_actor, 0, size);
+
+    BVR_TRANSFORM(
+        p_actor->transform,
+        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    );
+
+    p_actor->parent = NULL;
+    p_actor->childs = NULL;
+    p_actor->child_count = 0;
+    p_actor->flags = 0;
+    p_actor->hash = ((struct bvr_table_chunk_s*)(pp_actor - sizeof(struct bvr_table_chunk_s)))->key;
+
+    bvr_create_string(&p_actor->name, name);
+
+    return p_actor;
+}
+
+void bvr_destroy_page(bvr_page_t* page){
+    BVR_ASSERT(page);
+    
+    bvr_destroy_string(&page->name);
+    bvr_destroy_table(&page->actors);
 }

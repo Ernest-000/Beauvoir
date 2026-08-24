@@ -44,7 +44,7 @@ struct bvr_bounds_s {
  * @param x the x value.
  * @param y the y value.
  */
-#define BVR_CREATE_VEC2(vec, x, y) vec[0] = x; vec[1] = y;
+#define BVR_CREATE_VEC2(vec, x, y) { vec[0] = x; vec[1] = y; }
 
 /**
  * @brief create a new vector 3 from any number typed array.
@@ -53,7 +53,7 @@ struct bvr_bounds_s {
  * @param y the y value.
  * @param z the z value.
  */
-#define BVR_CREATE_VEC3(vec, x, y, z) vec[0] = x; vec[1] = y; vec[2] = z;
+#define BVR_CREATE_VEC3(vec, x, y, z) { vec[0] = x; vec[1] = y; vec[2] = z; }
 
 /**
  * @brief create a new vector 4 from any number typed array.
@@ -63,28 +63,28 @@ struct bvr_bounds_s {
  * @param z the z value.
  * @param w the w value.
  */
-#define BVR_CREATE_VEC4(vec, x, y, z, w) vec[0] = x; vec[1] = y; vec[2] = z; vec[3] = w;
+#define BVR_CREATE_VEC4(vec, x, y, z, w) { vec[0] = x; vec[1] = y; vec[2] = z; vec[3] = w; }
 
 /**
  * @brief set all values of a vector 2 to a.
  * @param vec the vector object that will be defined.
  * @param a the new value of each vector's components.
  */
-#define BVR_SET_VEC2(vec, a) vec[0] = a; vec[1] = a;
+#define BVR_SET_VEC2(vec, a) { vec[0] = a; vec[1] = a; }
 
 /**
  * @brief set all values of a vector 3 to a.
  * @param vec the vector object that will be defined.
  * @param a the new value of each vector's components.
  */
-#define BVR_SET_VEC3(vec, a) vec[0] = a; vec[1] = a; vec[2] = a;
+#define BVR_SET_VEC3(vec, a) { vec[0] = a; vec[1] = a; vec[2] = a; }
 
 /**
  * @brief set all values of a vector 4 to a.
  * @param vec the vector object that will be defined.
  * @param a the new value of each vector's components.
  */
-#define BVR_SET_VEC4(vec, a) vec[0] = a; vec[1] = a; vec[2] = a; vec[3] = a;
+#define BVR_SET_VEC4(vec, a) { vec[0] = a; vec[1] = a; vec[2] = a; vec[3] = a; }
 
 /**
  * @brief set a vector 2 of any number to (0, 0).
@@ -108,7 +108,7 @@ struct bvr_bounds_s {
  * @brief set a matrix 4x4 of any number to's identity value.
  * @param mat the matrix object array that will be defined.
  */
-#define BVR_IDENTITY_MAT4(mat)  mat[0][0] = 1.0f;\
+#define BVR_IDENTITY_MAT4(mat) {mat[0][0] = 1.0f;\
                                 mat[0][1] = 0.0f;\
                                 mat[0][2] = 0.0f;\
                                 mat[0][3] = 0.0f;\
@@ -123,7 +123,7 @@ struct bvr_bounds_s {
                                 mat[3][0] = 0.0f;\
                                 mat[3][1] = 0.0f;\
                                 mat[3][2] = 0.0f;\
-                                mat[3][3] = 1.0f;
+                                mat[3][3] = 1.0f;}
 
 /*
     Define each transform's values. 

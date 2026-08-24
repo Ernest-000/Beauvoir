@@ -25,7 +25,8 @@
 
 #define BVR_CREATE_ACTOR(actor, type)               \
     {                                               \
-        (actor)->self.vtable = &_##type##able;      \
+        (actor)->self.vtable =                          \
+            (struct bvr_actor_vtable_s*)&_##type##able; \
     }   
 
 #define BVR_ACTOR_DRAW(actor, drawmode) do {(actor)->self.vtable->draw(&(actor)->self, drawmode); } while(0)
@@ -48,7 +49,8 @@ struct bvr_actor_s {
 
     struct bvr_actor_s* parent;
     struct bvr_actor_s** childs;
-    uint16 child_count;
+    uint16 child_slots;
+    uint16 children_count;
 
     uint32 hash;
     uint16 flags;
@@ -59,9 +61,16 @@ struct bvr_actor_s {
     struct bvr_actor_vtable_s* vtable;
 };
 
+// generic functions
+void bvr_actor_set_parent(struct bvr_actor_s* actor, struct bvr_actor_s* parent);
+
+// static mesh functions
+
 void bvr_static_mesh_draw(struct bvr_actor_s* mesh, int drawmode);
 void bvr_static_mesh_update(struct bvr_actor_s* mesh);
 void bvr_static_mesh_destroy(struct bvr_actor_s* mesh);
+
+// dynamic mesh functions
 
 void bvr_dynamic_mesh_draw(struct bvr_actor_s* mesh, int drawmode);
 void bvr_dynamic_mesh_update(struct bvr_actor_s* mesh);
@@ -75,7 +84,7 @@ BVR_DECLARE_ACTOR(
     BVR_ACTOR_METHOD(destroy, bvr_static_mesh_destroy),
     BVR_ACTOR_FIELD(bvr_mesh_t, mesh)
     BVR_ACTOR_FIELD(bvr_shader_t, shader)
-    BVR_ACTOR_FIELD(bvr_image_t, image)
+    BVR_ACTOR_FIELD(bvr_texture_t, texture)
 )
 
 // dynamic mesh
@@ -86,6 +95,6 @@ BVR_DECLARE_ACTOR(
     BVR_ACTOR_METHOD(destroy, bvr_dynamic_mesh_destroy),
     BVR_ACTOR_FIELD(bvr_mesh_t, mesh)
     BVR_ACTOR_FIELD(bvr_shader_t, shader)
-    BVR_ACTOR_FIELD(bvr_image_t, image)
+    BVR_ACTOR_FIELD(bvr_texture_t, texture)
     BVR_ACTOR_FIELD(bvr_collider_t, collider)
 )

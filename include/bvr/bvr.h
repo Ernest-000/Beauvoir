@@ -12,6 +12,8 @@ extern "C" {
 #include <bvr/camera.h>
 
 #include <bvr/book.h>
+#include <bvr/graphics.h>
+#include <bvr/actors.h>
 #include <bvr/landscape.h>
 #include <bvr/assets.h>
 

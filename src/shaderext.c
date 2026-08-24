@@ -1,4 +1,5 @@
-#pragma once
+#ifndef BVR_H_SHADER_EXTENSIONS
+#define BVR_H_SHADER_EXTENSIONS
 
 // vertex shader struct
 static const char* __ext_s_vdata = "struct V_DATA {\n"
@@ -61,3 +62,5 @@ static const char* __ext_f_layer = "L_DATA create_layer(int layer){\n"
 "    else if(layer.blend == 8){blend = max(composite.rgb, pixel.rgb);}\n"
 "    return mix(composite, vec4(blend, 1.0), alpha);\n"
 "}\n";
+
+#endif

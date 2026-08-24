@@ -37,6 +37,18 @@ static int bvri_abstract_draw(struct bvr_actor_s* actor, int drawmode, bvr_mesh_
     }
 }
 
+static void bvri_abstract_destroy(struct bvr_actor_s* actor){
+    BVR_ASSERT(actor);
+
+    // clear the string
+    bvr_destroy_string(&actor->name);
+
+    // clear the children array
+    free(actor->childs);
+    actor->childs = NULL;
+    actor->child_slots = 0;
+}
+
 static void bvri_abstract_calc_transform(struct bvr_actor_s* actor){
     BVR_ASSERT(actor);
 
@@ -66,6 +78,87 @@ static void bvri_abstract_calc_transform(struct bvr_actor_s* actor){
 
     // here, we got to each parent and mult there own world matrices
     // TODO
+    struct bvr_actor_s* parent = actor;
+    while (parent->parent)
+    {
+        // previous actor in hierachy
+        parent = parent->parent;
+        mat4_mul(actor->transform.world, actor->transform.world, parent->transform.world);
+    }
+    
+}
+
+static void bvri_clear_parent(struct bvr_actor_s* actor, struct bvr_actor_s* parent){
+    BVR_ASSERT(actor);
+    BVR_ASSERT(parent);
+
+    // nothing to do
+    if(actor->parent == NULL){
+        return;
+    }
+
+    // nothing to do
+    if(parent->children_count == 0){
+        return;
+    }
+
+    actor->parent = NULL;
+    
+    // find 'actor' in the children list
+    for (size_t i = 0; i < parent->child_slots; i++)
+    {
+        if(parent->childs[i] == actor){
+            // found
+            parent->childs[i] = NULL;
+            break;
+        }
+    }
+    
+    parent->children_count--;
+}
+
+void bvr_actor_set_parent(struct bvr_actor_s* actor, struct bvr_actor_s* parent){
+    BVR_ASSERT(actor);
+
+    if(parent == NULL){
+        return;
+    }
+
+    if(actor->parent){
+        bvri_clear_parent(actor, actor->parent);
+    }
+
+    struct bvr_actor_s** pp_actor = NULL;
+    
+    if(parent->child_slots != parent->children_count){
+        // try to find an available chilren slot
+        for (size_t i = 0; i < parent->child_slots; i++)
+        {
+            if(parent->childs[i] == NULL){
+                // found available slot
+                pp_actor = &parent->childs[i];
+            }
+        }
+    }
+    
+    if(pp_actor == NULL){
+        // when no slot, alloc
+        parent->child_slots++;
+        parent->childs = realloc(parent->childs, parent->child_slots * sizeof(struct bvr_actor_s*));
+        BVR_ASSERT(parent->childs);
+
+        pp_actor = &parent->childs[parent->child_slots - 1];
+    }
+    
+
+    // set children
+    *pp_actor = actor;
+    parent->children_count++;
+
+    // set parent
+    actor->parent = parent;
+    
+    return;
 }
 
 void bvr_static_mesh_draw(struct bvr_actor_s* self, int drawmode){
@@ -86,7 +179,9 @@ void bvr_static_mesh_destroy(struct bvr_actor_s* self){
 
     bvr_destroy_mesh(&sm->mesh);
     bvr_destroy_shader(&sm->shader);
-    bvr_destroy_image(&sm->image);
+    bvr_destroy_texture(&sm->texture);
+    
+    bvri_abstract_destroy(self);
 }
 
 void bvr_dynamic_mesh_draw(struct bvr_actor_s* self, int drawmode){
@@ -107,5 +202,7 @@ void bvr_dynamic_mesh_destroy(struct bvr_actor_s* self){
 
     bvr_destroy_mesh(&dm->mesh);
     bvr_destroy_shader(&dm->shader);
-    bvr_destroy_image(&dm->image);
+    bvr_destroy_texture(&dm->texture);
+
+    bvri_abstract_destroy(self);
 }

@@ -2119,7 +2119,9 @@ void bvr_texture_disable(bvr_texture_t* texture){
 void bvr_destroy_texture(bvr_texture_t* texture){
     BVR_ASSERT(texture);
 
-    glDeleteTextures(1, &texture->id);
+    if(texture->id > 0){
+        glDeleteTextures(1, &texture->id);
+    }
     
     bvr_destroy_image(&texture->image);
 }

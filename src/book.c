@@ -270,7 +270,8 @@ struct bvr_actor_s* bvr_alloc_actor(bvr_page_t* page, const char* name, const ui
 
     p_actor->parent = NULL;
     p_actor->childs = NULL;
-    p_actor->child_count = 0;
+    p_actor->child_slots = 0;
+    p_actor->children_count = 0;
     p_actor->flags = 0;
     p_actor->hash = ((struct bvr_table_chunk_s*)(pp_actor - sizeof(struct bvr_table_chunk_s)))->key;
 

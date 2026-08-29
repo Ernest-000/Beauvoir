@@ -44,9 +44,10 @@ Both scripts accept the same flags:
 
 
 ## Creating a project 
-
+You may want to copy one of the demo projects from the demo folder. In there, you will find a sample CMakeLists file that will both build your project and the engine.
+>Checkout the demos! [Demo](/demo/)
 ## Example
-In this example, you will get a simple player that move around.
+In this example, you will get a simple black window.
 ```C
 #include <bvr/bvr.h>
 
@@ -66,7 +67,7 @@ int main(void){
         // ask for a new frame
         bvr_new_frame();
 
-        // exist the loop when the application is terminated
+        //exit the loop when the application is terminated
         if(BVR_CAN_QUIT()){
             break;
         }

@@ -76,14 +76,17 @@ typedef float float32;
     #define typeof(x) __typeof__(x)
 
     #define __struct_align16 __attribute__((aligned(16)))
+    #define __struct_align4 __attribute__((aligned(4)))
 #elif defined(_MSC_VER)
     #define typeof(x) __typeof__(x)
 
     #define __struct_align16 __declspec(align(#))
+    #define __struct_align4 __declspec(align(#))
 #else
     #define typeof(x) __typeof(x)
 
     #define __struct_align16 __attribute__((aligned(16)))
+    #define __struct_align4 __attribute__((aligned(4)))
 #endif
 
 /**

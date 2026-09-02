@@ -29,6 +29,7 @@ void bvr_nk_style(struct nk_context* nuklear)
 
     nk_style_default(nuklear);
 
+#if 0
     // global
     style->window.background = BVR_NK_COLOR_BACKGROUND_DARK;
     style->window.border_color = BVR_NK_COLOR_BORDER;
@@ -279,4 +280,5 @@ void bvr_nk_style(struct nk_context* nuklear)
     // cursor
     style->cursor_active = NULL;
     style->cursor_last = NULL;
+#endif
 }

@@ -138,19 +138,14 @@ void bvr_editor_new_frame(){
     }
 
     if(__editor->state != BVR_EDITOR_STATE_HIDDEN){
-        __editor->state = BVR_EDITOR_STATE_HANDLE;
+        __editor->state = BVR_EDITOR_STATE_DRAWING;
     }
 
     __editor->device.is_gui_hovered = 0;
-}
-
-void bvr_editor_draw_page_hierarchy(){
+}void bvr_editor_draw_page_hierarchy(){
     if(__editor->state == BVR_EDITOR_STATE_HIDDEN) {
         return;
     }
-
-    BVR_ASSERT(__editor->state == BVR_EDITOR_STATE_HANDLE);
-    __editor->state = BVR_EDITOR_STATE_DRAWING;
 
     struct nk_context* p_context = &__editor->gui.context;
 
@@ -205,11 +200,8 @@ void bvr_editor_draw_inspector(){
         return;
     }
 
-    BVR_ASSERT(__editor->state == BVR_EDITOR_STATE_DRAWING);
-
     if(nk_begin(&__editor->gui.context, "sample", nk_rect(100, 100, 200, 200), BVR_NK_WINDOW_DEFAULT | NK_WINDOW_MOVABLE)){
         nk_layout_row_dynamic(&__editor->gui.context, 15, 2);
-
 
         nk_label(&__editor->gui.context, "coucou", NK_TEXT_ALIGN_LEFT);
         
@@ -244,11 +236,18 @@ void bvr_editor_draw_inspector(){
 
 void bvr_editor_render(){
     BVR_ASSERT(__editor);
+
     if(__editor->state == BVR_EDITOR_STATE_HIDDEN) {
         return;
     }
 
-    BVR_ASSERT(__editor->state == BVR_EDITOR_STATE_DRAWING);
+    if(__editor->state != BVR_EDITOR_STATE_DRAWING){
+        BVR_PRINTF("unexpected editor state. Expected %i but %i showed up!", 
+            BVR_EDITOR_STATE_DRAWING, __editor->state
+        );
+        __editor->state = BVR_EDITOR_STATE_RENDERING;
+        return;
+    }
     __editor->state = BVR_EDITOR_STATE_RENDERING;
 
     if(__editor->draw_cmd.drawmode){

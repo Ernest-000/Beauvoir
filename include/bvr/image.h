@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bvr/config.h>
 #include <bvr/common.h>
 #include <bvr/math.h>
 
@@ -148,7 +149,7 @@ struct bvr_layer_info_s {
     uint8 blend_mode;
     uint8 opacity;
     uint8 reserved;
-} __attribute__((packed));
+} __struct_align4;
 
 /*
     Contains informations and data of an image
@@ -173,14 +174,14 @@ struct bvr_atlas_s {
     int width, height;
 
     /**
-     * Currently rendered tile's id
+     * target rendered texture id placeholder
      */
     uint32 brush;
 
     uint16 padding[4];
 };
 
-typedef struct bvr_atlas_desc_s {
+typedef struct bvr_atlas_attributes_s {
     uint32 tile_width;
     uint32 tile_height;
 

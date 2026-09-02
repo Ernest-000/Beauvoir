@@ -404,7 +404,8 @@ static int bvri_load_png(bvr_image_t* image, FILE* file){
             // no-op
         }
         else {
-            BVR_PRINTF("unknown chunk (%.4s)", chunk.name);
+            //BVR_PRINTF("unknown chunk (%.4s)", chunk.name);
+            // unknown chunck
         }   
 
         fseek(file, chunk.offset + chunk.length, SEEK_SET);

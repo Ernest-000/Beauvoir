@@ -44,6 +44,12 @@ enum bvr_behaviour_tree_flags_e {
     BVR_BEHAVIOUR_TREE_KEEP_ON_STATE
 };  
 
+// celframe opaque
+struct bvr_celframe_s;
+
+// keyframe opaque
+struct bvr_keyframe_s;
+
 /**
  * This is an animation track. It will target a pointer that 
  * might change over the animation.
@@ -60,11 +66,13 @@ typedef struct bvr_animation_handle_s {
     uint32 type;
     uint32 flags;
 
-    void(*interop_func)(void* start, void* end, float t);
+    void(*interop_func)(struct bvr_keyframe_s* start, struct bvr_keyframe_s* end, float t);
 } bvr_animation_handle_t;   
 
 struct bvr_keyframe_s {
     bvr_animation_handle_t* target;
+    float time;
+    
     char buffer[20];
 };
 

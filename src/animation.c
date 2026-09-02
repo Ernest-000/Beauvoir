@@ -30,30 +30,24 @@ static void bvri_destroy_celframe(bvr_celframe_t* frame);
 /**
  * harch transition between two states.
  */
-static void bvri_animation_nearest(void* _start, void* _end, float time){
-    struct bvr_keyframe_s* start = (struct bvr_keyframe_s*)_start;
-    struct bvr_keyframe_s* end = (struct bvr_keyframe_s*)_end;
-    
+static void bvri_animation_nearest(struct bvr_keyframe_s* start, struct bvr_keyframe_s* end, float _){
     memcpy(start->target->object.ptr, start->buffer, bvr_sizeof(start->target->type));        
 }
 
 /**
  * Linear interpolation between two keyframes
  */
-static void bvri_animation_lerp(void* _start, void* _end, float time){
-    struct bvr_keyframe_s* start = (struct bvr_keyframe_s*)_start;
-    struct bvr_keyframe_s* end = (struct bvr_keyframe_s*)_end;
-    
+static void bvri_animation_lerp(struct bvr_keyframe_s* start, struct bvr_keyframe_s* end, float cursor){
+    float weight = invert_flerp(end->time, start->time, cursor);
+
     switch (start->target->type)
     {
     case BVR_FLOAT:
         {
             float lerp = 0.0f;
-            // interpolate default position with current pointer's position
-            lerp = BVR_LINEAR_INTERPOLATE(*(float*)start->target->object.ptr, *(float*)start->buffer, time) * 2.0f;
             
             // interpolate with the end position
-            lerp = BVR_LINEAR_INTERPOLATE(lerp, *(float*)end->buffer, time);
+            lerp = BVR_LINEAR_INTERPOLATE(*(float*)start->buffer, *(float*)end->buffer, weight);
             
             // copy the value
             memcpy(start->target->object.ptr, &lerp, sizeof(float));        
@@ -61,18 +55,26 @@ static void bvri_animation_lerp(void* _start, void* _end, float time){
     
         break;
 
+    case BVR_INT32:
+        {
+            int lerp = 0;
+            
+            // interpolate with the end position
+            lerp = BVR_LINEAR_INTERPOLATE(*(int*)start->buffer, *(int*)end->buffer, weight);
+            
+            // copy the value
+            memcpy(start->target->object.ptr, &lerp, sizeof(int));      
+            break;
+        }
+
     case BVR_VEC2:
         {
             vec2 lerp;
             BVR_CREATE_VEC2(lerp, 0.0f, 0.0f);
 
-            // interpolate default position with current pointer's position
-            lerp[0] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[0], ((float*)start->buffer)[0], time) * 2.0f;
-            lerp[1] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[1], ((float*)start->buffer)[1], time) * 2.0f;
-            
             // interpolate with the end position
-            lerp[0] = BVR_LINEAR_INTERPOLATE(lerp[0], ((float*)end->buffer)[0], time);
-            lerp[1] = BVR_LINEAR_INTERPOLATE(lerp[1], ((float*)end->buffer)[1], time);
+            lerp[0] = BVR_LINEAR_INTERPOLATE(((float*)start->buffer)[0], ((float*)end->buffer)[0], weight);
+            lerp[1] = BVR_LINEAR_INTERPOLATE(((float*)start->buffer)[1], ((float*)end->buffer)[1], weight);
             
             // copy the value
             memcpy(start->target->object.ptr, &lerp, sizeof(vec2));        
@@ -85,15 +87,10 @@ static void bvri_animation_lerp(void* _start, void* _end, float time){
             vec3 lerp;
             BVR_CREATE_VEC3(lerp, 0.0f, 0.0f, 0.0f);
 
-            // interpolate default position with current pointer's position
-            lerp[0] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[0], ((float*)start->buffer)[0], time) * 2.0f;
-            lerp[1] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[1], ((float*)start->buffer)[1], time) * 2.0f;
-            lerp[2] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[2], ((float*)start->buffer)[2], time) * 2.0f;
-            
             // interpolate with the end position
-            lerp[0] = BVR_LINEAR_INTERPOLATE(lerp[0], ((float*)end->buffer)[0], time);
-            lerp[1] = BVR_LINEAR_INTERPOLATE(lerp[1], ((float*)end->buffer)[1], time);
-            lerp[2] = BVR_LINEAR_INTERPOLATE(lerp[2], ((float*)end->buffer)[2], time);
+            lerp[0] = BVR_LINEAR_INTERPOLATE(((float*)start->buffer)[0], ((float*)end->buffer)[0], weight);
+            lerp[1] = BVR_LINEAR_INTERPOLATE(((float*)start->buffer)[1], ((float*)end->buffer)[1], weight);
+            lerp[2] = BVR_LINEAR_INTERPOLATE(((float*)start->buffer)[2], ((float*)end->buffer)[2], weight);
             
             // copy the value
             memcpy(start->target->object.ptr, &lerp, sizeof(vec3));        
@@ -106,17 +103,11 @@ static void bvri_animation_lerp(void* _start, void* _end, float time){
             vec4 lerp;
             BVR_CREATE_VEC4(lerp, 0.0f, 0.0f, 0.0f, 0.0f);
 
-            // interpolate default position with current pointer's position
-            lerp[0] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[0], ((float*)start->buffer)[0], time) * 2.0f;
-            lerp[1] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[1], ((float*)start->buffer)[1], time) * 2.0f;
-            lerp[2] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[2], ((float*)start->buffer)[2], time) * 2.0f;
-            lerp[3] = BVR_LINEAR_INTERPOLATE(((float*)start->target->object.ptr)[3], ((float*)start->buffer)[3], time) * 2.0f;
-            
             // interpolate with the end position
-            lerp[0] = BVR_LINEAR_INTERPOLATE(lerp[0], ((float*)end->buffer)[0], time);
-            lerp[1] = BVR_LINEAR_INTERPOLATE(lerp[1], ((float*)end->buffer)[1], time);
-            lerp[2] = BVR_LINEAR_INTERPOLATE(lerp[2], ((float*)end->buffer)[2], time);
-            lerp[3] = BVR_LINEAR_INTERPOLATE(lerp[3], ((float*)end->buffer)[3], time);
+            lerp[0] = BVR_LINEAR_INTERPOLATE(((float*)start->buffer)[0], ((float*)end->buffer)[0], weight);
+            lerp[1] = BVR_LINEAR_INTERPOLATE(((float*)start->buffer)[1], ((float*)end->buffer)[1], weight);
+            lerp[2] = BVR_LINEAR_INTERPOLATE(((float*)start->buffer)[2], ((float*)end->buffer)[2], weight);
+            lerp[3] = BVR_LINEAR_INTERPOLATE(((float*)start->buffer)[3], ((float*)end->buffer)[3], weight);
             
             // copy the value
             memcpy(start->target->object.ptr, &lerp, sizeof(vec4));        
@@ -174,8 +165,8 @@ void bvr_animation_update(bvr_animation_t* anim, float delta_time){
      * for now time if second based but it's maybe better with a frame based counter ?
      */
     //uint64 elapsed_time = BVR_INSTANCE()->timer.current_time - BVR_INSTANCE()->timer.prev_time;
-    uint64 elapsed_time = 0;
-    BVR_ASSERT(0 && "elasped time!!");
+    uint64 elapsed_time = BVR_INSTANCE()->window.timer.current_time - BVR_INSTANCE()->window.timer.previous_time;
+    //BVR_ASSERT(elapsed_time == 0.0f && "elasped time!!");
 
     anim->cursor += delta_time;
     anim->current_frame += elapsed_time;
@@ -213,7 +204,7 @@ bvr_animation_handle_t* bvr_animation_register_track(bvr_animation_t* anim, cons
     }
 
     // avoid overflows
-    if(anim->tracks.capacity >= anim->tracks.capacity){
+    if(!anim->tracks.next_free){
         BVR_PRINT("cannot add more track...");
         return NULL;
     }
@@ -274,6 +265,7 @@ int bvr_animation_add_keyframe_raw(bvr_animation_t* anim, bvr_animation_handle_t
 
     if(handle->id < cel->keyframes_count){
         cel->keyframes[handle->id].target = handle;
+        cel->keyframes[handle->id].time = time;
         
         memcpy(cel->keyframes[handle->id].buffer, value, bvr_sizeof(handle->type));
     }
@@ -372,16 +364,15 @@ static void bvri_do_celframe(bvr_animation_t* anim, bvr_celframe_t* frame){
             frame->keyframes[i].target->interop_func(
                 &frame->keyframes[i],
                 &(MAX(frame->next, (bvr_celframe_t*)anim->celframes.data))->keyframes[i],
-                0.5f
+                anim->cursor
             );  
-            
         }
         else {
             // otherwise, we use nearest as the default one
             bvri_animation_nearest(
                 &frame->keyframes[i], 
                 &(MAX(frame->next, (bvr_celframe_t*)anim->celframes.data))->keyframes[i],
-                0.5f
+                0.0f
             );
         }
     }

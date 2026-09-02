@@ -193,6 +193,28 @@ BVR_H_FUNC int ilerp(int a, int b, int t){
 }
 
 /**
+ * @brief calculates the normalized percentage or weight of a specific value within a given start and end range.
+ * @param a the start value.
+ * @param b the end value.
+ * @param t the value in the range
+ * @returns the normalized progression percentage.
+ */
+BVR_H_FUNC double invert_lerp(double a, double b, double t){
+    return (t - a) / (b - a);
+}
+
+/**
+ * @brief calculates the normalized percentage or weight of a specific value within a given start and end range.
+ * @param a the start value.
+ * @param b the end value.
+ * @param t the value in the range
+ * @returns the normalized progression percentage.
+ */
+BVR_H_FUNC float invert_flerp(float a, float b, float t){
+    return (t - a) / (b - a);
+}
+
+/**
  * @brief convert an angle in radians to degrees.
  * @param rad the angle in radians.
  * @returns the angle expressed in degrees.

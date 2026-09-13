@@ -20,6 +20,7 @@ set(BVR_PATH "${CMAKE_SOURCE_DIR}/..")
 ##
 set(BGS_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(BGS_SOURCE_DIR ${BGS_ROOT_DIR}/src)
+set(BGS_XML_SOURCE_DIR ${BGS_ROOT_DIR}/xml)
 set(BGS_INCLUDE_DIR ${BGS_ROOT_DIR}/include)
 set(BGS_LIB_DIR ${BGS_ROOT_DIR}/lib)
 set(BGS_BUILD_DIR ${BGS_ROOT_DIR}/build)
@@ -62,6 +63,7 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/../" "${CMAKE_SOURCE_DIR}/../build/")
 # Set Sources
 ##
 file(GLOB_RECURSE BGS_SOURCES "${BGS_SOURCE_DIR}/*.c")
+file(GLOB_RECURSE BGS_XML_SOURCES "${BGS_XML_SOURCE_DIR}/*.xml")
 
 add_executable(bergson ${BGS_SOURCES})
 
@@ -74,6 +76,14 @@ if(BVR_DEBUG)
     target_compile_options(bergson PRIVATE -g)
 endif()
 
+##
+# check for valid xmls
+##
+
+
+##
+# target lib
+##
 target_link_libraries(bergson PRIVATE 
     ${GTK4_LIBRARIES} 
     ${BVR_THIRD_PARTY_MODULES}

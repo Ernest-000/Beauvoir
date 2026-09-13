@@ -14,6 +14,7 @@ typedef struct bgs_window_s {
     void* gl;
 
     bvr_string_t name;
+    
     uint16 width;
     uint16 height;
     int flags; 

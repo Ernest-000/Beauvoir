@@ -919,7 +919,7 @@ static int bvri_is_fbx(FILE* file){
             (endian == 0x0 || endian == 0x1);
 }
 
-static void bvri_copyfbxproperty(FILE* file, char** destination, uint64* length, uint32* dtype){
+static void bvri_copyfbxproperty(FILE* file, char** destination, uint32* length, uint32* dtype){
     if(destination == NULL || length == NULL){
         return;
     }

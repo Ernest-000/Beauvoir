@@ -10,6 +10,14 @@
 #include <math.h>
 #include <memory.h>
 
+// actor classes registry
+static struct {
+    char name[128];
+    bool used;
+
+    struct bvr_actor_vtable_s* table;
+} __actor_classes_table[BVR_MAX_ACTOR_CLASSES];
+
 static int bvri_abstract_draw(struct bvr_actor_s* actor, int drawmode, bvr_mesh_t* mesh, bvr_shader_t* shader){
     BVR_ASSERT(actor);
     BVR_ASSERT(mesh);
@@ -117,6 +125,28 @@ static void bvri_clear_parent(struct bvr_actor_s* actor, struct bvr_actor_s* par
     parent->children_count--;
 }
 
+void bvr_actor_serializable(const char* cname, struct bvr_actor_vtable_s* table){
+    BVR_ASSERT(cname);
+    BVR_ASSERT(table);
+
+    for (size_t i = 0; i < BVR_MAX_ACTOR_CLASSES; i++)
+    {
+        if(__actor_classes_table[i].used == 0){
+            // available class slot
+            BVR_STRCPY(
+                __actor_classes_table[i].name, cname,
+                MIN(strlen(cname), sizeof(__actor_classes_table[i].name))
+            );
+
+            __actor_classes_table[i].table = table;
+            __actor_classes_table[i].used = true;
+            return;
+        }
+    }
+    
+    BVR_ASSERT(0 || "maximum serializable class reached!");
+}
+
 void bvr_actor_set_parent(struct bvr_actor_s* actor, struct bvr_actor_s* parent){
     BVR_ASSERT(actor);
 
@@ -161,6 +191,8 @@ void bvr_actor_set_parent(struct bvr_actor_s* actor, struct bvr_actor_s* parent)
     return;
 }
 
+BVR_IMPLEMENT_ACTOR(bvr_static_mesh_t, BVR_STATIC_MESH, true)
+
 void bvr_static_mesh_draw(struct bvr_actor_s* self, int drawmode){
     bvr_static_mesh_t* sm = (bvr_static_mesh_t*)self;
     BVR_ASSERT(sm);
@@ -184,25 +216,10 @@ void bvr_static_mesh_destroy(struct bvr_actor_s* self){
     bvri_abstract_destroy(self);
 }
 
-void bvr_dynamic_mesh_draw(struct bvr_actor_s* self, int drawmode){
-    bvr_dynamic_mesh_t* dm = (bvr_dynamic_mesh_t*)self;
-    BVR_ASSERT(dm);
-    
-    bvri_abstract_calc_transform(self);
-    bvri_abstract_draw(self, drawmode, &dm->mesh, &dm->shader);
-}
-
-void bvr_dynamic_mesh_update(struct bvr_actor_s* self){
+void bvr_static_mesh_serialize(struct bvr_actor_s* mesh, bvr_fhandle_t token){
 
 }
 
-void bvr_dynamic_mesh_destroy(struct bvr_actor_s* self){
-    bvr_dynamic_mesh_t* dm = (bvr_dynamic_mesh_t*)self;
-    BVR_ASSERT(dm);
+void bvr_static_mesh_deserialize(struct bvr_actor_s* mesh, bvr_fhandle_t token){
 
-    bvr_destroy_mesh(&dm->mesh);
-    bvr_destroy_shader(&dm->shader);
-    bvr_destroy_texture(&dm->texture);
-
-    bvri_abstract_destroy(self);
 }

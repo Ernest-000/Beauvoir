@@ -2,6 +2,7 @@
 
 #include <bvr/config.h>
 #include <bvr/common.h>
+#include <bvr/assets.h>
 #include <bvr/collections/string.h>
 
 #define BVR_AUDIO_MONO 1
@@ -127,6 +128,7 @@ typedef struct bvr_audio_s {
     uint32 sample_depth;
 
     float duration;
+    bvr_fhandle_t fhandle;
 } bvr_audio_t;
 
 int bvr_create_audiof(bvr_audio_t* audio, FILE* file, const char* name);
@@ -135,11 +137,13 @@ int bvr_create_audiof(bvr_audio_t* audio, FILE* file, const char* name);
  * Create a new audio sound from path.
  */
 BVR_H_FUNC int bvr_create_audio(bvr_audio_t* audio, const char* path, const char* name){
-    BVR_ASSERT(path);
+    BVR_FILE_EXISTS(path);
     
     FILE* file = fopen(path, "rb");
     int status = bvr_create_audiof(audio, file, name);
     fclose(file);
+
+    BVR_FILE_HANDLE(audio, path);
     return status;
 }
 

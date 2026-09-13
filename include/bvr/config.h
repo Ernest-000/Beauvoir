@@ -77,16 +77,19 @@ typedef float float32;
 
     #define __struct_align16 __attribute__((aligned(16)))
     #define __struct_align4 __attribute__((aligned(4)))
+    #define __constructor __attribute__((constructor))
 #elif defined(_MSC_VER)
     #define typeof(x) __typeof__(x)
 
     #define __struct_align16 __declspec(align(#))
     #define __struct_align4 __declspec(align(#))
+    #define __constructor #error msvc sucks!
 #else
     #define typeof(x) __typeof(x)
 
     #define __struct_align16 __attribute__((aligned(16)))
     #define __struct_align4 __attribute__((aligned(4)))
+    #define __constructor __attribute__((constructor))
 #endif
 
 /**

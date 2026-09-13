@@ -3,6 +3,7 @@
 #include <bvr/config.h>
 #include <bvr/common.h>
 #include <bvr/math.h>
+#include <bvr/assets.h>
 
 #include <bvr/collections/buffer.h>
 #include <bvr/collections/string.h>
@@ -162,6 +163,7 @@ typedef struct bvr_image_s {
     uint8* pixels;
 
     struct bvr_buffer_s layers;
+    bvr_fhandle_t fhandle;
 } bvr_image_t;
 
 /**
@@ -225,6 +227,8 @@ BVR_H_FUNC int bvr_create_image(bvr_image_t* image, const char* path){
     FILE* file = fopen(path, "rb");
     int success = bvr_create_imagef(image, file);
     fclose(file);
+
+    BVR_FILE_HANDLE(image, path);
     return success;
 }
 
@@ -281,6 +285,8 @@ BVR_H_FUNC int bvr_create_texture(bvr_texture_t* texture, const char* path, int 
     FILE* file = fopen(path, "rb");
     int success = bvr_create_texturef(texture, file, filter, wrap);
     fclose(file);
+
+    BVR_FILE_HANDLE(&texture->image, path);
     return success;
 }
 
@@ -304,6 +310,8 @@ BVR_H_FUNC int bvr_create_texture_atlas(bvr_texture_t* texture, const char* path
     FILE* file = fopen(path, "rb");
     int success = bvr_create_texture_atlasf(texture, file, desc, filter, wrap);
     fclose(file);
+
+    BVR_FILE_HANDLE(&texture->image, path);
     return success;
 }
 

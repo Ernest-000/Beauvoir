@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bvr/common.h>
+#include <bvr/assets.h>
 
 #include <bvr/collections/buffer.h>
 #include <bvr/collections/string.h>
@@ -79,6 +80,7 @@ typedef struct bvr_shader_s {
     uint8 uniform_count, block_count;
     
     int flags;
+    bvr_fhandle_t fhandle;
 } bvr_shader_t;
 
 
@@ -90,17 +92,10 @@ static inline int bvr_create_shader(bvr_shader_t* shader, const char* path, cons
     FILE* file = fopen(path, "rb");
     int a = bvr_create_shaderf(shader, file, flags);
     fclose(file);
+
+    BVR_FILE_HANDLE(shader, path);
     return a;
 } 
-
-// void bvr_create_uniform_buffer(uint32* buffer, uint64 size, uint32 binding_point);
-// void bvr_enable_uniform_buffer(uint32 buffer);
-// void bvr_uniform_buffer_set(uint32 offset, uint64 size, void* data);
-// 
-// void* bvr_uniform_buffer_map(uint32 offset, uint64 size);
-// void bvr_uniform_buffer_close();
-// 
-// void bvr_destroy_uniform_buffer(uint32* buffer);
 
 /**
  * @brief Create a new shader directly from raw strings. 
@@ -203,5 +198,7 @@ BVR_H_FUNC int bvr_shader_set_texture(bvr_shader_t* shader, const char* name, vo
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data);
 
 void bvr_shader_enable(bvr_shader_t* shader);
+
 void bvr_shader_disable(void);
+
 void bvr_destroy_shader(bvr_shader_t* shader);

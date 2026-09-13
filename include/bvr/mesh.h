@@ -3,12 +3,13 @@
 #include <stdint.h>
 
 #include <bvr/common.h>
+#include <bvr/assets.h>
+
 #include <bvr/collections/string.h>
 #include <bvr/collections/buffer.h>
 #include <bvr/collections/pool.h>
 
 #include <bvr/math.h>
-
 
 #define BVR_VERTEX_GROUP_FLAG_INVISIBLE 0x01
 
@@ -23,9 +24,9 @@ typedef enum bvr_drawmode_e {
 
 typedef struct bvr_mesh_buffer_s {
     char* data;
-    uint64 count;
+    uint32 count;
     uint32 type;
-} bvr_mesh_buffer_t;
+} __struct_align16 bvr_mesh_buffer_t;
 
 typedef enum bvr_mesh_array_attrib_e {
     /*
@@ -78,7 +79,7 @@ typedef struct bvr_vertex_group_s {
     uint8 flags;
 
     mat4x4 matrix;
-} __attribute__ ((packed)) bvr_vertex_group_t; 
+} __struct_align16 bvr_vertex_group_t; 
 
 typedef struct bvr_mesh_s {
     uint32 array_buffer;
@@ -96,6 +97,7 @@ typedef struct bvr_mesh_s {
     uint16 stride;
 
     uint8 attrib_count;
+    bvr_fhandle_t fhandle;
 } bvr_mesh_t;
 
 /*
@@ -113,9 +115,12 @@ int bvr_create_meshf(bvr_mesh_t* mesh, FILE* file, bvr_mesh_array_attrib_t attri
 */
 BVR_H_FUNC int bvr_create_mesh(bvr_mesh_t* mesh, const char* path, bvr_mesh_array_attrib_t attrib){
     BVR_FILE_EXISTS(path);
+    
     FILE* file = fopen(path, "rb");
     int status = bvr_create_meshf(mesh, file, attrib);
     fclose(file);
+
+    BVR_FILE_HANDLE(mesh, path);
     return status;
 }
 
@@ -149,7 +154,6 @@ BVR_H_FUNC void bvr_create_2d_square_mesh(bvr_mesh_t* mesh, float width, float h
 
     bvr_create_meshv(mesh, &vertices_buffer, &element_buffer, BVR_MESH_ATTRIB_V2UV2);
 }
-
 
 BVR_H_FUNC void bvr_create_3d_square_mesh(bvr_mesh_t* mesh, float width, float height){
     float vertices[20] = {

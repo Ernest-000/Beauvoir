@@ -1,9 +1,41 @@
 #include <bvr/assets.h>
 #include <bvr/io.h>
+#include <bvr/math.h>
 
 #include <json-c/json.h>
 
-int bvr_load_pagef(bvr_page_t* page, FILE* file){
+static struct {
+    char path[128];
+    bool used;
+} __asset_table[BVR_MAX_ASSET];
+
+bvr_fhandle_t bvr_create_fhandle(const char* path){
+    bvr_fhandle_t fhandle = {.path = -1};
+
+    for (size_t i = 0; i < BVR_MAX_ASSET; i++)
+    {
+        if(__asset_table[i].used && BVR_STRCMP(__asset_table[i].path, path)){
+            // if the file is already handle
+            fhandle.path = i;
+            return fhandle;
+        }
+
+        if(__asset_table[i].used == 0){
+            BVR_STRCPY(
+                __asset_table[i].path, path, 
+                MIN(strlen(path), sizeof(__asset_table[i].path))
+            );
+            __asset_table[i].used = true;
+
+            fhandle.path = i;
+            return fhandle;
+        }
+    }
+    
+    return fhandle;
+}
+
+/*int bvr_load_pagef(bvr_page_t* page, FILE* file){
     BVR_ASSERT(page);
     BVR_ASSERT(file);
 
@@ -24,6 +56,8 @@ int bvr_load_pagef(bvr_page_t* page, FILE* file){
             file_as_str.length
         );
 
+        BVR_PRINT(file_as_str.string);
+
         // clear buffers
         bvr_destroy_string(&file_as_str);
     }
@@ -32,4 +66,6 @@ int bvr_load_pagef(bvr_page_t* page, FILE* file){
         BVR_PRINT("failed to parse the json page file!");
         return BVR_FALSE;
     }   
-}
+
+}*/
+

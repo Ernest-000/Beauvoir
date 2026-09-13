@@ -1,41 +1,75 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <requires lib="gtk" version="4.0" />
-    <object class="GtkFixed" id="wlayout">
-        <child>
-            <object class="GtkPaned" id="Button">
-                <property name="orientation">horizontal</property>
-                <property name="width-request">800</property>
-                <property name="height-request">800</property>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkFixed" id="wlayout">
+    <property name="width-request">800</property>
+    <property name="height-request">800</property>
+    <property name="hexpand">1</property>
+    <property name="vexpand">1</property>
+    <child>
+      <object class="GtkPaned" id="window-general-layout">
+        <property name="width-request">800</property>
+        <property name="height-request">800</property>
+        <property name="focusable">1</property>
+        <property name="halign">center</property>
+        <property name="valign">center</property>
+        <property name="orientation">vertical</property>
+        <property name="position">550</property>
+        <property name="position-set">1</property>
+        <property name="start-child">
+          <object class="GtkPaned" id="user-layout">
+            <property name="resize-start-child">0</property>
+            <property name="focusable">1</property>
+            <property name="wide-handle">1</property>
+            <property name="start-child">
+              <object class="GtkBox" id="viewport-container">
+                <property name="width-request">400</property>
+                <property name="height-request">400</property>
+                <property name="orientation">vertical</property>
                 <child>
-                    <object class="GtkBox" id="wviewport">
-                        <property name="orientation">vertical</property>
-                        <property name="width-request">400</property>
-                        <style>
-                            <class name="sidebar"/>
-                        </style>
-                        <child>
-                            <object class="GtkLabel">
-                                <property name="label">Viewport</property>
-                            </object>
-                        </child>
-                    </object>
+                  <object class="GtkBox" id="wviewport">
+                    <property name="width-request">400</property>
+                    <property name="height-request">400</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label" translatable="1">Viewport</property>
+                      </object>
+                    </child>
+                  </object>
                 </child>
-
                 <child>
-                    <object class="GtkBox" id="rlayout">
-                        <property name="orientation">vertical</property>
-                        <style>
-                            <class name="sidebar"/>
-                        </style>
-                        <child>
-                            <object class="GtkLabel">
-                                <property name="label">Right</property>
-                            </object>
-                        </child>
-                    </object>
+                  <placeholder/>
                 </child>
-            </object>
-        </child>
-    </object>
+              </object>
+            </property>
+            <property name="end-child">
+              <object class="GtkBox" id="inspector-container">
+                <property name="orientation">vertical</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+            </property>
+          </object>
+        </property>
+        <property name="end-child">
+          <object class="GtkBox" id="console-layout">
+            <property name="orientation">vertical</property>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+        </property>
+      </object>
+    </child>
+  </object>
 </interface>

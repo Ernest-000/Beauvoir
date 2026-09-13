@@ -1,0 +1,10 @@
+{
+    "name": "scene",
+
+    "actors":[
+        {
+            "name": "actor",
+            "type": ""
+        }
+    ]
+}

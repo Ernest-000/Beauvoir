@@ -87,8 +87,9 @@ if(EXISTS ${BVR_TINYCC_DIR})
 endif()
 
 file(GLOB_RECURSE BVR_ENGINE_SOURCES "${BVR_SOURCE_DIR}/*.c")
+file(GLOB_RECURSE BVR_ENGINE_DEF_SOURCES "${BVR_SOURCE_DIR}/*.def")
 
-target_sources(beauvoir PRIVATE ${BVR_ENGINE_SOURCES})
+target_sources(beauvoir PRIVATE ${BVR_ENGINE_SOURCES} ${BVR_ENGINE_DEF_SOURCES})
 if(BVR_DEBUG)
     target_compile_definitions(beauvoir PRIVATE BVR_DEBUG=${BVR_DEBUG})
 endif()

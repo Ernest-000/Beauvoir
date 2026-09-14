@@ -22,6 +22,18 @@
 #define BVR_ACTOR_METHOD_IMPLEMENT(parent, fname, fclbk) .fname = fclbk,
 #define BVR_ACTOR_METHOD_IGNORE(parent, fname, fclbk)
 
+// default actor class field
+#define BVR_ACTOR_INHERENT_FIELDS(parent)                       \
+    BVR_ACTOR_FIELD_REGISTRY(parent, bvr_transform_t, transform)\
+    BVR_ACTOR_FIELD_REGISTRY(bvr_transform_t, vec3, position)   \
+    BVR_ACTOR_FIELD_REGISTRY(bvr_transform_t, vec3, scale)      \
+    BVR_ACTOR_FIELD_REGISTRY(bvr_transform_t, vec4, rotation)   \
+    BVR_ACTOR_FIELD_REGISTRY(bvr_transform_t, mat4x4, world)    \
+    BVR_ACTOR_FIELD_REGISTRY(parent, bvr_string_t, name)        \
+    BVR_ACTOR_FIELD_REGISTRY(parent, uint16, flags)             \
+    BVR_ACTOR_FIELD_REGISTRY(parent, uint16, order_in_layer)    \
+    BVR_ACTOR_FIELD_REGISTRY(parent, uint16, active) 
+
 #define BVR_DEFINE_ACTOR(name, fields)                          \
     struct name {                                               \
         struct bvr_actor_s self;                                \
@@ -34,6 +46,7 @@
 
 #define BVR_IMPLEMENT_ACTOR(name, fields, serializable)         \
     static const struct bvr_actor_fields_s _##name##ablef[] = { \
+        BVR_ACTOR_INHERENT_FIELDS(struct bvr_actor_s)           \
         fields(name,                                            \
             BVR_ACTOR_FIELD_REGISTRY,                           \
             BVR_ACTOR_METHOD_IGNORE                             \
@@ -68,8 +81,8 @@ struct bvr_actor_s;
 
 struct bvr_actor_fields_s {
     const char* name;
-    uint16 offset;
-    uint16 size;
+    uint32 offset;
+    uint32 size;
 };
 
 struct bvr_actor_vtable_s {
@@ -108,6 +121,9 @@ struct bvr_actor_s {
 
 // generic functions
 void bvr_actor_serializable(const char* cname, struct bvr_actor_vtable_s* table);
+
+struct bvr_actor_fields_s* bvr_actor_get_field(const char* cname, const char* fname);
+
 void bvr_actor_set_parent(struct bvr_actor_s* actor, struct bvr_actor_s* parent);
 
 #include "actorsdef.h"

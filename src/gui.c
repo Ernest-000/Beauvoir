@@ -284,10 +284,13 @@ void bvr_canvas_render(bvr_canvas_t* context){
     bvr_pipeline_state_enable(&BVR_INSTANCE()->graphics.gui_pass);
 
     // update shaders
-    bvr_shader_set_uniform_raw(context->device.projection, &view[0][0]);
+    bvr_shader_set_uniform_raw(
+        context->device.projection, 
+        BVR_CREATE_RAW_PHANDLE(&view[0][0])
+    );
 
-    bvr_shader_set_uniform_raw(context->device.texture, NULL);
-    bvr_shader_set_uniform_raw(context->device.texture_array, NULL);
+    bvr_shader_set_uniform_raw(context->device.texture, BVR_CREATE_NULL_PHANDLE());
+    bvr_shader_set_uniform_raw(context->device.texture_array, BVR_CREATE_NULL_PHANDLE());
 
     bvr_shader_enable(&context->device.shader);
 

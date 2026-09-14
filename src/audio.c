@@ -1223,7 +1223,7 @@ int bvr_create_audiof(bvr_audio_t* audio, FILE* file, const char* name){
 #pragma region AUDIO MIXER
 
 #ifdef _WIN32
-
+#warning plz do win32 audio pipeline
 #elif __unix__
 
 static struct pw_stream_events __pipewire_global_events;

@@ -42,7 +42,7 @@ void bvr_pipeline_do_draw_cmd(struct bvr_pipeline_state_s* state, struct bvr_dra
     // try to apply local uniform
     bvr_shader_set_uniform_raw(
         bvr_find_uniform_tag(cmd->shader, BVR_UNIFORM_LOCAL_TRANSFORM), 
-        cmd->vertex_group.matrix
+        BVR_CREATE_RAW_PHANDLE(cmd->vertex_group.matrix)
     );
 
     bvr_shader_enable(cmd->shader);
@@ -286,7 +286,8 @@ void bvr_framebuffer_blit(bvr_framebuffer_t* framebuffer){
     );
 
     BVR_ASSERT(bvr_shader_set_uniform_raw(
-        bvr_find_uniform_tag(shader, BVR_UNIFORM_PROJECTION), &ortho[0][0]
+        bvr_find_uniform_tag(shader, BVR_UNIFORM_PROJECTION), 
+        BVR_CREATE_RAW_PHANDLE(&ortho[0][0])
     ));
 
     bvr_shader_enable(shader);

@@ -49,14 +49,16 @@ enum bvr_uniform_tag_e {
 };
 
 typedef struct bvr_shader_uniform_s {
-    struct bvr_buffer_s memory;
+    bvr_phandle_t handle;
 
     bvr_string_t name;
+    
     short location;
+    uint16 count;
 
     uint16 type;
     uint16 tags;
-} bvr_shader_uniform_t;
+} __struct_align16 bvr_shader_uniform_t;
 
 typedef struct bvr_shader_stage_s {
     uint32 shader;
@@ -119,7 +121,7 @@ int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int 
  * @return 
  */
 bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type, enum bvr_uniform_tag_e tag, int count, const char* name);
-bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type, void* texture, const char* name);
+bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type, bvr_phandle_t texture, const char* name);
 bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* name, int type, int count, int index);
 
 BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform_tag(bvr_shader_t* shader, enum bvr_uniform_tag_e tag){
@@ -154,9 +156,9 @@ BVR_H_FUNC bvr_shader_uniform_t* bvr_find_uniform(bvr_shader_t* shader, const ch
  * @param data a pointer to the data that will be referenced as uniform's value
  * @return 
  */
-int bvr_shader_set_uniform_raw(bvr_shader_uniform_t* uniform, void* data);
-BVR_H_FUNC int bvr_shader_set_texture_raw(bvr_shader_uniform_t* uniform, void* texture){
-    return bvr_shader_set_uniform_raw(uniform, texture);
+int bvr_shader_set_uniform_raw(bvr_shader_uniform_t* uniform, bvr_phandle_t handle);
+BVR_H_FUNC int bvr_shader_set_texture_raw(bvr_shader_uniform_t* uniform, bvr_phandle_t handle){
+    return bvr_shader_set_uniform_raw(uniform, handle);
 }
 
 /**
@@ -166,7 +168,9 @@ BVR_H_FUNC int bvr_shader_set_texture_raw(bvr_shader_uniform_t* uniform, void* t
  * @param data a pointer to the data that will be referenced as uniform's value
  * @return 
  */
-int bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data);
+BVR_H_FUNC int bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, bvr_phandle_t handle){
+    return bvr_shader_set_uniform_raw(bvr_find_uniform(shader, name), handle);
+}
 
 // DEPRECIATE
 // /**
@@ -191,8 +195,8 @@ int bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data);
 //     return bvr_shader_set_uniform(shader, name, &value);
 // }
 
-BVR_H_FUNC int bvr_shader_set_texture(bvr_shader_t* shader, const char* name, void* texture){
-    return bvr_shader_set_uniform_raw(bvr_find_uniform(shader, name), texture);
+BVR_H_FUNC int bvr_shader_set_texture(bvr_shader_t* shader, const char* name, bvr_phandle_t handle){
+    return bvr_shader_set_uniform_raw(bvr_find_uniform(shader, name), handle);
 }
 
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data);

@@ -24,7 +24,7 @@ static int bvri_abstract_draw(struct bvr_actor_s* actor, int drawmode, bvr_mesh_
     BVR_ASSERT(shader);
 
     // update actor's tranform
-    bvr_shader_set_uniform_raw(&shader->uniforms[0], actor->transform.world);
+    bvr_shader_set_uniform_raw(&shader->uniforms[0], BVR_CREATE_FIELD_PHANDLE(bvr_static_mesh_t, actor, "world"));
 
     struct bvr_draw_command_s cmd;
     cmd.order = actor->order_in_layer;
@@ -145,6 +145,32 @@ void bvr_actor_serializable(const char* cname, struct bvr_actor_vtable_s* table)
     }
     
     BVR_ASSERT(0 || "maximum serializable class reached!");
+}
+
+struct bvr_actor_fields_s* bvr_actor_get_field(const char* cname, const char* fname){
+    BVR_ASSERT(cname);
+    BVR_ASSERT(fname);
+
+    for (size_t i = 0; i < BVR_MAX_ACTOR_CLASSES; i++)
+    {
+        if(__actor_classes_table[i].used
+            && BVR_STRCMP(cname, __actor_classes_table[i].name)){
+            
+            struct bvr_actor_vtable_s* t = __actor_classes_table[i].table;
+            for (size_t y = 0; y < __actor_classes_table[i].table->field_count; y++)
+            {
+                if(BVR_STRCMP(__actor_classes_table[i].table->ftable[y].name, fname)){
+                    // field found
+                    return &__actor_classes_table[i].table->ftable[y];
+                }
+            }
+            
+            // cannot find field if the specified actor
+            return NULL;
+        }
+    }
+    
+    return NULL;
 }
 
 void bvr_actor_set_parent(struct bvr_actor_s* actor, struct bvr_actor_s* parent){

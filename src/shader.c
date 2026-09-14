@@ -85,7 +85,7 @@ static int bvri_register_shader_stage(bvr_shader_t* program, bvr_shader_stage_t*
     strncpy(shader_header_str, header, strnlen(header, 100));
     strncat(shader_header_str, "#define \0", 10);
     strncat(shader_header_str, name, strnlen(name, 100));
-    strncat(shader_header_str, "\n", 1);
+    strncat(shader_header_str, "\n", 2);
 
     bvr_create_string(&shader_str, shader_header_str);
 
@@ -257,11 +257,10 @@ shader_ctr_bindings:
 
     // create transform uniform
     shader->uniforms[0].location = glGetUniformLocation(shader->program, BVR_UNIFORM_TRANSFORM_NAME);
-    shader->uniforms[0].memory.data = NULL;
-    shader->uniforms[0].memory.size = sizeof(mat4x4);
-    shader->uniforms[0].memory.elemsize = sizeof(mat4x4);
+    shader->uniforms[0].handle = BVR_CREATE_NULL_PHANDLE();
     shader->uniforms[0].name.string = NULL;
     shader->uniforms[0].name.length = 0;
+    shader->uniforms[0].count = 1;
     shader->uniforms[0].type = BVR_MAT4;
     shader->uniforms[0].tags = BVR_UNIFORM_TRANSFORM;
     if (shader->blocks[0].location == -1) {
@@ -333,11 +332,10 @@ int bvr_create_shader_raw(bvr_shader_t* shader, const char** strings, const int 
     // does not need a transform.
     shader->uniforms[0].location = glGetUniformLocation(shader->program, BVR_UNIFORM_TRANSFORM_NAME);
     if (shader->blocks[0].location != -1) {
-        shader->uniforms[0].memory.data = NULL;
-        shader->uniforms[0].memory.size = sizeof(mat4x4);
-        shader->uniforms[0].memory.elemsize = sizeof(mat4x4);
+        shader->uniforms[0].handle = BVR_CREATE_NULL_PHANDLE(); // maybe create an empty one? idk
         shader->uniforms[0].name.string = NULL;
         shader->uniforms[0].name.length = 0;
+        shader->uniforms[0].count = 1;
         shader->uniforms[0].type = BVR_MAT4;
         shader->uniforms[0].tags = BVR_UNIFORM_TRANSFORM;
     }
@@ -440,15 +438,15 @@ bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type
 
     if(location != -1){
         shader->uniforms[shader->uniform_count].location = location;
+        shader->uniforms[shader->uniform_count].count = count;
         shader->uniforms[shader->uniform_count].type = type;
         shader->uniforms[shader->uniform_count].tags = tag;
 
         // memory buffer store only store a pointer
-        shader->uniforms[shader->uniform_count].memory.elemsize = elemsize;
-        shader->uniforms[shader->uniform_count].memory.size = count * elemsize;
+        shader->uniforms[shader->uniform_count].handle.origin = BVR_PHANDLE_NONE;
 
         // no need to allocate something, just avoid bad freeing
-        shader->uniforms[shader->uniform_count].memory.data = NULL;
+        shader->uniforms[shader->uniform_count].handle.pointer.raw.pointer = NULL;
 
         bvr_create_string(&shader->uniforms[shader->uniform_count].name, name);
 
@@ -459,7 +457,7 @@ bvr_shader_uniform_t* bvr_shader_register_uniform(bvr_shader_t* shader, int type
     return NULL;
 }
 
-bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type, void* texture, const char* name)
+bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type, bvr_phandle_t texture, const char* name)
 {
     BVR_ASSERT(shader);
     BVR_ASSERT(name);
@@ -471,7 +469,7 @@ bvr_shader_uniform_t* bvr_shader_register_texture(bvr_shader_t* shader, int type
     bvr_shader_uniform_t* uniform = bvr_shader_register_uniform(shader, type, BVR_UNIFORM_TEXTURE, 1, name);
     if(uniform){
         // just copy texture's pointer
-        uniform->memory.data = texture;
+        uniform->handle = texture;
     }
     else {
         BVR_PRINT("failed to register texture's uniform");
@@ -507,19 +505,12 @@ bvr_shader_block_t* bvr_shader_register_block(bvr_shader_t* shader, const char* 
     }
 }
 
-int bvr_shader_set_uniform_raw(bvr_shader_uniform_t* uniform, void* data){
+int bvr_shader_set_uniform_raw(bvr_shader_uniform_t* uniform, bvr_phandle_t handle){
     if(!uniform) {
         return BVR_FALSE;
     }
 
-    uniform->memory.data = data;
-}
-
-int bvr_shader_set_uniform(bvr_shader_t* shader, const char* name, void* data){
-    BVR_ASSERT(shader);
-    BVR_ASSERT(name);
-
-    return bvr_shader_set_uniform_raw(bvr_find_uniform(shader, name), data);
+    uniform->handle = handle;
 }
 
 void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
@@ -535,34 +526,34 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
     // if user does input custom data, it will use 
     // uniform memory's data 
     if(!data){
-        data = uniform->memory.data;
+        data = bvr_phandle_get(&uniform->handle);
     }
 
     if(data){
         switch (uniform->type)
         {
         case BVR_FLOAT: 
-            glUniform1fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data); 
+            glUniform1fv(uniform->location, uniform->count, (float*)data); 
             break;
 
         case BVR_INT32: 
-            glUniform1iv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (int*)data); 
+            glUniform1iv(uniform->location, uniform->count, (int*)data); 
             break;
         
         case BVR_VEC2:
-            glUniform2fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data);
+            glUniform2fv(uniform->location, uniform->count, (float*)data);
             break;
 
         case BVR_VEC3:
-            glUniform3fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data);
+            glUniform3fv(uniform->location, uniform->count, (float*)data);
             break;
 
         case BVR_VEC4:
-            glUniform4fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (float*)data);
+            glUniform4fv(uniform->location, uniform->count, (float*)data);
             break;
 
         case BVR_MAT4: 
-            glUniformMatrix4fv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), GL_FALSE, (float*)data); 
+            glUniformMatrix4fv(uniform->location, uniform->count, GL_FALSE, (float*)data); 
             break;
         
         case BVR_TEXTURE_2D:
@@ -570,6 +561,7 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
         case BVR_TEXTURE_2D_ARRAY:            
             {
                 bvr_texture_t* texture = (bvr_texture_t*)data;
+                // BVR_PRINTF("atlas %i", texture->id);
 
                 bvr_texture_enable(texture);
                 glUniform1i(uniform->location, (int)texture->unit);
@@ -577,7 +569,7 @@ void bvr_shader_use_uniform(bvr_shader_uniform_t* uniform, void* data){
             break;
 
         case BVR_TEXTURE_2D_LAYER_STRUCT:
-            glUniform1iv(uniform->location, BVR_BUFFER_COUNT(uniform->memory), (int*)data);
+            glUniform1iv(uniform->location, uniform->count, (int*)data);
             break;
 
         case BVR_TEXTURE_2D_COMPOSITE:
@@ -619,7 +611,8 @@ void bvr_destroy_shader(bvr_shader_t* shader){
     for (uint64 uniform = 0; uniform < shader->uniform_count; uniform++)
     {
         bvr_destroy_string(&shader->uniforms[uniform].name);
-        shader->uniforms[uniform].memory.data = NULL;
+        shader->uniforms[uniform].handle.origin = BVR_PHANDLE_NONE;
+        shader->uniforms[uniform].handle.pointer.raw.pointer = NULL;
     }
 
     glDeleteProgram(shader->program);

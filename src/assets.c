@@ -4,6 +4,8 @@
 
 #include <json-c/json.h>
 
+#include <bvr/actors.h>
+
 static struct {
     char path[128];
     bool used;
@@ -33,6 +35,38 @@ bvr_fhandle_t bvr_create_fhandle(const char* path){
     }
     
     return fhandle;
+}
+
+bvr_phandle_t bvr_create_literal_phandle(uint8 size, void* value){
+    bvr_phandle_t h;
+    h.origin = BVR_PHANDLE_LITERAL;
+    h.pointer.literal.size = size;
+    
+    memcpy(
+        h.pointer.literal.value,
+        value,
+        MIN(size, sizeof(h.pointer.literal.value))
+    );
+    
+    return h;
+}
+
+void* bvr_phandle_get(bvr_phandle_t* handle){
+    if(!handle){
+        return NULL;
+    }
+
+    switch (handle->origin)
+    {
+    case BVR_PHANDLE_FIELD: 
+        return (void*)handle->pointer.field.self + (size_t)handle->pointer.field.field->offset;
+    case BVR_PHANDLE_LITERAL:
+        return (void*)handle->pointer.literal.value;
+    case BVR_PHANDLE_RAW:
+        return handle->pointer.raw.pointer;
+    default:
+        return NULL;
+    }
 }
 
 /*int bvr_load_pagef(bvr_page_t* page, FILE* file){

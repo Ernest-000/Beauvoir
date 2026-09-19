@@ -14,7 +14,7 @@ uint64 bvr_fsize(FILE* file){
     return size;
 }
 
-int bvr_read_file(bvr_string_t* string, FILE* file){
+int bvr_fread(bvr_string_t* string, FILE* file){
     BVR_ASSERT(string);
     BVR_ASSERT(file);
 

@@ -8,8 +8,8 @@
  * @param table the table object to iterator through.
  * @param value a pointer that will pointing to the current looping element.
  */
-#define BVR_TABLE_FOR_EACH(table, value) \
-    struct bvr_table_iterator_s _iterator = {.table = &(table), .index = 0}; \
+#define BVR_TABLE_FOR_EACH(_table, value) \
+    struct bvr_table_iterator_s _iterator = {.table = &(_table), .index = 0}; \
     while (((value) = bvr_table_iterate(&_iterator)))
 
 struct bvr_table_chunk_s {

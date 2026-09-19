@@ -2,8 +2,11 @@
 #include <bvr/io.h>
 #include <bvr/math.h>
 #include <bvr/actors.h>
+#include <bvr/serialize.h>
 
 #include <stdlib.h>
+
+#include <json-c/json.h>
 
 #define BVRI_DEFAULT_WINWIDTH 800
 #define BVRI_DEFAULT_WINHEIGHT 800
@@ -185,6 +188,13 @@ void bvr_render(void){
 void bvr_destroy_book(bvr_book_t* book){
     BVR_ASSERT(book);
 
+    for (size_t i = 0; i < BVR_MAX_PAGE; i++)
+    {
+        if(book->slots[i].is_assigned){
+            bvr_destroy_page(&book->slots[i].page);
+        }
+    }
+    
     // destroying predefs should be first because it
     // rely on opengl functions 
     bvr_destroy_predefs(&book->predefs);
@@ -199,7 +209,7 @@ void bvr_destroy_book(bvr_book_t* book){
     bvr_destroy_memstream(&book->assets);
 }
 
-bvr_page_t* bvr_create_page(bvr_page_t* page, const char* name){
+bvr_page_t* bvr_create_page_raw(bvr_page_t* page, const char* name){
     if(page == NULL){
         // if it's null, we return the current scene
         return &BVR_INSTANCE()->slots[clampi(BVR_INSTANCE()->active_slot, 0, BVR_MAX_PAGE - 1)].page;
@@ -210,6 +220,45 @@ bvr_page_t* bvr_create_page(bvr_page_t* page, const char* name){
     return page;
 }
 
+int bvr_create_pagef(bvr_page_t* page, FILE* file){
+    BVR_ASSERT(page);
+    BVR_ASSERT(file);
+
+    json_object* json_root = NULL;
+
+    {
+        // read the json file
+        fseek(file, 0, SEEK_SET);
+
+        bvr_string_t file_as_str;
+        json_tokener* tokener = json_tokener_new();
+        bvr_create_string(&file_as_str, NULL);
+        bvr_fread(&file_as_str, file);
+
+        json_root = json_tokener_parse_ex(
+            tokener,
+            file_as_str.string,
+            file_as_str.length
+        );
+
+        BVR_PRINT(file_as_str.string);
+
+        // clear buffers
+        bvr_destroy_string(&file_as_str);
+    }
+
+    if(!json_root){
+        BVR_PRINT("failed to parse the json page file!");
+        return BVR_FALSE;
+    }   
+
+    int sucess = bvr_deserialize_page(BVR_TOKENIZE_JSON(json_root), page);
+    
+    BVR_ASSERT(json_object_put(json_root));
+    
+    return sucess;
+}
+
 bvr_page_t* bvr_enable_page(uint32 index){
     if(index >= BVR_MAX_PAGE){
         return NULL;
@@ -217,7 +266,7 @@ bvr_page_t* bvr_enable_page(uint32 index){
 
     if(index == BVR_INSTANCE()->active_slot){
         // when it's already the active scene
-        return bvr_create_page(NULL, 0);
+        return bvr_create_page_raw(NULL, 0);
     }
 
     if(BVR_INSTANCE()->active_slot >= 0){
@@ -283,6 +332,13 @@ struct bvr_actor_s* bvr_alloc_actor(bvr_page_t* page, const char* name, const ui
 void bvr_destroy_page(bvr_page_t* page){
     BVR_ASSERT(page);
     
+    struct bvr_actor_s* actor;
+    BVR_TABLE_FOR_EACH(page->actors, actor){
+        // we are able cast as static mesh, because all of the field's
+        // offsets keeps the same indices.
+        BVR_ACTOR_DESTROY((bvr_static_mesh_t*)actor);
+    }
+
     bvr_destroy_string(&page->name);
     bvr_destroy_table(&page->actors);
 }

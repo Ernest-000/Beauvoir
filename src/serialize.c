@@ -8,10 +8,34 @@
 #define BVRI_MESH_VERTICES_TOKEN "vertices"
 #define BVRI_MESH_ELEMENTS_TOKEN "elements"
 
+#define BVRI_FHANDLE_PATH_TOKEN "path"
+
+#define BVRI_TRANSFORM_POSITION_TOKEN "position"
+#define BVRI_TRANSFORM_SCALE_TOKEN "scale"
+#define BVRI_TRANSFORM_ROTATION_TOKEN "rotation"
+
+#define BVRI_CAMERA_MODE_TOKEN "mode"
+#define BVRI_CAMERA_TRANSFORM_TOKEN "transform"
+#define BVRI_CAMERA_WIDTH_TOKEN "width"
+#define BVRI_CAMERA_HEIGHT_TOKEN "height"
+#define BVRI_CAMERA_NEAR_TOKEN "near"
+#define BVRI_CAMERA_FAR_TOKEN "far"
+#define BVRI_CAMERA_FOV_TOKEN "fov"
+
+#define BVRI_PAGE_SELF_TOKEN "self"
+#define BVRI_PAGE_SELF_NAME_TOKEN "name"
+#define BVRI_PAGE_SELF_ACTOR_COUNT_TOKEN "actor_count"
+#define BVRI_PAGE_CAMERA_TOKEN "camera"
+
 int bvr_deserialize_int32(bvr_fhandle_t token){
     if(json_object_is_type(token.token, json_type_int)){
         return json_object_get_int(token.token);
     }
+    else if(json_object_is_type(token.token, json_type_double)){
+        // fallback
+        return (int32)json_object_get_double(token.token);
+    }
+
     return 0;
 }
 
@@ -19,6 +43,11 @@ long bvr_deserialize_int64(bvr_fhandle_t token){
     if(json_object_is_type(token.token, json_type_int)){
         return json_object_get_int64(token.token);
     } 
+    else if(json_object_is_type(token.token, json_type_double)){
+        // fallback
+        return (int64)json_object_get_double(token.token);
+    }
+
     return 0;
 }
 
@@ -26,6 +55,11 @@ uint32 bvr_deserialize_uint32(bvr_fhandle_t token){
     if(json_object_is_type(token.token, json_type_int)){
         return (uint32)json_object_get_uint64(token.token);
     }
+    else if(json_object_is_type(token.token, json_type_double)){
+        // fallback
+        return (uint32)json_object_get_double(token.token);
+    }
+
     return 0;
 }
 
@@ -33,6 +67,11 @@ uint64 bvr_deserialize_uint64(bvr_fhandle_t token){
     if(json_object_is_type(token.token, json_type_int)){
         return json_object_get_uint64(token.token);
     }
+    else if(json_object_is_type(token.token, json_type_double)){
+        // fallback
+        return (uint64)json_object_get_double(token.token);
+    }
+    
     return 0;
 }
 
@@ -40,7 +79,36 @@ float bvr_deserialize_float(bvr_fhandle_t token){
     if(json_object_is_type(token.token, json_type_double)){
         return (float)json_object_get_double(token.token);
     }
+    else if(json_object_is_type(token.token, json_type_int)){
+        // fallback
+        return (float)json_object_get_int(token.token);
+    }
+    
     return 0.0f;
+}
+
+int bvr_deserialize_farray(bvr_fhandle_t token, float* array, uint32 length){
+    if(array == NULL){
+        return BVR_FALSE;
+    }
+
+    if(!json_object_is_type(token.token, json_type_array)){
+        BVR_PRINT("corrupted float array");
+        return BVR_FALSE;
+    }
+    
+    if(json_object_array_length(token.token) >= length){
+        for (size_t i = 0; i < length; i++)
+        {
+            array[i] = bvr_deserialize_float(
+                BVR_TOKENIZE_JSON(json_object_array_get_idx(token.token, i))
+            );
+        }
+
+        return BVR_TRUE;
+    }
+
+    return BVR_FALSE;
 }
 
 bool bvr_deserialize_bool(bvr_fhandle_t token){
@@ -59,6 +127,56 @@ void bvr_deserialize_string(bvr_fhandle_t token, bvr_string_t* string){
     }
 
     bvr_create_string(string, NULL);
+}
+
+void bvr_deserialize_fhandle(bvr_fhandle_t token, bvr_fhandle_t* handle){
+    BVR_ASSERT(handle);
+
+    if(!json_object_is_type(token.token, json_type_object)){
+        BVR_PRINT("corrupted fhandle");
+        return;
+    }
+
+    json_object* fhandle_json_path = NULL;
+
+    fhandle_json_path = json_object_object_get(token.token, BVRI_FHANDLE_PATH_TOKEN);
+    if(!json_object_is_type(fhandle_json_path, json_type_string)){
+        BVR_PRINT("corrupted fhandle");
+        return;
+    }
+
+    *handle = bvr_create_fhandle(
+        json_object_get_string(fhandle_json_path)
+    );
+}
+
+int bvr_deserialize_transform(bvr_fhandle_t token, bvr_transform_t* transform){
+    BVR_ASSERT(transform);
+
+    if(!json_object_is_type(token.token, json_type_object)){
+        BVR_PRINT("corrupted transform");
+        return BVR_FALSE;
+    }
+
+    json_object* json_position = NULL;
+    json_object* json_scale = NULL;
+    json_object* json_rotation = NULL;
+
+    json_position = json_object_object_get(token.token, BVRI_TRANSFORM_POSITION_TOKEN);
+    json_scale = json_object_object_get(token.token, BVRI_TRANSFORM_SCALE_TOKEN);
+    json_rotation = json_object_object_get(token.token, BVRI_TRANSFORM_ROTATION_TOKEN);
+
+    BVR_SET_VEC3(transform->position, 0.0f);
+    BVR_SET_VEC3(transform->scale, 0.0f);
+    BVR_SET_VEC4(transform->rotation, 0.0f);
+    BVR_IDENTITY_MAT4(transform->local);
+    BVR_IDENTITY_MAT4(transform->world);
+
+    bvr_deserialize_vec3(BVR_TOKENIZE_JSON(json_position), transform->position);
+    bvr_deserialize_vec3(BVR_TOKENIZE_JSON(json_scale), transform->scale);
+    bvr_deserialize_vec4(BVR_TOKENIZE_JSON(json_rotation), transform->rotation);
+
+    return json_position && json_scale && json_rotation;
 }
 
 int bvr_deserialize_mesh(bvr_fhandle_t token, bvr_mesh_t* mesh){
@@ -159,10 +277,13 @@ int bvr_deserialize_mesh(bvr_fhandle_t token, bvr_mesh_t* mesh){
         }
     }
 
-    return bvr_create_meshv(mesh, 
+    int status = bvr_create_meshv(mesh, 
         &vertices, &elements, 
         json_object_get_int64(json_mesh_attributes)
     );
+
+    free(vertices.data);
+    free(elements.data);
 }
 
 int bvr_deserialize_shader(bvr_fhandle_t token, bvr_shader_t* shader){
@@ -177,6 +298,86 @@ int bvr_deserialize_shader(bvr_fhandle_t token, bvr_shader_t* shader){
     json_object* json_shader_flags = NULL;
     json_object* json_shader_uniforms = NULL;
     json_object* json_shader_textures = NULL;
+}
 
+int bvr_deserialize_camera(bvr_fhandle_t token, bvr_camera_t* camera){
+    BVR_ASSERT(camera);
 
+    if(!json_object_is_type(token.token, json_type_object)){
+        BVR_PRINT("corrupted camera");
+        return BVR_FALSE;
+    }
+
+    json_object* json_camera_mode = NULL;
+    json_object* json_camera_transform = NULL;
+    json_object* json_camera_width = NULL;
+    json_object* json_camera_height = NULL;
+    json_object* json_camera_near = NULL;
+    json_object* json_camera_far = NULL;
+    json_object* json_camera_fov = NULL;
+
+    json_camera_mode = json_object_object_get(token.token, BVRI_CAMERA_MODE_TOKEN);
+    json_camera_transform = json_object_object_get(token.token, BVRI_CAMERA_TRANSFORM_TOKEN);
+    json_camera_width = json_object_object_get(token.token, BVRI_CAMERA_WIDTH_TOKEN);
+    json_camera_height = json_object_object_get(token.token, BVRI_CAMERA_HEIGHT_TOKEN);
+    json_camera_near = json_object_object_get(token.token, BVRI_CAMERA_NEAR_TOKEN);
+    json_camera_far = json_object_object_get(token.token, BVRI_CAMERA_FAR_TOKEN);
+    json_camera_fov = json_object_object_get(token.token, BVRI_CAMERA_FOV_TOKEN);    
+
+    int mode = bvr_deserialize_float(BVR_TOKENIZE_JSON(json_camera_mode));
+    BVR_PRINT(mode);
+    if(mode == BVR_CAMERA_ORTHOGRAPHIC){
+        bvr_create_ortho_camera(
+            camera,
+            bvr_deserialize_float(BVR_TOKENIZE_JSON(json_camera_width)),
+            bvr_deserialize_float(BVR_TOKENIZE_JSON(json_camera_height)),
+            bvr_deserialize_float(BVR_TOKENIZE_JSON(json_camera_near)),
+            bvr_deserialize_float(BVR_TOKENIZE_JSON(json_camera_far)),
+            bvr_deserialize_float(BVR_TOKENIZE_JSON(json_camera_fov))
+        );
+    }
+    else {
+        bvr_create_persp_camera(
+            camera,
+            bvr_deserialize_float(BVR_TOKENIZE_JSON(json_camera_width)),
+            bvr_deserialize_float(BVR_TOKENIZE_JSON(json_camera_height)),
+            bvr_deserialize_float(BVR_TOKENIZE_JSON(json_camera_near)),
+            bvr_deserialize_float(BVR_TOKENIZE_JSON(json_camera_far)),
+            bvr_deserialize_float(BVR_TOKENIZE_JSON(json_camera_fov))
+        );
+    }
+
+    bvr_deserialize_transform(
+        BVR_TOKENIZE_JSON(json_camera_transform), 
+        &camera->ortho.transform
+    );
+
+    return BVR_TRUE;
+}
+
+int bvr_deserialize_page(bvr_fhandle_t token, bvr_page_t* page){
+    BVR_ASSERT(page);
+
+    if(!json_object_is_type(token.token, json_type_object)){
+        BVR_PRINT("corrupted page");
+        return BVR_FALSE;
+    }
+
+    json_object* json_self = NULL;
+    json_object* json_camera = NULL;
+
+    json_self = json_object_object_get(token.token, BVRI_PAGE_SELF_TOKEN);
+    json_camera = json_object_object_get(token.token, BVRI_PAGE_CAMERA_TOKEN);
+
+    if(json_object_is_type(json_self, json_type_object)){
+        // bvr_create_string(&page->name, name);
+        bvr_deserialize_string(
+            BVR_TOKENIZE_JSON(json_object_object_get(json_self, BVRI_PAGE_SELF_NAME_TOKEN)),
+            &page->name
+        );
+
+        bvr_create_table(&page->actors, sizeof(struct bvr_actor_s*), 64);
+    }
+
+    bvr_deserialize_camera(BVR_TOKENIZE_JSON(json_camera), &page->camera);
 }

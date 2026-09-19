@@ -21,7 +21,7 @@
 /**
  * @brief return the active scene.
  */
-#define BVR_PAGE() (bvr_create_page(NULL, 0))
+#define BVR_PAGE() (bvr_create_page_raw(NULL, 0))
 
 /**
  * @brief return the current active camera.
@@ -150,7 +150,21 @@ void bvr_destroy_book(bvr_book_t* book);
  * @param page the scene to create. If NULL, it will return the current scene.
  * @param name the name of the scene.
  */
-bvr_page_t* bvr_create_page(bvr_page_t* page, const char* name);
+bvr_page_t* bvr_create_page_raw(bvr_page_t* page, const char* name);
+
+int bvr_create_pagef(bvr_page_t* page, FILE* file);
+
+/**
+ * @brief create a new page from a json page descriptor.
+ * @param page the scene create.
+ * @param path the path to the json file.
+ */
+BVR_H_FUNC int bvr_create_page(bvr_page_t* page, const char* path){
+    FILE* f = fopen(path, "rb");
+    int success = bvr_create_pagef(page, f);
+    fclose(f);
+    return success;
+}
 
 /**
  * @brief enable a page slot.

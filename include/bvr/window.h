@@ -299,6 +299,13 @@ void bvr_window_set_size(bvr_window_t* window, const uint16 width, const uint16 
 void bvr_window_set_position(bvr_window_t* window, const uint16 x, const uint16 y);
 
 /**
+ * @brief set a new title to the window.
+ * @param window the window to retitle.
+ * @param title the new title.
+ */
+void bvr_window_set_title(bvr_window_t* window, const char* title);
+
+/**
  * @brief destroy the specified window and free all resources associated
  * with it.
  * @param window the window to be destroyed.

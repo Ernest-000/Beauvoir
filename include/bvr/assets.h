@@ -15,13 +15,15 @@
 #define BVR_FILE_HANDLE(obj, path) \
     do { ((*obj).fhandle) = bvr_create_fhandle(path); } while(0); \
 
+#define BVR_TOKENIZE_JSON(obj) ((bvr_fhandle_t){.token = (void*)obj})
+
 #define BVR_CREATE_LITERAL_PHANDLE(value) bvr_create_literal_phandle(sizeof(value), value);
 
 #define BVR_CREATE_FIELD_PHANDLE(class, _actor, _field)     \
     ((bvr_phandle_t) {                                      \
         .origin = BVR_PHANDLE_FIELD,                        \ 
         .pointer.field.self = (struct bvr_actor_s*)(_actor),\
-        .pointer.field.field = bvr_actor_get_field(         \
+        .pointer.field.field = *bvr_actor_get_field(        \
             #class, (_field)                                \
         )                                                   \
     })
@@ -33,7 +35,13 @@
     ((bvr_phandle_t){.origin = BVR_PHANDLE_NONE, .pointer.raw.pointer = NULL, .pointer.raw.size = 0})
 
 // opaque field struct
-struct bvr_actor_fields_s;
+struct bvr_actor_fields_s {
+    const char* name;
+    uint32 offset;
+    uint32 size;
+};
+
+// opaque actor struct
 struct bvr_actor_s;
 
 /**
@@ -63,7 +71,7 @@ typedef struct bvr_phandle_s {
 
         struct {
             struct bvr_actor_s* self;
-            struct bvr_actor_fields_s* field;
+            struct bvr_actor_fields_s field;
         } field;
 
         struct {

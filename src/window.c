@@ -1338,6 +1338,12 @@ void bvr_window_set_position(bvr_window_t* window, const uint16 x, const uint16 
     bvr_window_set_position_impl(window, x, y);
 }
 
+void bvr_window_set_title(bvr_window_t* window, const char* title){
+    BVR_ASSERT(window);
+
+    bvr_window_set_name_impl(window, title);
+}
+
 void bvr_destroy_window(bvr_window_t* window){
     bvr_destroy_framebuffer(&window->framebuffer);
     bvri_window_destroy_impl(window);    

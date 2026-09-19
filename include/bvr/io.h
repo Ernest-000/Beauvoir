@@ -21,7 +21,7 @@ uint64 bvr_fsize(FILE* file);
 /*
     Read all the file and copy data into a string.
 */
-int bvr_read_file(bvr_string_t* string, FILE* file);
+int bvr_fread(bvr_string_t* string, FILE* file);
 
 /*
     Read a single signed short from a stream.

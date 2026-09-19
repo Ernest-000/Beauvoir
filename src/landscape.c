@@ -129,7 +129,7 @@ static int bvri_load_landscapejson(bvr_landscape_t* landscape, FILE* file){
         bvr_string_t file_string;
 
         bvr_create_string(&file_string, NULL);
-        bvr_read_file(&file_string, file);
+        bvr_fread(&file_string, file);
 
         json_root = json_tokener_parse_ex(token, file_string.string, file_string.length);
         
@@ -317,6 +317,8 @@ static int bvri_load_landscapejson(bvr_landscape_t* landscape, FILE* file){
     {
         bvri_update_landscape_buffers(landscape, i);
     }
+
+    json_object_put(json_root);
     
     return BVR_TRUE;
 }

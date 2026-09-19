@@ -59,7 +59,7 @@ void* bvr_phandle_get(bvr_phandle_t* handle){
     switch (handle->origin)
     {
     case BVR_PHANDLE_FIELD: 
-        return (void*)handle->pointer.field.self + (size_t)handle->pointer.field.field->offset;
+        return (void*)handle->pointer.field.self + (size_t)handle->pointer.field.field.offset;
     case BVR_PHANDLE_LITERAL:
         return (void*)handle->pointer.literal.value;
     case BVR_PHANDLE_RAW:
@@ -69,7 +69,8 @@ void* bvr_phandle_get(bvr_phandle_t* handle){
     }
 }
 
-/*int bvr_load_pagef(bvr_page_t* page, FILE* file){
+/*
+int bvr_load_pagef(bvr_page_t* page, FILE* file){
     BVR_ASSERT(page);
     BVR_ASSERT(file);
 
@@ -100,6 +101,5 @@ void* bvr_phandle_get(bvr_phandle_t* handle){
         BVR_PRINT("failed to parse the json page file!");
         return BVR_FALSE;
     }   
-
-}*/
-
+}
+*/

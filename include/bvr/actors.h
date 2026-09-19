@@ -3,11 +3,11 @@
 #include <bvr/config.h>
 #include <bvr/math.h>
 
-#include <bvr/assets.h>
 #include <bvr/mesh.h>
 #include <bvr/shader.h>
 #include <bvr/image.h>
 #include <bvr/physics.h>
+#include <bvr/assets.h>
 
 #include <bvr/collections/string.h>
 
@@ -79,11 +79,11 @@
 // opaque type for vtable
 struct bvr_actor_s;
 
-struct bvr_actor_fields_s {
+/* struct bvr_actor_fields_s {
     const char* name;
     uint32 offset;
     uint32 size;
-};
+}; */
 
 struct bvr_actor_vtable_s {
     void (*update)(struct bvr_actor_s* self);

@@ -157,7 +157,7 @@ int bvr_create_shaderf(bvr_shader_t* shader, FILE* file, const int flags){
 
     // read file
     bvr_create_string(&file_content, NULL);
-    BVR_ASSERT(bvr_read_file(&file_content, file));
+    BVR_ASSERT(bvr_fread(&file_content, file));
     
     // create shader's program
     shader->program = glCreateProgram();

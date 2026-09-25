@@ -763,6 +763,21 @@ BVR_H_FUNC void quat_euler(quat quat, float roll, float pitch, float yaw){
 }
 
 /**
+ * @brief build a quaternion from roll, pitch and yaw Euler angles.
+ * @param quat the quaternion that will receive the result.
+ * @param roll the roll angle, in degrees.
+ * @param pitch the pitch angle, in degrees.
+ * @param yaw the yaw angle, in degrees.
+ */
+BVR_H_FUNC void quat_euler_deg(quat quat, float roll, float pitch, float yaw){
+    quat_euler(quat,
+        deg_to_rad(roll), 
+        deg_to_rad(pitch), 
+        deg_to_rad(yaw) 
+    );
+}
+
+/**
  * @brief convert a quaternion back into roll, pitch and yaw Euler angles.
  * @param euler the vector that will receive the resulting Euler angles (roll, pitch, yaw), in radians.
  * @param quat the quaternion to convert.

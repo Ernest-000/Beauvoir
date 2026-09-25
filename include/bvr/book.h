@@ -181,4 +181,11 @@ bvr_page_t* bvr_enable_page(uint32 index);
  */
 struct bvr_actor_s* bvr_alloc_actor(bvr_page_t* page, const char* name, const uint32 size);
 
+/**
+ * @brief get an actor from a page.
+ * @param page the page parent of the actor your looking for.
+ * @param name the name of the actor to look for.
+ */
+struct bvr_actor_s* bvr_get_actor(bvr_page_t* page, const char* name);
+
 void bvr_destroy_page(bvr_page_t* page);

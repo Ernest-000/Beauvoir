@@ -35,12 +35,12 @@
     BVR_ACTOR_FIELD_REGISTRY(parent, uint16, active) 
 
 #define BVR_DEFINE_ACTOR(name, fields)                          \
-    struct name {                                               \
+    __struct_packed(struct name {                               \
         struct bvr_actor_s self;                                \
         fields(name,                                            \
             BVR_ACTOR_FIELD_DECLARE,                            \
             BVR_ACTOR_METHOD_IGNORE)                            \
-    };                                                          \
+    });                                                          \
     typedef struct name name;                                   \
     extern const struct bvr_actor_vtable_s _##name##able;              
 
@@ -57,6 +57,7 @@
             BVR_ACTOR_FIELD_IGNORE,                             \
             BVR_ACTOR_METHOD_IMPLEMENT)                         \
         .ftable = _##name##ablef,                               \
+        .class_size = sizeof(name),                             \
         .field_count = sizeof(_##name##ablef) /                 \
             sizeof(struct bvr_actor_fields_s)                   \
     };                                                          \
@@ -95,6 +96,8 @@ struct bvr_actor_vtable_s {
     // depreciate
     void (*user)(struct bvr_actor_s* self);
 
+    uint32 class_size;
+
     // fields
     struct bvr_actor_fields_s* ftable;
     uint16 field_count;
@@ -122,6 +125,7 @@ struct bvr_actor_s {
 // generic functions
 void bvr_actor_serializable(const char* cname, struct bvr_actor_vtable_s* table);
 
+struct bvr_actor_vtable_s* bvr_actor_get_vtable(const char* cname);
 struct bvr_actor_fields_s* bvr_actor_get_field(const char* cname, const char* fname);
 
 void bvr_actor_set_parent(struct bvr_actor_s* actor, struct bvr_actor_s* parent);

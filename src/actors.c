@@ -147,6 +147,20 @@ void bvr_actor_serializable(const char* cname, struct bvr_actor_vtable_s* table)
     BVR_ASSERT(0 || "maximum serializable class reached!");
 }
 
+struct bvr_actor_vtable_s* bvr_actor_get_vtable(const char* cname){
+    BVR_ASSERT(cname);
+
+    for (size_t i = 0; i < BVR_MAX_ACTOR_CLASSES; i++)
+    {
+        if(__actor_classes_table[i].used
+            && BVR_STRCMP(cname, __actor_classes_table[i].name)){
+            
+            return __actor_classes_table[i].table;
+        }
+    }
+    
+    return NULL;
+}
 struct bvr_actor_fields_s* bvr_actor_get_field(const char* cname, const char* fname){
     BVR_ASSERT(cname);
     BVR_ASSERT(fname);

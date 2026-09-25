@@ -11,7 +11,7 @@
 #define BVRI_DEFAULT_WINWIDTH 800
 #define BVRI_DEFAULT_WINHEIGHT 800
 
-#define BVRI_DEFAULT_STREAM_SIZE (sizeof(struct bvr_actor_s) * 32)
+#define BVRI_DEFAULT_STREAM_SIZE (sizeof(struct bvr_actor_s) * 1024)
 
 // binded book
 static bvr_book_t* __book = NULL;
@@ -254,7 +254,7 @@ int bvr_create_pagef(bvr_page_t* page, FILE* file){
 
     int sucess = bvr_deserialize_page(BVR_TOKENIZE_JSON(json_root), page);
     
-    BVR_ASSERT(json_object_put(json_root));
+    json_object_put(json_root);
     
     return sucess;
 }
@@ -322,11 +322,19 @@ struct bvr_actor_s* bvr_alloc_actor(bvr_page_t* page, const char* name, const ui
     p_actor->child_slots = 0;
     p_actor->children_count = 0;
     p_actor->flags = 0;
-    p_actor->hash = ((struct bvr_table_chunk_s*)(pp_actor - sizeof(struct bvr_table_chunk_s)))->key;
+    p_actor->hash = ((struct bvr_table_chunk_s*)((char*)pp_actor - sizeof(struct bvr_table_chunk_s)))->key;
 
     bvr_create_string(&p_actor->name, name);
 
+    *pp_actor = p_actor;
     return p_actor;
+}
+
+struct bvr_actor_s* bvr_get_actor(bvr_page_t* page, const char* name){
+    BVR_ASSERT(page);
+    BVR_ASSERT(name);
+
+    return *(struct bvr_actor_s**)bvr_table_get(&page->actors, name);
 }
 
 void bvr_destroy_page(bvr_page_t* page){

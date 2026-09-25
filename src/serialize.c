@@ -1,4 +1,5 @@
 #include <bvr/serialize.h>
+#include <bvr/actors.h>
 #include <bvr/io.h>
 
 #include <json-c/json.h>
@@ -12,6 +13,7 @@
 
 #define BVRI_TRANSFORM_POSITION_TOKEN "position"
 #define BVRI_TRANSFORM_SCALE_TOKEN "scale"
+#define BVRI_TRANSFORM_EULER_TOKEN "euler"
 #define BVRI_TRANSFORM_ROTATION_TOKEN "rotation"
 
 #define BVRI_CAMERA_MODE_TOKEN "mode"
@@ -24,8 +26,17 @@
 
 #define BVRI_PAGE_SELF_TOKEN "self"
 #define BVRI_PAGE_SELF_NAME_TOKEN "name"
-#define BVRI_PAGE_SELF_ACTOR_COUNT_TOKEN "actor_count"
+#define BVRI_PAGE_SELF_ACTOR_LIST_TOKEN "actors"
 #define BVRI_PAGE_CAMERA_TOKEN "camera"
+
+#define BVRI_ACTOR_SELF_TRANSFORM_TOKEN "transform"
+#define BVRI_ACTOR_SELF_TYPE_TOKEN "type"
+#define BVRI_ACTOR_SELF_NAME_TOKEN "name"
+#define BVRI_ACTOR_SELF_PARENT_TOKEN "parent"
+#define BVRI_ACTOR_SELF_CHILDS_TOKEN "childs"
+#define BVRI_ACTOR_SELF_FLAGS_TOKEN "flags"
+#define BVRI_ACTOR_SELF_ORDER_IN_LAYER_TOKEN "order_in_layer"
+#define BVRI_ACTOR_SELF_ACTIVE_TOKEN "active"
 
 int bvr_deserialize_int32(bvr_fhandle_t token){
     if(json_object_is_type(token.token, json_type_int)){
@@ -161,10 +172,12 @@ int bvr_deserialize_transform(bvr_fhandle_t token, bvr_transform_t* transform){
     json_object* json_position = NULL;
     json_object* json_scale = NULL;
     json_object* json_rotation = NULL;
+    json_object* json_euler = NULL;
 
     json_position = json_object_object_get(token.token, BVRI_TRANSFORM_POSITION_TOKEN);
     json_scale = json_object_object_get(token.token, BVRI_TRANSFORM_SCALE_TOKEN);
     json_rotation = json_object_object_get(token.token, BVRI_TRANSFORM_ROTATION_TOKEN);
+    json_euler = json_object_object_get(token.token, BVRI_TRANSFORM_EULER_TOKEN);
 
     BVR_SET_VEC3(transform->position, 0.0f);
     BVR_SET_VEC3(transform->scale, 0.0f);
@@ -175,6 +188,15 @@ int bvr_deserialize_transform(bvr_fhandle_t token, bvr_transform_t* transform){
     bvr_deserialize_vec3(BVR_TOKENIZE_JSON(json_position), transform->position);
     bvr_deserialize_vec3(BVR_TOKENIZE_JSON(json_scale), transform->scale);
     bvr_deserialize_vec4(BVR_TOKENIZE_JSON(json_rotation), transform->rotation);
+
+    // check for euler angles
+    if(json_object_is_type(json_euler, json_type_array)){
+        vec3 euler;
+        bvr_deserialize_vec3(BVR_TOKENIZE_JSON(json_euler), euler);
+
+        // overwrite rotation with euler angles
+        quat_euler_deg(transform->rotation,  euler[0], euler[1], euler[2]);
+    }
 
     return json_position && json_scale && json_rotation;
 }
@@ -325,7 +347,6 @@ int bvr_deserialize_camera(bvr_fhandle_t token, bvr_camera_t* camera){
     json_camera_fov = json_object_object_get(token.token, BVRI_CAMERA_FOV_TOKEN);    
 
     int mode = bvr_deserialize_float(BVR_TOKENIZE_JSON(json_camera_mode));
-    BVR_PRINT(mode);
     if(mode == BVR_CAMERA_ORTHOGRAPHIC){
         bvr_create_ortho_camera(
             camera,
@@ -365,10 +386,23 @@ int bvr_deserialize_page(bvr_fhandle_t token, bvr_page_t* page){
 
     json_object* json_self = NULL;
     json_object* json_camera = NULL;
+    json_object* json_actor = NULL;
+    json_object* json_actor_type = NULL;
+    json_object* json_actor_name = NULL;
+    json_object* json_actor_transform = NULL;
+    json_object* json_actor_parent = NULL;
+    json_object* json_actor_childs = NULL;
+    json_object* json_actor_flags = NULL;
+    json_object* json_actor_order_in_layer = NULL;
+    json_object* json_actor_active = NULL;
+    json_object* json_actor_field = NULL;
+    json_object* json_actor_list = NULL;
 
     json_self = json_object_object_get(token.token, BVRI_PAGE_SELF_TOKEN);
     json_camera = json_object_object_get(token.token, BVRI_PAGE_CAMERA_TOKEN);
+    json_actor_list = json_object_object_get(token.token, BVRI_PAGE_SELF_ACTOR_LIST_TOKEN);
 
+    // do the self object
     if(json_object_is_type(json_self, json_type_object)){
         // bvr_create_string(&page->name, name);
         bvr_deserialize_string(
@@ -376,8 +410,93 @@ int bvr_deserialize_page(bvr_fhandle_t token, bvr_page_t* page){
             &page->name
         );
 
-        bvr_create_table(&page->actors, sizeof(struct bvr_actor_s*), 64);
     }
 
+    // do the camera
     bvr_deserialize_camera(BVR_TOKENIZE_JSON(json_camera), &page->camera);
+
+    if(json_object_is_type(json_actor_list, json_type_array)){
+        bvr_create_table(
+            &page->actors, 
+            sizeof(struct bvr_actor_s*), 
+            MAX(1, json_object_array_length(json_actor_list)) * BVR_GROWTH_FACTOR
+        );
+
+        for (size_t i = 0; i < json_object_array_length(json_actor_list); i++)
+        {
+            json_actor = json_object_array_get_idx(json_actor_list, i);
+            
+            if(!json_object_is_type(json_actor, json_type_object)){
+                // invalid actor, go to the next one
+                BVR_PRINTF("invalid actor at index %i", i);
+                continue;
+            }
+
+            json_actor_type = json_object_object_get(json_actor, BVRI_ACTOR_SELF_TYPE_TOKEN);
+            json_actor_name = json_object_object_get(json_actor, BVRI_ACTOR_SELF_NAME_TOKEN);
+            json_actor_transform = json_object_object_get(json_actor, BVRI_ACTOR_SELF_TRANSFORM_TOKEN);
+            json_actor_parent = json_object_object_get(json_actor, BVRI_ACTOR_SELF_PARENT_TOKEN);
+            json_actor_childs = json_object_object_get(json_actor, BVRI_ACTOR_SELF_CHILDS_TOKEN);
+            json_actor_flags = json_object_object_get(json_actor, BVRI_ACTOR_SELF_FLAGS_TOKEN);
+            json_actor_order_in_layer = json_object_object_get(json_actor, BVRI_ACTOR_SELF_ORDER_IN_LAYER_TOKEN);
+            json_actor_active = json_object_object_get(json_actor, BVRI_ACTOR_SELF_ACTIVE_TOKEN);
+        
+            if(!json_object_is_type(json_actor_type, json_type_string)){
+                // invalid type
+                BVR_PRINTF("invalid actor type at index %i", i);
+                continue;
+            }
+
+            if(!json_object_is_type(json_actor_name, json_type_string)){
+                // invalid type
+                BVR_PRINTF("invalid actor name at index %i", i);
+                continue;
+            }
+
+            const struct bvr_actor_vtable_s* vtable = bvr_actor_get_vtable(
+                json_object_get_string(json_actor_type)
+            );
+
+            if(vtable == NULL){
+                // invalid type
+                BVR_PRINTF("invalid actor type at index %i", i);
+                continue;
+            }
+
+            // allocate a new actor
+            struct bvr_actor_s* actor = bvr_alloc_actor(page, 
+                json_object_get_string(json_actor_name),
+                vtable->class_size
+            );
+            BVR_ASSERT(actor);
+
+            // deserialize common actor fields
+            bvr_deserialize_transform(BVR_TOKENIZE_JSON(json_actor_transform), &actor->transform);
+            actor->flags = bvr_deserialize_uint32(BVR_TOKENIZE_JSON(json_actor_flags));
+            actor->order_in_layer = bvr_deserialize_uint32(BVR_TOKENIZE_JSON(json_actor_order_in_layer));
+            actor->active = (uint16) bvr_deserialize_bool(BVR_TOKENIZE_JSON(json_actor_active));
+            actor->vtable = (struct bvr_actor_vtable_s*) vtable;
+            
+            for (size_t f = 0; f < vtable->field_count; f++)
+            {
+                if(vtable->ftable[f].offset < sizeof(struct bvr_actor_s)){
+                    // no op for common actor fields
+                    continue;
+                }
+
+                json_actor_field = json_object_object_get(json_actor, vtable->ftable[f].name);
+                if(json_object_is_type(json_actor_field, json_type_null)){
+                    BVR_PRINTF("invalid actor field '%s'", vtable->ftable[f].name);
+                    continue;
+                }
+
+                BVR_PRINTF("field %s %i", vtable->ftable[f].name, vtable->ftable[f].offset);
+            }
+            
+        }
+    }
+    else {
+        // cannot read actor list
+        BVR_PRINT("missing actor list!");
+    }
 }

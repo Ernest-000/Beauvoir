@@ -6,8 +6,16 @@
 
 #include <malloc.h>
 
-#define BVRI_TABLE_GET_CHUNK_AT(table, i)((table)->entries + i * (table->chunck_size))
-#define BVRI_TABLE_GET_VALUE_AT(table, i)(BVRI_TABLE_GET_CHUNK_AT(table, i) + sizeof(struct bvr_table_chunk_s))
+// #define BVRI_TABLE_GET_CHUNK_AT(table, i)((table)->entries + i * (table->chunck_size))
+// #define BVRI_TABLE_GET_VALUE_AT(table, i)(BVRI_TABLE_GET_CHUNK_AT(table, i) + sizeof(struct bvr_table_chunk_s))
+
+// fucking char* index, I always forget that C arrays are offset by the pointer's type size!!
+
+#define BVRI_TABLE_GET_CHUNK_AT(table, i) \
+    ((struct bvr_table_chunk_s*)((char*)(table)->entries + (i) * (table)->chunck_size))
+
+#define BVRI_TABLE_GET_VALUE_AT(table, i) \
+    ((char*)BVRI_TABLE_GET_CHUNK_AT(table, i) + sizeof(struct bvr_table_chunk_s))
 
 static void bvri_table_grow(bvr_table_t* table);
 static void* bvri_table_set(bvr_table_t* table, const char* key, const uint32 hash, void* data, uint32 reserved);
@@ -16,15 +24,12 @@ int bvr_create_table(bvr_table_t* table, const uint32 elemsize, const uint32 cap
     BVR_ASSERT(table);
 
     table->count = 0;
-    table->capacity = (uint32)npow2(capacity);
+    table->capacity = (uint32)npow2(MAX(1, capacity));  // avoid 0
     table->elemsize = elemsize;
     table->chunck_size = sizeof(struct bvr_table_chunk_s) + elemsize;
-    table->entries = NULL;
 
-    if(capacity){
-        table->entries = calloc(table->capacity, table->chunck_size);
-        BVR_ASSERT(table->entries);
-    }
+    table->entries = calloc(table->capacity, table->chunck_size);
+    BVR_ASSERT(table->entries);
 
     return BVR_TRUE;
 }
@@ -97,27 +102,39 @@ static void bvri_table_grow(bvr_table_t* table){
     BVR_ASSERT(table);
 
     uint32 n_capacity = table->capacity * BVR_GROWTH_FACTOR;
-    if(n_capacity < table->capacity){
-        // overflow
-        return;
+    if(n_capacity <= table->capacity){
+        n_capacity = MAX(1, table->capacity * 2);
     }
 
-    struct bvr_table_chunk_s* entries = calloc(n_capacity, table->chunck_size);
-    BVR_ASSERT(entries);
+    struct bvr_table_chunk_s* old_entries = table->entries;
+    uint32 old_capacity = table->capacity;
 
-    for (size_t i = 0; i < table->capacity; i++)
-    {
-        bvri_table_set(table, 
-            NULL,
-            BVRI_TABLE_GET_CHUNK_AT(table, i)->key, 
-            BVRI_TABLE_GET_VALUE_AT(table, i), 
-            BVRI_TABLE_GET_CHUNK_AT(table, i)->reserved 
-        );
-    }
-    
-    free(table->entries);
-    table->entries = entries;
+    struct bvr_table_chunk_s* new_entries = calloc(n_capacity, table->chunck_size);
+    BVR_ASSERT(new_entries);
+
+    table->entries = new_entries;
     table->capacity = n_capacity;
+    table->count = 0;
+
+    if(old_entries){
+        for (size_t i = 0; i < old_capacity; i++)
+        {
+            struct bvr_table_chunk_s* chunk =
+                (struct bvr_table_chunk_s*)(old_entries + i * table->chunck_size);
+
+            if(chunk->key != 0){
+                bvri_table_set(
+                    table,
+                    NULL,
+                    chunk->key,
+                    (char*)chunk + sizeof(struct bvr_table_chunk_s),
+                    chunk->reserved
+                );
+            }
+        }
+    }
+
+    free(old_entries);
 }
 
 static void* bvri_table_set(bvr_table_t* table, const char* key, const uint32 _hash, void* data, uint32 reserved){

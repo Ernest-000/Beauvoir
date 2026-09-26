@@ -54,13 +54,16 @@
 
 #define BVR_TEXTURE_2D_LAYER_STRUCT 0x141E
 
+/*  object types    */
+#define BVR_MESH                    0x141F
+#define BVR_SHADER                  0x1420
+
 /**
  * @brief check if a type is a correct beauvoir type.
  * @param t the type to check
  * @return returns true if t is a valid beauvoir type
  */
-#define BVR_IS_AVAIL_TYPE(t) (t >= BVR_TEXTURE_2D && t <= BVR_TEXTURE_2D_ARRAY)
-
+#define BVR_IS_AVAIL_TYPE(t) bvr_is_avail_type(t)
 /**
  * @brief check if a type is an available texture type.
  * @param t the type to check
@@ -113,6 +116,41 @@ uint32 bvr_hash(const char* string);
 */
 uint8* bvr_base64_decode(const char* string, size_t length, size_t* decoded_length);
 
+BVR_H_FUNC bool bvr_is_avail_type(unsigned int t)
+{
+    switch (t)
+    {
+        case BVR_NULL:
+        case BVR_BOOL:
+        case BVR_INT8:
+        case BVR_UNSIGNED_INT8:
+        case BVR_INT16:
+        case BVR_UNSIGNED_INT16:
+        case BVR_INT32:
+        case BVR_UNSIGNED_INT32:
+        case BVR_FLOAT:
+        case BVR_VEC2:
+        case BVR_VEC3:
+        case BVR_VEC4:
+        case BVR_MAT3:
+        case BVR_MAT4:
+        case BVR_DOUBLE:
+        case BVR_INT64:
+        case BVR_UNSIGNED_INT64:
+        case BVR_TEXTURE_2D:
+        case BVR_TEXTURE_3D:
+        case BVR_TEXTURE_2D_ARRAY:
+        case BVR_TEXTURE_2D_LAYER:
+        case BVR_TEXTURE_2D_COMPOSITE:
+        case BVR_TEXTURE_2D_LAYER_STRUCT:
+        case BVR_MESH:
+        case BVR_SHADER:
+            return true;
+        default:
+            return false;
+    }
+}
+
 /**
  * @brief check if a number contains a bitflag.
  * @param n the number that might contain the bitflag.
@@ -131,7 +169,7 @@ uint8* bvr_base64_decode(const char* string, size_t length, size_t* decoded_leng
 
 /*          DEBUG                   */
 /*                                  */
-#ifndef BVR_NO_DEBUG
+#ifndef BVR_NO_DEBUG 
 
 char* bvri_string_format(const char* __string, ...);
 char* bvri_get_buffer();

@@ -58,14 +58,29 @@ float bvr_deserialize_float(bvr_fhandle_t token);
  */
 int bvr_deserialize_farray(bvr_fhandle_t token, float* array, uint32 length);
 
+/**
+ * @brief deserialize a json object to get a vec2
+ * @param token a reference to a serialized object.
+ * @param vec a reference to an existing vector.
+ */
 BVR_H_FUNC int bvr_deserialize_vec2(bvr_fhandle_t token, vec2 vec){
     return bvr_deserialize_farray(token, (float*)vec, 2);
 }
 
+/**
+ * @brief deserialize a json object to get a vec2
+ * @param token a reference to a serialized object.
+ * @param vec a reference to an existing vector.
+ */
 BVR_H_FUNC int bvr_deserialize_vec3(bvr_fhandle_t token, vec3 vec){
     return bvr_deserialize_farray(token, (float*)vec, 3);
 }
 
+/**
+ * @brief deserialize a json object to get a vec2
+ * @param token a reference to a serialized object.
+ * @param vec a reference to an existing vector.
+ */
 BVR_H_FUNC int bvr_deserialize_vec4(bvr_fhandle_t token, vec4 vec){
     return bvr_deserialize_farray(token, (float*)vec, 4);
 }
@@ -89,7 +104,7 @@ void bvr_deserialize_string(bvr_fhandle_t token, bvr_string_t* string);
 
 void bvr_deserialize_fhandle(bvr_fhandle_t token, bvr_fhandle_t* handle);
 
-void bvr_deserialize_phandle(bvr_fhandle_t token, bvr_phandle_t* handle);
+int bvr_deserialize_phandle(bvr_fhandle_t token, bvr_phandle_t* handle);
 
 int bvr_deserialize_transform(bvr_fhandle_t token, bvr_transform_t* transform);
 

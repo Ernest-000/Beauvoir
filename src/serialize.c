@@ -5,16 +5,32 @@
 #include <json-c/json.h>
 
 #define BVRI_MESH_PATH_TOKEN "path"
-#define BVRI_MESH_ATTRIBS_TOKEN "path"
+#define BVRI_MESH_ATTRIBS_TOKEN "attribs"
 #define BVRI_MESH_VERTICES_TOKEN "vertices"
 #define BVRI_MESH_ELEMENTS_TOKEN "elements"
 
 #define BVRI_FHANDLE_PATH_TOKEN "path"
 
+#define BVRI_PHANDLE_MODE_TOKEN "mode"
+#define BVRI_PHANDLE_REF_TOKEN "ref"
+#define BVRI_PHANDLE_TYPE_TOKEN "type"
+#define BVRI_PHANDLE_DATA_TOKEN "data"
+
 #define BVRI_TRANSFORM_POSITION_TOKEN "position"
 #define BVRI_TRANSFORM_SCALE_TOKEN "scale"
 #define BVRI_TRANSFORM_EULER_TOKEN "euler"
 #define BVRI_TRANSFORM_ROTATION_TOKEN "rotation"
+
+#define BVRI_SHADER_PATH_TOKEN "path"
+#define BVRI_SHADER_FLAG_TOKEN "flags"
+#define BVRI_SHADER_UNIFORMS_TOKEN "uniforms"
+#define BVRI_SHADER_TEXTURES_TOKEN "textures"
+
+#define BVRI_UNIFORM_TYPE_TOKEN "type"
+#define BVRI_UNIFORM_NAME_TOKEN "name"
+#define BVRI_UNIFORM_TAG_TOKEN "tag"
+#define BVRI_UNIFORM_COUNT_TOKEN "count"
+#define BVRI_UNIFORM_VALUE_TOKEN "value"
 
 #define BVRI_CAMERA_MODE_TOKEN "mode"
 #define BVRI_CAMERA_TRANSFORM_TOKEN "transform"
@@ -37,6 +53,44 @@
 #define BVRI_ACTOR_SELF_FLAGS_TOKEN "flags"
 #define BVRI_ACTOR_SELF_ORDER_IN_LAYER_TOKEN "order_in_layer"
 #define BVRI_ACTOR_SELF_ACTIVE_TOKEN "active"
+
+#define BVRI_ACTOR_FIELD_TYPE_TOKEN "type"
+
+static int bvri_try_deserialize_unspecified_token(bvr_fhandle_t handle, void* dest, int type){
+    if(!BVR_IS_AVAIL_TYPE(type)){
+        return BVR_FALSE;
+    }
+    
+    if(dest == NULL){
+        return BVR_FALSE;
+    }
+
+    switch (type)
+    {
+    case BVR_BOOL: *(bool*)dest = bvr_deserialize_bool(handle); return BVR_TRUE;
+    
+    case BVR_INT8:  *(int8*)dest = (int8)bvr_deserialize_int32(handle); return BVR_TRUE;
+    case BVR_INT16: *(int16*)dest = (int16)bvr_deserialize_int32(handle); return BVR_TRUE;
+    case BVR_INT32: *(int32*)dest = (int32)bvr_deserialize_int32(handle); return BVR_TRUE;
+    case BVR_INT64: *(int64*)dest = (int64)bvr_deserialize_int64(handle); return BVR_TRUE;
+    
+    case BVR_UNSIGNED_INT8:  *(uint8*)dest = (uint8)bvr_deserialize_uint32(handle); return BVR_TRUE;
+    case BVR_UNSIGNED_INT16: *(uint16*)dest = (uint16)bvr_deserialize_uint32(handle); return BVR_TRUE;
+    case BVR_UNSIGNED_INT32: *(uint32*)dest = (uint32)bvr_deserialize_uint32(handle); return BVR_TRUE;
+    case BVR_UNSIGNED_INT64: *(uint64*)dest = (uint64)bvr_deserialize_uint64(handle); return BVR_TRUE;
+    case BVR_FLOAT: *(float*)dest = (float)bvr_deserialize_float(handle); return BVR_TRUE;
+
+    case BVR_VEC2: bvr_deserialize_vec2(handle, (float*)dest); return BVR_TRUE;
+    case BVR_VEC3: bvr_deserialize_vec3(handle, (float*)dest); return BVR_TRUE;
+    case BVR_VEC4: bvr_deserialize_vec4(handle, (float*)dest); return BVR_TRUE;
+    
+    case BVR_MESH: bvr_deserialize_mesh(handle, (bvr_mesh_t*)dest); return BVR_TRUE;
+    case BVR_SHADER: bvr_deserialize_shader(handle, (bvr_shader_t*)dest); return BVR_TRUE;
+    
+    default:
+        return BVR_FALSE;
+    }
+}
 
 int bvr_deserialize_int32(bvr_fhandle_t token){
     if(json_object_is_type(token.token, json_type_int)){
@@ -161,6 +215,83 @@ void bvr_deserialize_fhandle(bvr_fhandle_t token, bvr_fhandle_t* handle){
     );
 }
 
+int bvr_deserialize_phandle(bvr_fhandle_t token, bvr_phandle_t* handle){
+    BVR_ASSERT(handle);
+
+    if(!json_object_is_type(token.token, json_type_object)){
+        BVR_PRINT("corrupted phandle");
+        return BVR_FALSE;
+    }
+
+    json_object* json_mode = NULL;
+    json_object* json_reference = NULL;
+
+    // litteral json objects
+    json_object* json_reference_type = NULL;
+    json_object* json_reference_data = NULL;
+
+    json_mode = json_object_object_get(token.token, BVRI_PHANDLE_MODE_TOKEN);
+    json_reference = json_object_object_get(token.token, BVRI_PHANDLE_REF_TOKEN);
+
+    if(json_object_is_type(json_mode, json_type_null) 
+        || json_object_is_type(json_reference, json_type_null)){
+
+        BVR_PRINT("invalid phandle");
+        return BVR_FALSE;
+    }
+
+    uint8 mode = bvr_deserialize_int32(BVR_TOKENIZE_JSON(json_mode)); 
+
+    json_reference_type = json_object_object_get(json_reference, BVRI_PHANDLE_TYPE_TOKEN);
+    json_reference_data = json_object_object_get(json_reference, BVRI_PHANDLE_DATA_TOKEN);
+
+    uint32 typeid = bvr_deserialize_int32(BVR_TOKENIZE_JSON(json_reference_type));
+
+    switch (mode)
+    {
+    case BVR_PHANDLE_NONE:
+        *handle = BVR_CREATE_NULL_PHANDLE();
+        break;
+
+    case BVR_PHANDLE_FIELD:
+        *handle = BVR_CREATE_NULL_PHANDLE();
+        BVR_PRINT("BVR_PHANDLE_FIELD is not implemented yet :/");
+        break;
+
+    case BVR_PHANDLE_LITERAL:
+        handle->origin = mode;
+        handle->pointer.literal.size = bvr_sizeof(typeid);
+        if(handle->pointer.literal.size > sizeof(handle->pointer.literal.value)){
+            BVR_PRINT("warning, phandle is out of bounds!");
+            
+            *handle = BVR_CREATE_NULL_PHANDLE();
+            break;
+        }
+
+        bvri_try_deserialize_unspecified_token(
+            BVR_TOKENIZE_JSON(json_reference_data),
+            handle->pointer.literal.value,
+            typeid
+        );
+
+        break;    
+
+    case BVR_PHANDLE_RAW:
+        *handle = BVR_CREATE_NULL_PHANDLE();
+        BVR_PRINT("BVR_PHANDLE_RAW is invalid");
+        break;
+
+    default:
+        *handle = BVR_CREATE_NULL_PHANDLE();
+        break;
+    }
+
+    // TODO: implement
+    // BVR_ASSERT(0);
+
+    return BVR_TRUE;
+}
+
 int bvr_deserialize_transform(bvr_fhandle_t token, bvr_transform_t* transform){
     BVR_ASSERT(transform);
 
@@ -215,17 +346,17 @@ int bvr_deserialize_mesh(bvr_fhandle_t token, bvr_mesh_t* mesh){
     json_object* json_mesh_attributes = NULL;
 
     json_mesh_attributes = json_object_object_get(token.token, BVRI_MESH_ATTRIBS_TOKEN);
-    if(!json_object_is_type(json_mesh_attributes, json_type_int)){
+    if(json_object_is_type(json_mesh_attributes, json_type_null)){
         BVR_PRINT("corrupted mesh");
         return BVR_FALSE;
     }
     
     json_mesh_path = json_object_object_get(token.token, BVRI_MESH_PATH_TOKEN);
-    if(json_mesh_path){
+    if(json_mesh_path){ 
         // loading through path
         if(bvr_create_mesh(mesh,
             json_object_get_string(json_mesh_path),
-            json_object_get_int64(json_mesh_attributes))){
+            bvr_deserialize_int32(BVR_TOKENIZE_JSON(json_mesh_attributes)))){
             
             // path loading succeed
             return BVR_TRUE;
@@ -242,7 +373,7 @@ int bvr_deserialize_mesh(bvr_fhandle_t token, bvr_mesh_t* mesh){
     json_mesh_vertices = json_object_object_get(token.token, BVRI_MESH_VERTICES_TOKEN);
     json_mesh_elements = json_object_object_get(token.token, BVRI_MESH_ELEMENTS_TOKEN);
     if(!json_object_is_type(json_mesh_vertices, json_type_array) || 
-        json_object_is_type(json_mesh_path, json_type_array)){
+       !json_object_is_type(json_mesh_elements, json_type_array)){
         
         BVR_PRINT("corrupted mesh");
         return BVR_FALSE;
@@ -264,9 +395,21 @@ int bvr_deserialize_mesh(bvr_fhandle_t token, bvr_mesh_t* mesh){
         if(json_object_is_type(json_object_array_get_idx(json_mesh_vertices, 0), json_type_int)){
             // vertices are int
             vertices.type = BVR_INT32;
+
+            // copy data as int
+            for (size_t v = 0; v < vertices.count; v++)
+            {
+                ((int*)vertices.data)[v] = json_object_get_int(json_object_array_get_idx(json_mesh_vertices, v));
+            }
         }
         else if(json_object_is_type(json_object_array_get_idx(json_mesh_vertices, 0), json_type_double)){
             vertices.type = BVR_FLOAT;
+
+            // copy data as float
+            for (size_t v = 0; v < vertices.count; v++)
+            {
+                ((float*)vertices.data)[v] = json_object_get_double(json_object_array_get_idx(json_mesh_vertices, v));
+            }
         }
         else {
             BVR_PRINT("invalid mesh vertex type");
@@ -274,6 +417,7 @@ int bvr_deserialize_mesh(bvr_fhandle_t token, bvr_mesh_t* mesh){
             free(vertices.data);
             return BVR_FALSE;
         }
+        
     }
 
     if(json_object_array_length(json_mesh_elements)){
@@ -286,10 +430,22 @@ int bvr_deserialize_mesh(bvr_fhandle_t token, bvr_mesh_t* mesh){
         // check for int or float
         if(json_object_is_type(json_object_array_get_idx(json_mesh_elements, 0), json_type_int)){
             // vertices are int
-            elements.type = BVR_INT32;
+            elements.type = BVR_UNSIGNED_INT32;
+
+            // copy data as int
+            for (size_t e = 0; e < elements.count; e++)
+            {
+                ((uint32*)elements.data)[e] = (uint32)json_object_get_int(json_object_array_get_idx(json_mesh_elements, e));
+            }
         }
         else if(json_object_is_type(json_object_array_get_idx(json_mesh_elements, 0), json_type_double)){
             elements.type = BVR_FLOAT;
+
+            // copy data as float
+            for (size_t e = 0; e < elements.count; e++)
+            {
+                ((float*)elements.data)[e] = json_object_get_double(json_object_array_get_idx(json_mesh_elements, e));
+            }
         }
         else {
             BVR_PRINT("invalid mesh element type");
@@ -301,11 +457,13 @@ int bvr_deserialize_mesh(bvr_fhandle_t token, bvr_mesh_t* mesh){
 
     int status = bvr_create_meshv(mesh, 
         &vertices, &elements, 
-        json_object_get_int64(json_mesh_attributes)
+        bvr_deserialize_int32(BVR_TOKENIZE_JSON(json_mesh_attributes))
     );
 
     free(vertices.data);
     free(elements.data);
+
+    return status;
 }
 
 int bvr_deserialize_shader(bvr_fhandle_t token, bvr_shader_t* shader){
@@ -320,6 +478,83 @@ int bvr_deserialize_shader(bvr_fhandle_t token, bvr_shader_t* shader){
     json_object* json_shader_flags = NULL;
     json_object* json_shader_uniforms = NULL;
     json_object* json_shader_textures = NULL;
+
+    json_shader_flags = json_object_object_get(token.token, BVRI_SHADER_FLAG_TOKEN);
+    json_shader_path = json_object_object_get(token.token, BVRI_SHADER_PATH_TOKEN);
+    json_shader_uniforms = json_object_object_get(token.token, BVRI_SHADER_UNIFORMS_TOKEN);
+    json_shader_textures = json_object_object_get(token.token, BVRI_SHADER_TEXTURES_TOKEN);
+
+    // if the shader path is missing
+    if(!json_object_is_type(json_shader_path, json_type_string)){
+        BVR_PRINT("corrupted shader, missing path");
+        return BVR_FALSE;
+    }
+
+    if(json_object_is_type(json_shader_flags, json_type_null)){
+        BVR_PRINT("corrupted shader, missing flags");
+        return BVR_FALSE;
+    }
+
+    // create the shader
+    bvr_create_shader(shader,
+        json_object_get_string(json_shader_path),
+        bvr_deserialize_int32(BVR_TOKENIZE_JSON(json_shader_flags))
+    );
+
+    // read uniforms
+    if(json_object_is_type(json_shader_uniforms, json_type_array)){
+        json_object* json_shader_uniform = NULL;
+        json_object* json_shader_uniform_type = NULL;
+        json_object* json_shader_uniform_name = NULL;
+        json_object* json_shader_uniform_tag = NULL;
+        json_object* json_shader_uniform_count = NULL;
+        json_object* json_shader_uniform_value = NULL;
+
+        for (size_t u = 0; u < json_object_array_length(json_shader_uniforms); u++)
+        {
+            json_shader_uniform = json_object_array_get_idx(json_shader_uniforms, u);
+            json_shader_uniform_type = json_object_object_get(json_shader_uniform, BVRI_UNIFORM_TYPE_TOKEN);
+            json_shader_uniform_name = json_object_object_get(json_shader_uniform, BVRI_UNIFORM_NAME_TOKEN);
+            json_shader_uniform_tag = json_object_object_get(json_shader_uniform, BVRI_UNIFORM_TAG_TOKEN);
+            json_shader_uniform_count = json_object_object_get(json_shader_uniform, BVRI_UNIFORM_COUNT_TOKEN);
+            json_shader_uniform_value = json_object_object_get(json_shader_uniform, BVRI_UNIFORM_VALUE_TOKEN);
+
+            if(!json_shader_uniform_type || !json_object_is_type(json_shader_uniform_name, json_type_string)){
+                BVR_PRINT("missing uniform's type and/or name.");
+                continue;
+            }
+
+            bvr_shader_uniform_t* uniform = bvr_shader_register_uniform(
+                shader,
+                bvr_deserialize_int32(BVR_TOKENIZE_JSON(json_shader_uniform_type)),
+                bvr_deserialize_int32(BVR_TOKENIZE_JSON(json_shader_uniform_tag)),
+                MAX(1, bvr_deserialize_int32(BVR_TOKENIZE_JSON(json_shader_uniform_count))),
+                json_object_get_string(json_shader_uniform_name)
+            );
+
+            if(!uniform){
+                BVR_PRINTF("failed to create a new uniform, json uniform at index %i might be corrupted", u);
+                continue;
+            }
+
+            if(!json_object_is_type(json_shader_uniform_value, json_type_object)){
+                BVR_PRINT("missing uniform pointer handle!");
+                continue;
+            }
+
+            bvr_phandle_t phandle;
+            // try to read the pointer handle
+            if(bvr_deserialize_phandle(BVR_TOKENIZE_JSON(json_shader_uniform_value), &phandle)){
+                bvr_shader_set_uniform_raw(uniform, phandle);
+            }
+        }
+    }
+
+
+    // read uniforms
+    if(json_object_is_type(json_shader_uniforms, json_type_array)){
+        
+    }
 }
 
 int bvr_deserialize_camera(bvr_fhandle_t token, bvr_camera_t* camera){
@@ -396,6 +631,7 @@ int bvr_deserialize_page(bvr_fhandle_t token, bvr_page_t* page){
     json_object* json_actor_order_in_layer = NULL;
     json_object* json_actor_active = NULL;
     json_object* json_actor_field = NULL;
+    json_object* json_actor_field_type = NULL;
     json_object* json_actor_list = NULL;
 
     json_self = json_object_object_get(token.token, BVRI_PAGE_SELF_TOKEN);
@@ -486,11 +722,28 @@ int bvr_deserialize_page(bvr_fhandle_t token, bvr_page_t* page){
 
                 json_actor_field = json_object_object_get(json_actor, vtable->ftable[f].name);
                 if(json_object_is_type(json_actor_field, json_type_null)){
-                    BVR_PRINTF("invalid actor field '%s'", vtable->ftable[f].name);
+                    // invalid field
+                    BVR_PRINTF("missing actor field '%s'.", vtable->ftable[f].name);
                     continue;
                 }
 
-                BVR_PRINTF("field %s %i", vtable->ftable[f].name, vtable->ftable[f].offset);
+                json_actor_field_type = json_object_object_get(json_actor_field, BVRI_ACTOR_FIELD_TYPE_TOKEN);
+                int typeid = bvr_deserialize_int32(BVR_TOKENIZE_JSON(json_actor_field_type));
+                
+                if(!BVR_IS_AVAIL_TYPE(typeid)){
+                    // invalid field type
+                    BVR_PRINTF("invalid actor field '%s' type.", vtable->ftable[f].name);
+                    continue;
+                }
+
+                void* field = (char*)actor + vtable->ftable[f].offset;
+                BVR_ASSERT(field);
+
+                if(!bvri_try_deserialize_unspecified_token(BVR_TOKENIZE_JSON(json_actor_field), field, typeid)){
+                    BVR_PRINTF("unsupported field '%s type.", vtable->ftable[f].name);
+                }
+
+                BVR_PRINTF("successfully load %s (offset %i)", vtable->ftable[f].name, vtable->ftable[f].offset);
             }
             
         }

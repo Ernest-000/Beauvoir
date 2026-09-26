@@ -1249,7 +1249,7 @@ int bvr_create_meshv(bvr_mesh_t* mesh, bvr_mesh_buffer_t* vertices, bvr_mesh_buf
     group->texture = 0;
     group->flags = 0;
     BVR_IDENTITY_MAT4(group->matrix);
-    
+
     // copy vertex values over buffers
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->element_buffer);

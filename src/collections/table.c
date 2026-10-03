@@ -85,16 +85,20 @@ void bvr_destroy_table(bvr_table_t* table){
 
 void* bvr_table_iterate(struct bvr_table_iterator_s* iterator){
     BVR_ASSERT(iterator);
+    BVR_ASSERT(iterator->table);
 
     while (iterator->index < iterator->table->capacity)
     {
-        int current = iterator->index++;
-        if(BVRI_TABLE_GET_CHUNK_AT(iterator->table, current)->key != 0){
-            iterator->current = BVRI_TABLE_GET_CHUNK_AT(iterator->table, current);
-            return BVRI_TABLE_GET_VALUE_AT(iterator->table, current);
+        struct bvr_table_chunk_s* chunk = BVRI_TABLE_GET_CHUNK_AT(iterator->table, iterator->index);
+        iterator->index++;
+
+        if(chunk->key != 0){
+            iterator->current = chunk;
+            return (char*)chunk + sizeof(struct bvr_table_chunk_s);
         }
     }
-    
+
+    iterator->current = NULL;
     return NULL;
 }
 
@@ -108,6 +112,7 @@ static void bvri_table_grow(bvr_table_t* table){
 
     struct bvr_table_chunk_s* old_entries = table->entries;
     uint32 old_capacity = table->capacity;
+    uint32 old_chunck_size = table->chunck_size;
 
     struct bvr_table_chunk_s* new_entries = calloc(n_capacity, table->chunck_size);
     BVR_ASSERT(new_entries);
@@ -119,8 +124,7 @@ static void bvri_table_grow(bvr_table_t* table){
     if(old_entries){
         for (size_t i = 0; i < old_capacity; i++)
         {
-            struct bvr_table_chunk_s* chunk =
-                (struct bvr_table_chunk_s*)(old_entries + i * table->chunck_size);
+            struct bvr_table_chunk_s* chunk = (struct bvr_table_chunk_s*)((char*)old_entries + i * old_chunck_size);
 
             if(chunk->key != 0){
                 bvri_table_set(
@@ -166,7 +170,7 @@ static void* bvri_table_set(bvr_table_t* table, const char* key, const uint32 _h
     BVR_ASSERT(table->count < table->capacity);
     
     BVRI_TABLE_GET_CHUNK_AT(table, index)->key = hash;
-    BVRI_TABLE_GET_CHUNK_AT(table, index)->reserved = 0;
+    BVRI_TABLE_GET_CHUNK_AT(table, index)->reserved = reserved;
     
     table->count++;
 

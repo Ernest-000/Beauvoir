@@ -1,5 +1,7 @@
 import subprocess, os
 
+ #MESA_DEBUG=1 mesa_glthread=false gdb bin/bergson
+
 BGS_PATH = "bin/bergson"
 BGS_XML_DIR = "xml/"
 BGS_FILES = []
@@ -15,7 +17,7 @@ if __name__ == "__main__":
         base, _ = os.path.splitext(f)
         nf = base + ".xml"
         
-        print(f"converting {f} -> {nf}...")
+        print(f"converting {f} to {nf}...")
 
         with open(nf, "w") as out_file:
             subprocess.run(

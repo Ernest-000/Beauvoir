@@ -102,7 +102,7 @@ bool bvr_deserialize_bool(bvr_fhandle_t token);
  */
 void bvr_deserialize_string(bvr_fhandle_t token, bvr_string_t* string);
 
-void bvr_deserialize_fhandle(bvr_fhandle_t token, bvr_fhandle_t* handle);
+int bvr_deserialize_fhandle(bvr_fhandle_t token, bvr_fhandle_t* handle);
 
 int bvr_deserialize_phandle(bvr_fhandle_t token, bvr_phandle_t* handle);
 

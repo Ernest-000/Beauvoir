@@ -1,10 +1,56 @@
 {
-    "name": "scene",
-
-    "actors":[
-        {
-            "name": "actor",
-            "type": ""
+    "self": {
+        "name": "mew"
+    },
+    "camera": {
+        "mode": 1,
+        "width": 200.0,
+        "height": 200.0,
+        "near": 0.01,
+        "far": 1000.0,
+        "fov": 0.50,
+        "transform": {
+            "position": [0.0, 0.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0]
         }
+    },
+    "actors": [
+        {
+            "type": "bvr_static_mesh_t",
+            "name": "static mesh",
+            "active": true,
+            "transform": {
+                "position": [0.0, 0.0, 0.0],
+                "rotation": [0.0, 0.0, 0.0, 0.0],
+                "scale": [100.0, 100.0, 100.0]
+            },
+            "mesh": {
+                "type": 5151,
+                "attribs": 8,
+                "path": "monkey.glb"
+            },
+            "shader": {
+                "type": 5152,
+                "flags": 3,
+                "path": "flat.glsl",
+                "uniforms": [
+                    {
+                        "type": 5128,
+                        "name": "bcolor",
+                        "tag": 0,
+                        "count": 1,
+                        "value": {
+                            "mode": 2,
+                            "ref": {
+                                "type": 5128,
+                                "data": [1.0, 1.0, 1.0]
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+        
     ]
 }

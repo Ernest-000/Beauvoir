@@ -1,12 +1,14 @@
-#include <bergon/window.h>
+#include <bergson/window.h>
 
 #include <gtk/gtk.h>
 
-#define BGS_WLAYOUT "wlayout"
 #define BGS_FILE_WLAYOUT "xml/wlayout.xml"
 
+#define BGS_WLAYOUT "wlayout"
 #define BGS_WVIEWPORT "wviewport"
-
+#define BGS_ULAYOUT "ulayout"
+#define BGS_CLAYOUT "clayout"
+#define BGS_WMENU "wmenu"
 
 static inline void bgs_builder_add(GtkBuilder* builder, const char* file){
     GError* error = NULL;
@@ -43,15 +45,20 @@ static void bgs_create_window_impl(GtkApplication* self, gpointer _window){
     // link viewport
     gtk_box_append(
         GTK_BOX(gtk_builder_get_object(builder, BGS_WVIEWPORT)),
-        GTK_WIDGET(bgs_create_viewport(&window->components.viewport))
+        GTK_WIDGET(bgs_create_viewport(&window->components.viewport, window))
+    );
+
+    // link menu
+    gtk_box_append(
+        GTK_BOX(gtk_builder_get_object(builder, BGS_WMENU)),
+        GTK_WIDGET(bgs_create_menuitems(&window->components.menu, window))
     );
 
     g_object_unref(GTK_BUILDER(builder));
-
+    
     gtk_window_present(GTK_WINDOW(window->window));
 }
  
-
 int bgs_create_window(bgs_window_t* window, const char* name, const uint16 width, const uint16 height, int flags){
     BVR_ASSERT(window);
     BVR_ASSERT(name);
@@ -85,6 +92,9 @@ int bgs_create_window(bgs_window_t* window, const char* name, const uint16 width
 
 int bgs_destroy_window(bgs_window_t* window){
     BVR_ASSERT(window);
+
+    bgs_destroy_viewport(&window->components.viewport);
+    bgs_destroy_menuitems(&window->components.menu);
 
     gtk_window_destroy(GTK_WINDOW(window->window));
     g_object_unref(G_APPLICATION(window->handle));

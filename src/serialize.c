@@ -179,7 +179,12 @@ int bvr_deserialize_farray(bvr_fhandle_t token, float* array, uint32 length){
 bool bvr_deserialize_bool(bvr_fhandle_t token){
     if(json_object_is_type(token.token, json_type_boolean)){
         return json_object_get_boolean(token.token);
-    }
+    } 
+    else if(json_object_is_type(token.token, json_type_int)){
+        // fallback on an integer based boolean
+        return (bool)bvr_deserialize_int32(token);
+    } 
+    
     return false;
 }
 
@@ -194,12 +199,12 @@ void bvr_deserialize_string(bvr_fhandle_t token, bvr_string_t* string){
     bvr_create_string(string, NULL);
 }
 
-void bvr_deserialize_fhandle(bvr_fhandle_t token, bvr_fhandle_t* handle){
+int bvr_deserialize_fhandle(bvr_fhandle_t token, bvr_fhandle_t* handle){
     BVR_ASSERT(handle);
 
     if(!json_object_is_type(token.token, json_type_object)){
         BVR_PRINT("corrupted fhandle");
-        return;
+        return BVR_FALSE;
     }
 
     json_object* fhandle_json_path = NULL;
@@ -207,12 +212,14 @@ void bvr_deserialize_fhandle(bvr_fhandle_t token, bvr_fhandle_t* handle){
     fhandle_json_path = json_object_object_get(token.token, BVRI_FHANDLE_PATH_TOKEN);
     if(!json_object_is_type(fhandle_json_path, json_type_string)){
         BVR_PRINT("corrupted fhandle");
-        return;
+        return BVR_FALSE;
     }
 
     *handle = bvr_create_fhandle(
         json_object_get_string(fhandle_json_path)
     );
+
+    return BVR_TRUE;
 }
 
 int bvr_deserialize_phandle(bvr_fhandle_t token, bvr_phandle_t* handle){
@@ -645,7 +652,6 @@ int bvr_deserialize_page(bvr_fhandle_t token, bvr_page_t* page){
             BVR_TOKENIZE_JSON(json_object_object_get(json_self, BVRI_PAGE_SELF_NAME_TOKEN)),
             &page->name
         );
-
     }
 
     // do the camera

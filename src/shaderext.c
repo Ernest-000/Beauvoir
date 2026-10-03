@@ -1,11 +1,17 @@
 #ifndef BVR_H_SHADER_EXTENSIONS
 #define BVR_H_SHADER_EXTENSIONS
 
+#ifdef BVR_USE_GLES
+    #define BVR_SHADER_PRECISION "mediump"
+#else 
+    #define BVR_SHADER_PRECISION ""
+#endif
+
 // vertex shader struct
 static const char* __ext_s_vdata = "struct V_DATA {\n"
-	"   vec3 position;\n"
-	"   vec2 uvs;\n"
-    "   vec3 normals;\n"
+	"   " BVR_SHADER_PRECISION " vec3 position;\n"
+	"   " BVR_SHADER_PRECISION " vec2 uvs;\n"
+    "   " BVR_SHADER_PRECISION " vec3 normals;\n"
     "};\n";
 
 // light shader struct

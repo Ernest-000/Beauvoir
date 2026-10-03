@@ -4,13 +4,13 @@
 
 /**
  * @brief loop through each element of a table. 
- * Table for loops can be use as such ```struct client_s* client; BVR_TABLE_FOR_EACH(table, client) {}```.
- * @param table the table object to iterator through.
+ * Table for loops can be use as such ```struct client_s* client; BVR_TABLE_FOR_EACH(&table, client) {}```.
+ * @param table_ptr un pointeur (bvr_table_t*) vers la table à parcourir.
  * @param value a pointer that will pointing to the current looping element.
  */
-#define BVR_TABLE_FOR_EACH(_table, value) \
-    struct bvr_table_iterator_s _iterator = {.table = &(_table), .index = 0}; \
-    while (((value) = bvr_table_iterate(&_iterator)))
+#define BVR_TABLE_FOR_EACH(_table_ptr, value)                                            \
+    for (struct bvr_table_iterator_s _iterator = { (_table_ptr), 0, NULL }; \
+         (value = bvr_table_iterate(&_iterator)) != NULL; )
 
 struct bvr_table_chunk_s {
     // hashed key

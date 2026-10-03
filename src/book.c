@@ -65,22 +65,24 @@ bvr_book_t* bvr_create_book_attributes(bvr_book_t* book, struct bvr_book_attribu
         attributes.name = BVR_CLASS_NAME;
     }
 
-    BVR_ASSERT(bvr_create_window(
-        &book->window, 
-        attributes.window_width, 
-        attributes.window_height, 
-        attributes.name, 
-        attributes.window_flags
-    ));
+    if(attributes.window_flags != BVR_WINDOW_NONE){
+        BVR_ASSERT(bvr_create_window(
+            &book->window, 
+            attributes.window_width, 
+            attributes.window_height, 
+            attributes.name, 
+            attributes.window_flags
+        ));
 
-    BVR_ASSERT(bvr_create_audio_mixer(
-        &book->mixer,
-        attributes.sample_rate,
-        attributes.channels
-    ));
+        BVR_ASSERT(bvr_create_audio_mixer(
+            &book->mixer,
+            attributes.sample_rate,
+            attributes.channels
+        ));
 
-    bvr_create_predefs(&book->predefs);
-
+        bvr_create_predefs(&book->predefs);
+    }
+    
     // setting up default pipeline values
     {
         book->graphics.rendering_pass.blending = BVR_BLEND_FUNC_ALPHA_ONE_MINUS;
@@ -340,11 +342,11 @@ struct bvr_actor_s* bvr_get_actor(bvr_page_t* page, const char* name){
 void bvr_destroy_page(bvr_page_t* page){
     BVR_ASSERT(page);
     
-    struct bvr_actor_s* actor;
-    BVR_TABLE_FOR_EACH(page->actors, actor){
+    struct bvr_actor_s** actor;
+    BVR_TABLE_FOR_EACH(&page->actors, actor){
         // we are able cast as static mesh, because all of the field's
         // offsets keeps the same indices.
-        BVR_ACTOR_DESTROY((bvr_static_mesh_t*)actor);
+        BVR_ACTOR_DESTROY((bvr_static_mesh_t*)*actor);
     }
 
     bvr_destroy_string(&page->name);

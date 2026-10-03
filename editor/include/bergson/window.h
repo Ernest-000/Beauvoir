@@ -5,8 +5,11 @@
 
 #include <bvr/collections/string.h>
 
-#include <bergon/config.h>
-#include <bergon/viewport.h>
+#include <bergson/config.h>
+#include <bergson/viewport.h>
+#include <bergson/menu.h>
+
+struct bgs_window_s;
 
 typedef struct bgs_window_s {
     void* handle;
@@ -21,7 +24,14 @@ typedef struct bgs_window_s {
 
     struct {
         struct bgs_viewport_s viewport;
+        struct bgs_menu_s menu;
     } components;
+
+    struct {
+        void (*on_create)(struct bgs_window_s* self);
+        void (*on_tick)(struct bgs_window_s* self, float delta);
+        void (*on_destroy)(struct bgs_window_s* self);
+    } events;
 } bgs_window_t;
 
 int bgs_create_window(bgs_window_t* window, const char* name, const uint16 width, const uint16 height, int flags);

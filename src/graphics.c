@@ -28,8 +28,8 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
         glEnable(GL_CULL_FACE);
     }
 
-    // stuck the ogl to use the first vertex for
-    // geometry shaders (only for ogl desktop)
+    // force ogl to use the first vertex for
+    // geometry shaders (only for ogl desktop i guess)
 #ifdef BVR_USE_GLDESK
     glProvokingVertex(GL_FIRST_VERTEX_CONVENTION);
 #endif
@@ -37,7 +37,7 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
 
 void bvr_pipeline_do_draw_cmd(struct bvr_pipeline_state_s* state, struct bvr_draw_command_s* cmd){
     // check for invalid buffer
-    BVR_ASSERT(cmd->array_buffer > 1 && cmd->vertex_buffer > 1);
+    BVR_ASSERT(cmd->array_buffer >= 1 && cmd->vertex_buffer >= 1);
 
     // try to apply local uniform
     bvr_shader_set_uniform_raw(
@@ -314,8 +314,8 @@ void bvr_framebuffer_blit(bvr_framebuffer_t* framebuffer){
 void bvr_destroy_framebuffer(bvr_framebuffer_t* framebuffer){
     bvr_destroy_shader(&framebuffer->shader);
 
-    glDeleteVertexArrays(1, &framebuffer->vertex_buffer);
-    glDeleteBuffers(1, &framebuffer->array_buffer);
+    glDeleteVertexArrays(1, &framebuffer->array_buffer);
+    glDeleteBuffers(1, &framebuffer->vertex_buffer);
     glDeleteTextures(1, &framebuffer->color_buffer);
     glDeleteRenderbuffers(1, &framebuffer->depth_buffer);
     glDeleteFramebuffers(1, &framebuffer->buffer);

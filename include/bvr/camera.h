@@ -79,6 +79,15 @@ void bvr_create_persp_camera(bvr_camera_t* camera, float width, float height, fl
 void bvr_update_camera(bvr_camera_t* camera);
 
 /**
+ * @brief resize camera's viewport
+ * @param camera
+ * @param width the new width
+ * @param height the new height
+ * @return (void)
+ */
+void bvr_camera_resize(bvr_camera_t* camera, float width, float height);
+
+/**
  * @brief rotate a camera so that it will look at target
  * @param 
  * @param target

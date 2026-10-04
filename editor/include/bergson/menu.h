@@ -3,6 +3,8 @@
 #include <bvr/config.h>
 #include <bvr/common.h>
 
+#include <bergson/config.h>
+
 struct bgs_menu_s {
     void* parent;
 

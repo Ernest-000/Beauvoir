@@ -54,6 +54,11 @@ static void bgs_create_window_impl(GtkApplication* self, gpointer _window){
         GTK_WIDGET(bgs_create_menuitems(&window->components.menu, window))
     );
 
+    gtk_box_append(
+        GTK_BOX(gtk_builder_get_object(builder, BGS_CLAYOUT)),
+        GTK_WIDGET(bgs_create_terminal(&window->components.terminal, window))
+    );
+
     g_object_unref(GTK_BUILDER(builder));
     
     gtk_window_present(GTK_WINDOW(window->window));

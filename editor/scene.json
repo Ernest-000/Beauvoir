@@ -21,9 +21,9 @@
             "name": "static mesh",
             "active": true,
             "transform": {
-                "position": [0.0, 0.0, 0.0],
+                "position": [0.0, 0.0, 100.0],
                 "rotation": [0.0, 0.0, 0.0, 0.0],
-                "scale": [100.0, 100.0, 100.0]
+                "scale": [10.0, 10.0, 10.0]
             },
             "mesh": {
                 "type": 5151,

@@ -12,11 +12,29 @@ struct bgs_viewport_s {
     void* context;
     void* widget;
 
+    // keyboard controller
+    void* kcontroller;
+
+    // motion controller
+    void* mcontroller;
+
+    // scroll controller
+    void* scontroller;
+
     // game context
     bvr_book_t book;
     bvr_page_t* page;
+
+    struct {
+        vec2 mouse;
+        vec2 motion;
+        float scroll;
+    } inputs;
 };
 
 void* bgs_create_viewport(struct bgs_viewport_s* viewport, void* parent);
+
 int bgs_viewport_load_page(struct bgs_viewport_s* viewport, const char* path);
+void bgs_viewport_get_size(struct bgs_viewport_s* viewport, uint32* x, uint32* y);
+
 void bgs_destroy_viewport(struct bgs_viewport_s* viewport);

@@ -39,7 +39,7 @@ in V_DATA vertex;
 layout(location=0) out vec4 o_Color;
 
 void main() {
-	o_Color = vec4(1.0, 1.0, 1.0, 1.0);
+	o_Color = vec4(bcolor, 1.0);
 }
 
 #endif

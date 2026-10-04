@@ -993,6 +993,8 @@ static void bvri_window_poll_events_impl(bvr_window_t* window){
 
     // reset scroll
     window->inputs.scroll = 0.0f;
+    memset(window->inputs.keys, 0, BVR_KEYBOARD_SIZE * sizeof(char));
+    memset(window->inputs.buttons, 0, BVR_MOUSE_SIZE * sizeof(char));
 
     // poll events
     while(XPending(window->handle.x11.xdisplay)){

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <bvr/config.h>
+
 #ifndef BVR_GLENTRIY
 #define BVR_GLENTRIY
 
@@ -74,6 +76,29 @@ typedef void* (* GLADloadproc)(const char *name);
 #else
 // no-op
 #endif
+
+// tools
+
+/**
+ * @brief check if an opengl buffer is valid
+ * @param target
+ * @param buffer 
+ * @return return the size of the buffer. If it returns 0, it means that the buffer is not
+ * correctly allocated
+ */
+BVR_H_FUNC int bvr_glValidateBuffer(GLenum target, GLuint buffer) {
+    if(buffer == 0) {
+        return 0;
+    }
+
+    int size;
+
+    glBindBuffer(target, buffer);
+    glGetBufferParameteriv(target, GL_BUFFER_SIZE, &size);
+    glBindBuffer(target, 0);
+
+    return size;
+}
 
 // loader functions
 int bvr_load_gles(GLADloadproc proc);

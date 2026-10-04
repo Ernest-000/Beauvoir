@@ -8,6 +8,7 @@
 #include <bergson/config.h>
 #include <bergson/viewport.h>
 #include <bergson/menu.h>
+#include <bergson/terminal.h>
 
 struct bgs_window_s;
 
@@ -25,6 +26,7 @@ typedef struct bgs_window_s {
     struct {
         struct bgs_viewport_s viewport;
         struct bgs_menu_s menu;
+        struct bgs_terminal_s terminal;
     } components;
 
     struct {

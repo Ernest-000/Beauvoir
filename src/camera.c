@@ -53,7 +53,15 @@ static void bvri_calc_ortho(bvr_camera_t* camera){
 static void bvri_calc_persp(bvr_camera_t* camera){
     mat4x4 projection;
     BVR_IDENTITY_MAT4(projection);
-    // TODO: implement
+    
+    float scale = 1.0f / tanf(deg_to_rad(camera->perspective.fov) * 0.5f);
+    float fn = 1.0f / (camera->perspective.far - camera->perspective.near);
+    projection[0][0] = scale * camera->perspective.aspect;
+    projection[1][1] = scale;
+    projection[2][2] = -camera->perspective.far * fn;
+    projection[3][2] = -camera->perspective.far * camera->perspective.near * fn;
+    projection[2][3] = -1;
+    
     bvri_set_proj_buffer(camera, projection);
 }
 
@@ -104,7 +112,10 @@ void bvr_create_ortho_camera(bvr_camera_t* camera, float width, float height, fl
 
     // create a new uniform buffer
     // might want to check if a previous ubo for camera exists?
-    glGenBuffers(1, &camera->ortho.buffer_object);
+    if(bvr_glValidateBuffer(GL_UNIFORM_BUFFER, camera->ortho.buffer_object) == 0) {
+        glGenBuffers(1, &camera->ortho.buffer_object);
+    }
+
     glBindBuffer(GL_UNIFORM_BUFFER, camera->ortho.buffer_object);
     glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(mat4x4), NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -120,7 +131,7 @@ void bvr_create_ortho_camera(bvr_camera_t* camera, float width, float height, fl
 void bvr_create_persp_camera(bvr_camera_t* camera, float width, float height, float near, float far, float fov){
     BVR_ASSERT(camera);
 
-    camera->perspective.mode = BVR_CAMERA_ORTHOGRAPHIC;
+    camera->perspective.mode = BVR_CAMERA_PERSPECTIVE;
     camera->perspective.aspect = height / width;
     camera->perspective.near = near;
     camera->perspective.far = far;
@@ -134,7 +145,10 @@ void bvr_create_persp_camera(bvr_camera_t* camera, float width, float height, fl
 
     // create a new uniform buffer
     // might want to check if a previous ubo for camera exists?
-    glGenBuffers(1, &camera->perspective.buffer_object);
+    if(bvr_glValidateBuffer(GL_UNIFORM_BUFFER, camera->ortho.buffer_object) == 0) {
+        glGenBuffers(1, &camera->perspective.buffer_object);
+    }
+
     glBindBuffer(GL_UNIFORM_BUFFER, camera->perspective.buffer_object);
     glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(mat4x4), NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -208,6 +222,23 @@ void bvr_update_camera(bvr_camera_t* camera){
     else {
         bvri_calc_persp(camera);
     }
+}
+
+void bvr_camera_resize(bvr_camera_t* camera, float width, float height){
+    BVR_ASSERT(camera);
+    
+    if(width <= 0.0f || height <= 0.0f){
+        BVR_PRINT("invalid camera viewport size :/");
+        return;
+    }
+
+    if(camera->ortho.mode == BVR_CAMERA_ORTHOGRAPHIC){
+        camera->ortho.width = width;
+        camera->ortho.height = height;
+        return;
+    }
+
+    camera->perspective.aspect = height / width;
 }
 
 void bvr_screen_to_world(bvr_camera_t* camera, vec2 p_screen, vec3 p_world){

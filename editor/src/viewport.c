@@ -95,6 +95,7 @@ static void bgs_viewport_gl_deinit_impl(GtkGLArea* self){
 
 static gboolean bgs_viewport_render_impl(GtkGLArea* area, GdkGLContext* context){
     bvr_book_t* book = BVR_INSTANCE();
+    
     int scale = gtk_widget_get_scale_factor(GTK_WIDGET(area));
     glViewport(
         0, 0,
@@ -103,7 +104,7 @@ static gboolean bgs_viewport_render_impl(GtkGLArea* area, GdkGLContext* context)
     );
 
     // clear
-    glClearColor(.5, 0.1, 0.1, 1);
+    glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     bvr_pipeline_state_enable(&book->graphics.rendering_pass);
     
@@ -121,9 +122,33 @@ static void bgs_viewport_resize_impl(GtkGLArea* area, int width, int height, gpo
     glViewport(0, 0, width, height);
 
     // overwrite 
-    BVR_CAMERA()->ortho.width = width;
-    BVR_CAMERA()->ortho.height = height;
+    // BVR_CAMERA()->ortho.width = width;
+    // BVR_CAMERA()->ortho.height = height;
+    bvr_camera_resize(BVR_CAMERA(), width, height);
 }
+
+static gboolean bgs_viewport_key_pressed(GtkEventControllerKey* self, guint keyval,
+                guint keycode, GdkModifierType state, gpointer user_data){
+    
+    // help i hate gtk
+    struct bgs_viewport_s* viewport = (struct bgs_viewport_s*)user_data;
+    
+    // ntm
+}
+
+static gboolean bgs_viewport_scroll(GtkEventControllerScroll* self, gdouble dx, gdouble dy, gpointer user_data){
+    struct bgs_viewport_s* viewport = (struct bgs_viewport_s*)user_data;
+
+    viewport->inputs.scroll = (float)dy;
+}
+
+static void bgs_viewport_motion(GtkEventControllerMotion* self, gdouble x, gdouble y, gpointer user_data){
+    struct bgs_viewport_s* viewport = (struct bgs_viewport_s*)user_data;
+
+    viewport->inputs.motion[0] = (float)x;
+    viewport->inputs.motion[1] = (float)y;
+}
+
 
 static gboolean bgs_viewport_tick_impl(GtkWidget* widget, GdkFrameClock* frame_clock, gpointer user_data){
     // we need to force-render the gl area on each frame
@@ -134,7 +159,10 @@ static gboolean bgs_viewport_tick_impl(GtkWidget* widget, GdkFrameClock* frame_c
         return G_SOURCE_CONTINUE;
     }
 
-    bvr_update_camera(&viewport->page->camera);
+    {
+        viewport->page->camera.perspective.fov += viewport->inputs.scroll;
+        bvr_update_camera(&viewport->page->camera);
+    }
 
     struct bvr_actor_s** p_actor;
     BVR_TABLE_FOR_EACH(&viewport->page->actors, p_actor){
@@ -144,6 +172,11 @@ static gboolean bgs_viewport_tick_impl(GtkWidget* widget, GdkFrameClock* frame_c
             BVR_ACTOR_DRAW((bvr_static_mesh_t*)actor, BVR_DRAWMODE_TRIANGLES);
         }
     }
+
+    // clear inputs
+    viewport->inputs.scroll = 0.0f;
+    BVR_IDENTITY_VEC2(viewport->inputs.motion);
+    BVR_IDENTITY_VEC2(viewport->inputs.mouse);
 
     return G_SOURCE_CONTINUE;
 }
@@ -180,6 +213,19 @@ void* bgs_create_viewport(struct bgs_viewport_s* viewport, void* parent){
 
     gtk_widget_add_tick_callback(GTK_WIDGET(viewport->widget), bgs_viewport_tick_impl, viewport, NULL);
 
+    // events
+    viewport->kcontroller = gtk_event_controller_key_new();
+    viewport->mcontroller = gtk_event_controller_motion_new();
+    viewport->scontroller = gtk_event_controller_scroll_new(GTK_EVENT_CONTROLLER_SCROLL_BOTH_AXES);
+
+    g_signal_connect(GTK_EVENT_CONTROLLER(viewport->kcontroller), "key-pressed", G_CALLBACK(bgs_viewport_key_pressed), viewport);
+    g_signal_connect(GTK_EVENT_CONTROLLER(viewport->mcontroller), "motion", G_CALLBACK(bgs_viewport_motion), viewport);
+    g_signal_connect(GTK_EVENT_CONTROLLER(viewport->scontroller), "scroll", G_CALLBACK(bgs_viewport_scroll), viewport);
+
+    gtk_widget_add_controller(GTK_WIDGET(viewport->widget), GTK_EVENT_CONTROLLER(viewport->kcontroller));
+    gtk_widget_add_controller(GTK_WIDGET(viewport->widget), GTK_EVENT_CONTROLLER(viewport->mcontroller));
+    gtk_widget_add_controller(GTK_WIDGET(viewport->widget), GTK_EVENT_CONTROLLER(viewport->scontroller));
+
     {
         struct bvr_book_attributes_s battributes = {0};
         battributes.name = "landscape demo";
@@ -192,6 +238,10 @@ void* bgs_create_viewport(struct bgs_viewport_s* viewport, void* parent){
         viewport->page = bvr_enable_page(0);
         BVR_ASSERT(viewport->page);
     }
+
+    viewport->inputs.scroll = 0.0f;
+    BVR_IDENTITY_VEC2(viewport->inputs.motion);
+    BVR_IDENTITY_VEC2(viewport->inputs.mouse);
 
     return viewport->widget;
 }
@@ -211,9 +261,26 @@ int bgs_viewport_load_page(struct bgs_viewport_s* viewport, const char* path){
     }
 
     bvr_create_page(viewport->page, path);
+
+    // always overwrite camera
+    bvr_create_persp_camera(
+        &viewport->page->camera,
+        800.0f, 800.0f, 0.001, 1000.0, 90.0f
+    );
+
     return BVR_TRUE;
 }
 
+void bgs_viewport_get_size(struct bgs_viewport_s* viewport, uint32* x, uint32* y){
+    BVR_ASSERT(viewport);
+    BVR_ASSERT(x && y);
+
+    int scale = gtk_widget_get_scale_factor(GTK_WIDGET(viewport->widget));
+    *x = gtk_widget_get_width(GTK_WIDGET(viewport->widget)) * scale;
+    *y = gtk_widget_get_height(GTK_WIDGET(viewport->widget)) * scale;
+}
+
 void bgs_destroy_viewport(struct bgs_viewport_s* viewport){
-    g_object_unref(GTK_GL_AREA(viewport->widget));
+    // g_object_unref(GTK_GL_AREA(viewport->widget));
+    
 }

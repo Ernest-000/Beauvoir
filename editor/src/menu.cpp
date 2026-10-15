@@ -1,5 +1,5 @@
-#include <bergson/menu.h>
-#include <bergson/viewport.h>
+#include <bergson/menu.hpp>
+#include <bergson/viewport.hpp>
 
 #include <gtk/gtk.h>
 
@@ -23,7 +23,7 @@ static void bgsi_open_scene_read(GObject* src, GAsyncResult* result, gpointer us
 }
 
 static void bgsi_on_open_scene(GtkButton* button, gpointer user_data){
-    struct bgs_menu_s* menu = user_data;
+    struct bgs_menu_s* menu = (struct bgs_menu_s*)user_data;
     struct bgs_viewport_s* viewport = (struct bgs_viewport_s*)menu->parent;
 
     GtkFileDialog* diag = gtk_file_dialog_new();
@@ -37,16 +37,16 @@ static void bgsi_on_open_scene(GtkButton* button, gpointer user_data){
 }
 
 static void bgsi_on_save_scene(GtkButton* button, gpointer user_data){
-    struct bgs_menu_s* menu = user_data;
+    struct bgs_menu_s* menu = (struct bgs_menu_s*)user_data;
     struct bgs_viewport_s* viewport = (struct bgs_viewport_s*)menu->parent;
 }
 
 static void bgsi_on_quit(GtkButton* button, gpointer user_data){
-    struct bgs_menu_s* menu = user_data;
+    struct bgs_menu_s* menu = (struct bgs_menu_s*)user_data;
 }
 
 static void bgsi_on_settings(GtkButton* button, gpointer user_data){
-    struct bgs_menu_s* menu = user_data;
+    struct bgs_menu_s* menu = (struct bgs_menu_s*)user_data;
 }
 
 static void* bgsi_menu_add_item(GtkWidget* popover, 
@@ -122,7 +122,7 @@ void* bgs_create_menuitems(struct bgs_menu_s* menu, void* parent){
         GTK_WIDGET(bgsi_menu_add_item(popover, "_Quit", G_CALLBACK(bgsi_on_quit), menu))
     );
 
-    gtk_box_append(GTK_BOX(menu->menu_widget), menu->file_widget);
+    gtk_box_append(GTK_BOX(menu->menu_widget), GTK_WIDGET(menu->file_widget));
 
     // contains edit popover buttons
     // button for : settings
@@ -133,6 +133,5 @@ void* bgs_create_menuitems(struct bgs_menu_s* menu, void* parent){
 }
 
 void bgs_destroy_menuitems(struct bgs_menu_s* menu){
-    g_object_unref(G_MENU(menu->file_widget));
-    g_object_unref(G_MENU(menu->edit_widget));
+    
 }

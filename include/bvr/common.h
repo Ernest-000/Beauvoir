@@ -4,6 +4,10 @@
 
 #include <bvr/config.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef _WIN32
     #include <io.h>
     
@@ -44,6 +48,7 @@
 #define BVR_DOUBLE                  0x140D
 #define BVR_INT64                   0x140E
 #define BVR_UNSIGNED_INT64          0x140F
+#define BVR_STRING                  0x1410
 
 /*   custom   */  
 #define BVR_TEXTURE_2D              0x0DE1
@@ -57,6 +62,34 @@
 /*  object types    */
 #define BVR_MESH                    0x141F
 #define BVR_SHADER                  0x1420
+#define BVR_TEXTURE                 0x1421
+#define BVR_TRANSFORM               0x1422
+
+/**
+ * @brief returns the type if of x.
+ */
+#define BVR_TYPEOF_ID(ctype) (_Generic((ctype*)0, \
+    bool* : BVR_BOOL,                   \
+    int8* : BVR_INT8,                   \
+    uint8* : BVR_UNSIGNED_INT8,         \
+    int16* : BVR_INT16,                 \
+    uint16* : BVR_UNSIGNED_INT16,       \
+    int32* : BVR_INT32,                 \
+    uint32* : BVR_UNSIGNED_INT32,       \
+    int64* : BVR_INT64,                 \
+    uint64* : BVR_UNSIGNED_INT64,       \
+    float* : BVR_FLOAT,                 \
+    double* : BVR_DOUBLE,               \
+    vec2* : BVR_VEC2,                   \
+    vec3* : BVR_VEC3,                   \
+    vec4* : BVR_VEC4,                   \
+    mat4x4* : BVR_MAT4,                 \
+    bvr_string_t* : BVR_STRING,         \
+    bvr_mesh_t* : BVR_MESH,             \
+    bvr_texture_t* : BVR_TEXTURE,       \
+    bvr_shader_t* : BVR_SHADER,         \
+    bvr_transform_t* : BVR_TRANSFORM,   \
+    default : BVR_NULL))
 
 /**
  * @brief check if a type is a correct beauvoir type.
@@ -64,19 +97,19 @@
  * @return returns true if t is a valid beauvoir type
  */
 #define BVR_IS_AVAIL_TYPE(t) bvr_is_avail_type(t)
+
 /**
  * @brief check if a type is an available texture type.
  * @param t the type to check
  * @return returns true if t is a valid texture type
  */
-#define BVR_IS_AVAIL_TEXTURE(t) ( \\
-    t == BVR_TEXTURE_2D || \\
-    t == BVR_TEXTURE_3D || \\
-    t == BVR_TEXTURE_2D_ARRAY || \\
-    t == BVR_TEXTURE_2D_LAYER || \\
-    t == BVR_TEXTURE_2D_COMPOSITE || \\
-    t == BVR_TEXTURE_2D_LAYER_STRUCT || \\
-)
+#define BVR_IS_AVAIL_TEXTURE(t) (       \
+    t == BVR_TEXTURE_2D ||              \
+    t == BVR_TEXTURE_3D ||              \
+    t == BVR_TEXTURE_2D_ARRAY ||        \
+    t == BVR_TEXTURE_2D_LAYER ||        \
+    t == BVR_TEXTURE_2D_COMPOSITE ||    \
+    t == BVR_TEXTURE_2D_LAYER_STRUCT)
 
 /**
  * @brief compare two types and returns the biggest of these two.
@@ -88,13 +121,12 @@
 
 /*          UTILS               */
 /*                              */
-
 typedef char bvr_uuid_t[37];
 
 /**
  * @brief get the size in bytes of a Beauvoir's enum type
  * @param type the type.
- * @return the size, in byte of the target type, 
+ * @return the size, in byte of the target type,
  */
 int bvr_sizeof(const int type);
 
@@ -102,53 +134,53 @@ int bvr_sizeof(const int type);
     Return the name of a type as a string.
     WARNING: VERY UNSAFE, if 'name' isn't big enough it might overwrite the next memory chunk!
 */
-void bvr_nameof(const int type, char* name);
+void bvr_nameof(const int type, char *name);
 
 /**
  * @brief hash a string input and return the corresponding hashed unsigned int.
  * @param string the source char array.
  * @return the corresponding hash.
  */
-uint32 bvr_hash(const char* string);
+uint32 bvr_hash(const char *string);
 
 /*
     decode a base64 string
 */
-uint8* bvr_base64_decode(const char* string, size_t length, size_t* decoded_length);
+uint8 *bvr_base64_decode(const char *string, size_t length, size_t *decoded_length);
 
 BVR_H_FUNC bool bvr_is_avail_type(unsigned int t)
 {
     switch (t)
     {
-        case BVR_NULL:
-        case BVR_BOOL:
-        case BVR_INT8:
-        case BVR_UNSIGNED_INT8:
-        case BVR_INT16:
-        case BVR_UNSIGNED_INT16:
-        case BVR_INT32:
-        case BVR_UNSIGNED_INT32:
-        case BVR_FLOAT:
-        case BVR_VEC2:
-        case BVR_VEC3:
-        case BVR_VEC4:
-        case BVR_MAT3:
-        case BVR_MAT4:
-        case BVR_DOUBLE:
-        case BVR_INT64:
-        case BVR_UNSIGNED_INT64:
-        case BVR_TEXTURE_2D:
-        case BVR_TEXTURE_3D:
-        case BVR_TEXTURE_2D_ARRAY:
-        case BVR_TEXTURE_2D_LAYER:
-        case BVR_TEXTURE_2D_COMPOSITE:
-        case BVR_TEXTURE_2D_LAYER_STRUCT:
-        case BVR_MESH:
-        case BVR_SHADER:
-            return true;
-        default:
-            return false;
-    }
+    case BVR_NULL:
+    case BVR_BOOL:
+    case BVR_INT8:
+    case BVR_UNSIGNED_INT8:
+    case BVR_INT16:
+    case BVR_UNSIGNED_INT16:
+    case BVR_INT32:
+    case BVR_UNSIGNED_INT32:
+    case BVR_FLOAT:
+    case BVR_VEC2:
+    case BVR_VEC3:
+    case BVR_VEC4:
+    case BVR_MAT3:
+    case BVR_MAT4:
+    case BVR_DOUBLE:
+    case BVR_INT64:
+    case BVR_UNSIGNED_INT64:
+    case BVR_TEXTURE_2D:
+    case BVR_TEXTURE_3D:
+    case BVR_TEXTURE_2D_ARRAY:
+    case BVR_TEXTURE_2D_LAYER:
+    case BVR_TEXTURE_2D_COMPOSITE:
+    case BVR_TEXTURE_2D_LAYER_STRUCT:
+    case BVR_MESH:
+    case BVR_SHADER:
+        return true;
+    default:
+        return false;
+}
 }
 
 /**
@@ -200,6 +232,8 @@ void bvri_break(const char* __file, unsigned long long __line);
  */
 #define BVR_PRINTF(message, ...)(void)(bvri_wmessage(bvr_stdout, __LINE__, __FILE__, message, __VA_ARGS__))
 
+#ifndef __cplusplus
+
 /**
  * @brief print an object or a value to the standard output.
  * @param t the object/value to print.
@@ -217,6 +251,32 @@ void bvri_break(const char* __file, unsigned long long __line);
     default : BVR_PRINTF("%s", t)           \
 )
 
+#else
+}
+
+BVR_H_FUNC void bvri_wmessage_inline(const char *t) { BVR_PRINTF("%s", t); }
+BVR_H_FUNC void bvri_wmessage_inline(char t) { BVR_PRINTF("%c", t); }
+BVR_H_FUNC void bvri_wmessage_inline(short t) { BVR_PRINTF("%hd", t); }
+BVR_H_FUNC void bvri_wmessage_inline(int t) { BVR_PRINTF("%d", t); }
+BVR_H_FUNC void bvri_wmessage_inline(long t) { BVR_PRINTF("%ld", t); }
+BVR_H_FUNC void bvri_wmessage_inline(long long t) { BVR_PRINTF("%lld", t); }
+BVR_H_FUNC void bvri_wmessage_inline(unsigned short t) { BVR_PRINTF("%hu", t); }
+BVR_H_FUNC void bvri_wmessage_inline(unsigned int t) { BVR_PRINTF("%u", t); }
+BVR_H_FUNC void bvri_wmessage_inline(unsigned long t) { BVR_PRINTF("%lu", t); }
+BVR_H_FUNC void bvri_wmessage_inline(unsigned long long t) { BVR_PRINTF("%llu", t); }
+BVR_H_FUNC void bvri_wmessage_inline(float t) { BVR_PRINTF("%f", t); }
+BVR_H_FUNC void bvri_wmessage_inline(double t) { BVR_PRINTF("%f", t); }
+BVR_H_FUNC void bvri_wmessage_inline(const void *t) { BVR_PRINTF("%p", t); }
+
+extern "C" {
+/**
+ * @brief print an object or a value to the standard output.
+ * @param t the object/value to print.
+ */
+#define BVR_PRINT(t) bvri_wmessage_inline(t)
+
+#endif
+
 // depreciated
 // #define BVR_PRINTSTR(message)(void)(bvri_wmessage(bvr_stdout, __LINE__, __FILE__, message))
 
@@ -227,7 +287,7 @@ void bvri_break(const char* __file, unsigned long long __line);
      * @param expression the expression tested.
      */
     #define BVR_ASSERT(expression) (void) (                                         \
-        (((expression) == 0) ? bvri_wassert_break(#expression, __FILE__, __LINE__) : 0)  \
+        (((expression) == 0) ? bvri_wassert_break(#expression, __FILE__, __LINE__) : __no_op)  \
     )
 #elif
     /**
@@ -240,8 +300,12 @@ void bvri_break(const char* __file, unsigned long long __line);
     )
 #endif
 
-#define BVR_FILE_EXISTS(path) (void)(((access(path, F_OK) == 0) ? 0 : bvri_wassert(path, __FILE__, __LINE__)))
+#define BVR_FILE_EXISTS(path) (void)(((access(path, F_OK) == 0) ? __no_op : bvri_wassert(path, __FILE__, __LINE__)))
 
 #define BVR_BREAK() (void)(bvri_break(__FILE__, __LINE__))
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

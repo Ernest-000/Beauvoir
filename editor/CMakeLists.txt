@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16.3)
 
-project(bergson LANGUAGES C)
+project(bergson LANGUAGES C CXX)
 
 ##
 # set options
@@ -50,8 +50,8 @@ add_compile_options("${compiler_opt}" ${GTK4_CFLAGS_OTHER})
 ##
 # Use Beauvoir without building it
 ##
-# find_package(beauvoir REQUIRED)
-find_package (Threads REQUIRED)
+#find_package(beauvoir REQUIRED)
+find_package(Threads REQUIRED)
 
 ##
 # Use Beauvoir and recompile it each time
@@ -62,7 +62,7 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/../" "${CMAKE_SOURCE_DIR}/../build/")
 ##
 # Set Sources
 ##
-file(GLOB_RECURSE BGS_SOURCES "${BGS_SOURCE_DIR}/*.c")
+file(GLOB_RECURSE BGS_SOURCES "${BGS_SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE BGS_XML_SOURCES "${BGS_XML_SOURCE_DIR}/*.xml")
 
 add_executable(bergson ${BGS_SOURCES})

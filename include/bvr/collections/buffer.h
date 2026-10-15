@@ -2,6 +2,10 @@
 
 #include <bvr/config.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Allocate _size bytes of memory for a generic buffer.
  */
@@ -42,3 +46,7 @@ struct bvr_buffer_s {
     uint64 size;
     uint32 elemsize;
 };
+
+#ifdef __cplusplus
+}
+#endif

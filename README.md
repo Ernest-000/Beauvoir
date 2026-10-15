@@ -7,6 +7,9 @@ Although the project remains primarily a framework, it is possible to have an in
 
 Beauvoir can handle ```PNG```, ```PSD```, ```TIF``` and ```BMP``` through custom and fast read-only parser but more format still need to be added! It can also load simple ```OBJ``` and ```GLTF```.
 
+### IA Notice
+This project does not contain IA-generated code. However, IA might be used to generate comments and/or documentation.
+
 > It's still in early development, but I'm doing my best to improve it!
 
 ## Building

@@ -1,4 +1,4 @@
-#include <bergson/window.h>
+#include <bergson/window.hpp>
 
 #include <gtk/gtk.h>
 
@@ -8,6 +8,8 @@
 #define BGS_WVIEWPORT "wviewport"
 #define BGS_ULAYOUT "ulayout"
 #define BGS_CLAYOUT "clayout"
+#define BGS_WHIERARCHY "whierarchy"
+#define BGS_WINSPECTOR "winspector"
 #define BGS_WMENU "wmenu"
 
 static inline void bgs_builder_add(GtkBuilder* builder, const char* file){
@@ -59,6 +61,16 @@ static void bgs_create_window_impl(GtkApplication* self, gpointer _window){
         GTK_WIDGET(bgs_create_terminal(&window->components.terminal, window))
     );
 
+    gtk_box_append(
+        GTK_BOX(gtk_builder_get_object(builder, BGS_WHIERARCHY)),
+        GTK_WIDGET(bgs_create_hierarchy(&window->components.hierarchy, &window->components.viewport))
+    );
+
+    gtk_box_append(
+        GTK_BOX(gtk_builder_get_object(builder, BGS_WINSPECTOR)),
+        GTK_WIDGET(bgs_create_inspector(&window->components.inspector, &window->components.viewport))
+    );
+
     g_object_unref(GTK_BUILDER(builder));
     
     gtk_window_present(GTK_WINDOW(window->window));
@@ -100,7 +112,10 @@ int bgs_destroy_window(bgs_window_t* window){
 
     bgs_destroy_viewport(&window->components.viewport);
     bgs_destroy_menuitems(&window->components.menu);
+    bgs_destroy_inspector(&window->components.inspector);
+    bgs_destroy_hierarchy(&window->components.hierarchy);
+    bgs_destory_terminal(&window->components.terminal);
 
-    gtk_window_destroy(GTK_WINDOW(window->window));
-    g_object_unref(G_APPLICATION(window->handle));
+    // gtk_window_destroy(GTK_WINDOW(window->window));
+    // g_object_unref(G_APPLICATION(window->handle));
 }

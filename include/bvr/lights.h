@@ -3,6 +3,10 @@
 #include <bvr/config.h>
 #include <bvr/math.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum bvr_light_type_e {
     BVR_LIGHT_NONE,
     BVR_LIGHT_GLOBAL_ILLUMINATION
@@ -26,3 +30,7 @@ typedef struct bvr_global_illumination_s {
     struct bvr_light_s light;
     uint32 buffer;
 } bvr_global_illumination_t;
+
+#ifdef __cplusplus
+}
+#endif

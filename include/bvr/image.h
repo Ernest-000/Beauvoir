@@ -11,6 +11,11 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 // color modes
 #define BVR_RED     0x0
 #define BVR_GREEN   0x1
@@ -334,3 +339,7 @@ void bvr_composite_prepare(bvr_composite_t* composite);
 void bvr_composite_disable(bvr_composite_t* composite);
 
 void bvr_destroy_composite(bvr_composite_t* composite);
+
+#ifdef __cplusplus
+}
+#endif

@@ -8,6 +8,10 @@
 
 #include <bvr/mesh.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if !defined(BVR_CREATE_LANDSCAPE)
     #define BVR_CREATE_LANDSCAPE(actor, tile_per_column, tile_per_row, width, height, layer) \
         actor->grid.count[0] = (uint16)tile_per_column; \
@@ -73,3 +77,7 @@ BVR_H_FUNC struct bvr_tile_s bvr_landscape_get_tile(bvr_landscape_t* landscape, 
 }
 
 void bvr_destroy_landscape(bvr_landscape_t* landscape);
+
+#ifdef __cplusplus
+}
+#endif

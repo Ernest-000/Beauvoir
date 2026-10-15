@@ -11,12 +11,22 @@
 
 #include <bvr/collections/string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef BVR_MAX_ACTOR_CLASSES
     #define BVR_MAX_ACTOR_CLASSES 128
 #endif
 
 #define BVR_ACTOR_FIELD_DECLARE(parent, ctype, cname) ctype cname;
-#define BVR_ACTOR_FIELD_REGISTRY(parent, ctype, cname) { #cname, offsetof(parent, cname), sizeof(ctype) },
+#define BVR_ACTOR_FIELD_REGISTRY(parent, ctype, cname) {    \
+    .name = #cname,                                         \
+    .offset = offsetof(parent, cname),                      \
+    .size = sizeof(ctype),                                  \
+    .type = BVR_TYPEOF_ID(ctype)                            \
+},
+
 #define BVR_ACTOR_FIELD_IGNORE(parent, ctype, cname) 
 
 #define BVR_ACTOR_METHOD_IMPLEMENT(parent, fname, fclbk) .fname = fclbk,
@@ -40,12 +50,12 @@
         fields(name,                                            \
             BVR_ACTOR_FIELD_DECLARE,                            \
             BVR_ACTOR_METHOD_IGNORE)                            \
-    });                                                          \
+    });                                                         \
     typedef struct name name;                                   \
     extern const struct bvr_actor_vtable_s _##name##able;              
 
 #define BVR_IMPLEMENT_ACTOR(name, fields, serializable)         \
-    static const struct bvr_actor_fields_s _##name##ablef[] = { \
+    static const struct bvr_fields_s _##name##ablef[] = {       \
         BVR_ACTOR_INHERENT_FIELDS(struct bvr_actor_s)           \
         fields(name,                                            \
             BVR_ACTOR_FIELD_REGISTRY,                           \
@@ -59,7 +69,7 @@
         .ftable = _##name##ablef,                               \
         .class_size = sizeof(name),                             \
         .field_count = sizeof(_##name##ablef) /                 \
-            sizeof(struct bvr_actor_fields_s)                   \
+            sizeof(struct bvr_fields_s)                         \
     };                                                          \
     BVR_H_FUNC void __constructor _cst_##name##able(void) {     \
         if(serializable){                                       \
@@ -80,7 +90,7 @@
 // opaque type for vtable
 struct bvr_actor_s;
 
-/* struct bvr_actor_fields_s {
+/* struct bvr_fields_s {
     const char* name;
     uint32 offset;
     uint32 size;
@@ -99,7 +109,7 @@ struct bvr_actor_vtable_s {
     uint32 class_size;
 
     // fields
-    struct bvr_actor_fields_s* ftable;
+    struct bvr_fields_s* ftable;
     uint16 field_count;
 };
 
@@ -126,8 +136,12 @@ struct bvr_actor_s {
 void bvr_actor_serializable(const char* cname, struct bvr_actor_vtable_s* table);
 
 struct bvr_actor_vtable_s* bvr_actor_get_vtable(const char* cname);
-struct bvr_actor_fields_s* bvr_actor_get_field(const char* cname, const char* fname);
+struct bvr_fields_s* bvr_actor_get_field(const char* cname, const char* fname);
 
 void bvr_actor_set_parent(struct bvr_actor_s* actor, struct bvr_actor_s* parent);
 
 #include "actorsdef.h"
+
+#ifdef __cplusplus
+}
+#endif

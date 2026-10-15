@@ -7,7 +7,7 @@ void bvr_static_mesh_destroy(struct bvr_actor_s* mesh);
 void bvr_static_mesh_serialize(struct bvr_actor_s* mesh, bvr_fhandle_t token);
 void bvr_static_mesh_deserialize(struct bvr_actor_s* mesh, bvr_fhandle_t token);
 
-#define BVR_STATIC_MESH(_, FIELD, METHOD)                   \ 
+#define BVR_STATIC_MESH(_, FIELD, METHOD)                   \
     FIELD(_, bvr_mesh_t, mesh)                              \
     FIELD(_, bvr_shader_t, shader)                          \
     FIELD(_, bvr_texture_t, texture)                        \

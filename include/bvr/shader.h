@@ -9,6 +9,10 @@
 #include <string.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Default GLSL's version
 #ifndef BVR_SHADER_VERSION 
     #define BVR_SHADER_VERSION "#version 400\n"
@@ -206,3 +210,7 @@ void bvr_shader_enable(bvr_shader_t* shader);
 void bvr_shader_disable(void);
 
 void bvr_destroy_shader(bvr_shader_t* shader);
+
+#ifdef __cplusplus
+}
+#endif

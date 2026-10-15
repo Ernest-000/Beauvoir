@@ -56,6 +56,8 @@
 
 #define BVRI_ACTOR_FIELD_TYPE_TOKEN "type"
 
+#pragma region deserialize
+
 static int bvri_try_deserialize_unspecified_token(bvr_fhandle_t handle, void* dest, int type){
     if(!BVR_IS_AVAIL_TYPE(type)){
         return BVR_FALSE;
@@ -562,6 +564,8 @@ int bvr_deserialize_shader(bvr_fhandle_t token, bvr_shader_t* shader){
     if(json_object_is_type(json_shader_uniforms, json_type_array)){
         
     }
+
+    return BVR_TRUE;
 }
 
 int bvr_deserialize_camera(bvr_fhandle_t token, bvr_camera_t* camera){
@@ -588,7 +592,7 @@ int bvr_deserialize_camera(bvr_fhandle_t token, bvr_camera_t* camera){
     json_camera_far = json_object_object_get(token.token, BVRI_CAMERA_FAR_TOKEN);
     json_camera_fov = json_object_object_get(token.token, BVRI_CAMERA_FOV_TOKEN);    
 
-    int mode = bvr_deserialize_float(BVR_TOKENIZE_JSON(json_camera_mode));
+    int mode = bvr_deserialize_int32(BVR_TOKENIZE_JSON(json_camera_mode));
     if(mode == BVR_CAMERA_ORTHOGRAPHIC){
         bvr_create_ortho_camera(
             camera,
@@ -758,4 +762,12 @@ int bvr_deserialize_page(bvr_fhandle_t token, bvr_page_t* page){
         // cannot read actor list
         BVR_PRINT("missing actor list!");
     }
+
+    return BVR_TRUE;
 }
+
+#pragma endregion deserialize
+
+#pragma region serialize
+
+#pragma endregion serialize

@@ -1,4 +1,6 @@
-#include <bergson/viewport.h>
+#include <bergson/viewport.hpp>
+#include <bergson/window.hpp>
+#include <bergson/hierarchy.hpp>
 
 #include <gtk/gtk.h>
 
@@ -164,9 +166,9 @@ static gboolean bgs_viewport_tick_impl(GtkWidget* widget, GdkFrameClock* frame_c
         bvr_update_camera(&viewport->page->camera);
     }
 
-    struct bvr_actor_s** p_actor;
+    void* p_actor;
     BVR_TABLE_FOR_EACH(&viewport->page->actors, p_actor){
-        struct bvr_actor_s* actor = *p_actor;
+        struct bvr_actor_s* actor = *((struct bvr_actor_s**)p_actor);
 
         if(actor->active){
             BVR_ACTOR_DRAW((bvr_static_mesh_t*)actor, BVR_DRAWMODE_TRIANGLES);
@@ -188,6 +190,7 @@ void* bgs_create_viewport(struct bgs_viewport_s* viewport, void* parent){
     __viewport = viewport;
     viewport->context = NULL;
     viewport->parent = parent;
+    viewport->selected_actor = NULL;
     viewport->widget = gtk_gl_area_new();
     BVR_ASSERT(viewport->widget);
 
@@ -268,6 +271,10 @@ int bgs_viewport_load_page(struct bgs_viewport_s* viewport, const char* path){
         800.0f, 800.0f, 0.001, 1000.0, 90.0f
     );
 
+    bgs_hierarchy_update_items(
+        &((bgs_window_t*)viewport->parent)->components.hierarchy
+    );
+
     return BVR_TRUE;
 }
 
@@ -278,6 +285,16 @@ void bgs_viewport_get_size(struct bgs_viewport_s* viewport, uint32* x, uint32* y
     int scale = gtk_widget_get_scale_factor(GTK_WIDGET(viewport->widget));
     *x = gtk_widget_get_width(GTK_WIDGET(viewport->widget)) * scale;
     *y = gtk_widget_get_height(GTK_WIDGET(viewport->widget)) * scale;
+}
+
+void bgs_viewport_select_actor(struct bgs_viewport_s* viewport, struct bvr_actor_s* actor){
+    BVR_ASSERT(viewport);
+
+    viewport->selected_actor = actor;
+    bgs_inspector_set_actor(
+        &((bgs_window_t*)viewport->parent)->components.inspector,
+        actor
+    );
 }
 
 void bgs_destroy_viewport(struct bgs_viewport_s* viewport){

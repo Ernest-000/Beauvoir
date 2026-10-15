@@ -2,10 +2,7 @@
 
 #include <bvr/config.h>
 
-#ifndef BVR_GLENTRIY
-#define BVR_GLENTRIY
-
-#ifdef _cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -47,9 +44,6 @@ typedef void* (* GLADloadproc)(const char *name);
     #include <epoxy/gl.h>
 #endif
 #endif
-
-#ifndef BVR_H_GL
-#define BVR_H_GL 
 
 // wrappers
 #if BVR_USE_GLDESK 
@@ -105,10 +99,6 @@ int bvr_load_gles(GLADloadproc proc);
 int bvr_load_glcore(GLADloadproc proc);
 int bvr_load_gl(GLADloadproc proc);
 
-#endif
-
-#ifdef _cplusplus
+#ifdef __cplusplus
 }
-#endif
-
 #endif

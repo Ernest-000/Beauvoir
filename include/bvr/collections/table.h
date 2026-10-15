@@ -2,6 +2,10 @@
 
 #include <bvr/config.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief loop through each element of a table. 
  * Table for loops can be use as such ```struct client_s* client; BVR_TABLE_FOR_EACH(&table, client) {}```.
@@ -78,3 +82,7 @@ void bvr_destroy_table(bvr_table_t* table);
  * @brief iterate a step in a table for each loop.
  */
 void* bvr_table_iterate(struct bvr_table_iterator_s* iterator);
+
+#ifdef __cplusplus
+}
+#endif

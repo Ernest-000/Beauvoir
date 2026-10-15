@@ -5,6 +5,10 @@
 #include <bvr/collections/pool.h>
 #include <bvr/collections/string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if !defined(BVR_INTERPOLATE)
     #define BVR_LINEAR_INTERPOLATE(_start, _end, t) (_start + ((_end - _start) * t))
 #endif
@@ -293,3 +297,7 @@ BVR_H_FUNC void bvr_behaviour_tree_change_state(bvr_behaviour_tree_t* tree, cons
 }
 
 void bvr_destroy_behaviour_tree(bvr_behaviour_tree_t* machine);
+
+#ifdef __cplusplus
+}
+#endif

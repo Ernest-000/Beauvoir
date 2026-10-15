@@ -3,6 +3,10 @@
 #include <bvr/collections/buffer.h>
 #include <bvr/math.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef BVR_COLLIDER_COLLECTION_SIZE
     #define BVR_COLLIDER_COLLECTION_SIZE 128
 #endif
@@ -87,3 +91,7 @@ BVR_H_FUNC int bvr_is_point_inside_triangle(vec2 s, vec2 a, vec2 b, vec2 c){
 BVR_H_FUNC void bvr_invert_direction(struct bvr_body_s* body){
     vec3_scale(body->direction, body->direction, -1.0f);
 }
+
+#ifdef __cplusplus
+}
+#endif

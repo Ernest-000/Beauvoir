@@ -1,4 +1,4 @@
-#include <bergson/window.h>
+#include <bergson/window.hpp>
 
 static bgs_window_t window;
 
@@ -15,12 +15,6 @@ void _destroy(struct bgs_window_s* self){
 }
 
 int main(void){
-
-    // override calls
-    window.events.on_create = _create;
-    window.events.on_tick = _tick;
-    window.events.on_destroy = _destroy;
-    
     bgs_create_window(&window, "Bergon", 1000, 800, 0);
 
     bgs_destroy_window(&window);

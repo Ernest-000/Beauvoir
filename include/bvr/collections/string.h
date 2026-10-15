@@ -4,6 +4,10 @@
 
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef _WIN32
 /**
  * Safer way to copy a raw C string. 
@@ -84,3 +88,7 @@ BVR_H_FUNC const char* bvr_string_get(bvr_string_t* string){
     Free the string.
 */
 void bvr_destroy_string(bvr_string_t* string);
+
+#ifdef __cplusplus
+}
+#endif

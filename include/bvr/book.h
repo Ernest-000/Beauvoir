@@ -9,6 +9,10 @@
 #include <bvr/collections/string.h>
 #include <bvr/collections/memstream.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef BVR_MAX_PAGE
     #define BVR_MAX_PAGE 8
 #endif
@@ -189,3 +193,7 @@ struct bvr_actor_s* bvr_alloc_actor(bvr_page_t* page, const char* name, const ui
 struct bvr_actor_s* bvr_get_actor(bvr_page_t* page, const char* name);
 
 void bvr_destroy_page(bvr_page_t* page);
+
+#ifdef __cplusplus
+}
+#endif

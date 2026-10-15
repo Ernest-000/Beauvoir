@@ -243,7 +243,7 @@ int bvr_create_pagef(bvr_page_t* page, FILE* file){
             file_as_str.length
         );
 
-        BVR_PRINT(file_as_str.string);
+        // BVR_PRINT(file_as_str.string);
 
         // clear buffers
         bvr_destroy_string(&file_as_str);
@@ -314,7 +314,7 @@ struct bvr_actor_s* bvr_alloc_actor(bvr_page_t* page, const char* name, const ui
     // clear up memory
     memset(p_actor, 0, size);
 
-    BVR_TRANSFORM(
+    BVR_CREATE_TRANSFORM(
         p_actor->transform,
         0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
     );

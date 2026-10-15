@@ -4,6 +4,10 @@
 #include <bvr/math.h>
 #include <bvr/graphics.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define BVR_CAMERA_ORTHOGRAPHIC 0x1
 #define BVR_CAMERA_PERSPECTIVE  0x2
 
@@ -113,3 +117,7 @@ void bvr_screen_to_world(bvr_camera_t* camera, vec2 screen, vec3 world);
  * @return (void)
  */
 void bvr_world_to_screen(bvr_camera_t* camera, vec3 world, vec2 screen);
+
+#ifdef __cplusplus
+}
+#endif

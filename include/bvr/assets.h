@@ -3,6 +3,10 @@
 #include <bvr/config.h>
 #include <bvr/common.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef BVR_MAX_ASSET
     #define BVR_MAX_ASSET 32
 #endif
@@ -21,7 +25,7 @@
 
 #define BVR_CREATE_FIELD_PHANDLE(class, _actor, _field)     \
     ((bvr_phandle_t) {                                      \
-        .origin = BVR_PHANDLE_FIELD,                        \ 
+        .origin = BVR_PHANDLE_FIELD,                        \
         .pointer.field.self = (struct bvr_actor_s*)(_actor),\
         .pointer.field.field = *bvr_actor_get_field(        \
             #class, (_field)                                \
@@ -35,11 +39,12 @@
     ((bvr_phandle_t){.origin = BVR_PHANDLE_NONE, .pointer.raw.pointer = NULL, .pointer.raw.size = 0})
 
 // opaque field struct
-struct bvr_actor_fields_s {
+struct bvr_fields_s {
     const char* name;
-    uint32 offset;
+    uint16 offset;
+    uint16 type;
     uint32 size;
-};
+} __struct_align16;
 
 // opaque actor struct
 struct bvr_actor_s;
@@ -71,7 +76,7 @@ typedef struct bvr_phandle_s {
 
         struct {
             struct bvr_actor_s* self;
-            struct bvr_actor_fields_s field;
+            struct bvr_fields_s field;
         } field;
 
         struct {
@@ -98,15 +103,6 @@ bvr_phandle_t bvr_create_literal_phandle(uint8 size, void* value);
 
 void* bvr_phandle_get(bvr_phandle_t* handle);
 
-/**
- * @brief load a page from a json file
- */
-/*int bvr_load_pagef(bvr_page_t* page, FILE* file);
-
-BVR_H_FUNC int bvr_load_page(bvr_page_t* page, const char* path){
-    FILE* f = fopen(path, "rb");
-    int success = bvr_load_pagef(page, f);
-    fclose(f);
-    return success;
-}*/
-
+#ifdef __cplusplus
+}
+#endif

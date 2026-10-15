@@ -2,10 +2,14 @@
 
 #include <bvr/math.h>
 
-
 #include <bvr/mesh.h>
 #include <bvr/shader.h>
 #include <bvr/image.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #define BVR_BLEND_DISABLE   0x000
 #define BVR_BLEND_ENABLE    0x001
@@ -207,3 +211,7 @@ void bvr_destroy_framebuffer(bvr_framebuffer_t* framebuffer);
 void bvr_create_predefs(struct bvr_predefs* predefs);
 
 void bvr_destroy_predefs(struct bvr_predefs* predefs);
+
+#ifdef __cplusplus
+}
+#endif

@@ -6,6 +6,10 @@
 
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef BVR_BUFFER_SIZE
     #define BVR_BUFFER_SIZE 1024
 #endif
@@ -117,3 +121,7 @@ int bvr_mread32_le(uint8** mem);
     Read a single unsigned int from memory.
 */
 uint32 bvr_mreadu32_le(uint8** mem);
+
+#ifdef __cplusplus
+}
+#endif

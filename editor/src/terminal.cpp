@@ -1,4 +1,4 @@
-#include <bergson/terminal.h>
+#include <bergson/terminal.hpp>
 
 #include <gtk/gtk.h>
 

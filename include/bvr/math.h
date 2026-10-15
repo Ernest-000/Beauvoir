@@ -6,6 +6,10 @@
 #include <math.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef float vec2[2];
 typedef float vec3[3];
 typedef float vec4[4];
@@ -131,13 +135,13 @@ struct bvr_bounds_s {
     roll, pitch, yaw sets roll, pitch and yaw rotations values
     scale sets transform's uniform scale
 */
-#define BVR_TRANSFORM(tr, x, y, z, roll, pitch, yaw, scalev) \
-    tr.position[0] = x;                                     \
-    tr.position[1] = y;                                     \
-    tr.position[2] = z;                                     \
-    tr.rotation[0] = roll;                                  \
-    tr.rotation[1] = pitch;                                 \
-    tr.rotation[2] = yaw;                                   \
+#define BVR_CREATE_TRANSFORM(tr, x, y, z, roll, pitch, yaw, scalev) \
+    tr.position[0] = x;                                             \
+    tr.position[1] = y;                                             \
+    tr.position[2] = z;                                             \
+    tr.rotation[0] = roll;                                          \
+    tr.rotation[1] = pitch;                                         \
+    tr.rotation[2] = yaw;                                           \
     BVR_SET_VEC3(tr.scale, scalev)                         
 
 // returns the smallest of a or b
@@ -166,7 +170,7 @@ BVR_H_FUNC int npow2(int x){
  * @param t the interpolation value.
  * @returns the interpolated value between a and b by t.
  */
-BVR_H_FUNC double lerp(double a, double b, double t){
+BVR_H_FUNC double dlerp(double a, double b, double t){
     return a + t * (b - a);
 }
 
@@ -799,3 +803,7 @@ BVR_H_FUNC void euler_quat(vec3 euler, quat quat){
     euler[1] = 2 * atan2f(sinp, cosp) - BVR_PI / 2.0f;
     euler[2] = atan2f(siny, cosy);
 }
+
+#ifdef __cplusplus
+}
+#endif

@@ -4,6 +4,10 @@
 
 #include <bvr/collections/buffer.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if !defined(SEEK_NEXT)
     /* Seek from beginning of file. */
     #define SEEK_SET 0
@@ -45,3 +49,7 @@ BVR_H_FUNC int bvr_memstream_eof(bvr_memstream_t* stream){
 }
 
 void bvr_destroy_memstream(bvr_memstream_t* stream);
+
+#ifdef __cplusplus
+}
+#endif

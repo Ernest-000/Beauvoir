@@ -15,6 +15,10 @@
 #define NK_INCLUDE_DEFAULT_FONT
 #include <nuklear.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct bvr_font_s {
     struct nk_font* font;
     struct nk_font_atlas atlas;
@@ -95,4 +99,8 @@ BVR_H_FUNC int bvr_create_font(bvr_font_t* font, const char* path, const uint16 
 int bvr_register_font(bvr_canvas_t* canvas, bvr_font_t* font);
 void bvr_destroy_font(bvr_font_t* font);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

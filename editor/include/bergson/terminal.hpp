@@ -3,7 +3,7 @@
 #include <bvr/config.h>
 #include <bvr/common.h>
 
-#include <bergson/config.h>
+#include <bergson/config.hpp>
 
 struct bgs_terminal_s {
     void* parent;

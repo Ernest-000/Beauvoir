@@ -161,7 +161,7 @@ struct bvr_actor_vtable_s* bvr_actor_get_vtable(const char* cname){
     
     return NULL;
 }
-struct bvr_actor_fields_s* bvr_actor_get_field(const char* cname, const char* fname){
+struct bvr_fields_s* bvr_actor_get_field(const char* cname, const char* fname){
     BVR_ASSERT(cname);
     BVR_ASSERT(fname);
 

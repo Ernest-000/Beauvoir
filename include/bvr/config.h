@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef BVR_CLASS_NAME
     #define BVR_CLASS_NAME "BEAUVOIR"
 #endif
@@ -95,6 +99,12 @@ typedef float float32;
     #define __constructor __attribute__((constructor))
 #endif
 
+#ifndef __cplusplus
+    #define __no_op 0
+#else
+    #define __no_op (void)0
+#endif
+
 /**
  * Original code from:
  * https://stackoverflow.com/questions/3553296/sizeof-single-struct-member-in-c
@@ -133,3 +143,7 @@ typedef float float32;
 #define __bswap_constant_32(x) \
      ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) |                      \
       (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
+
+#ifdef __cplusplus
+}
+#endif

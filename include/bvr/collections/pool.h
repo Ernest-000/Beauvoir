@@ -2,6 +2,10 @@
 
 #include <bvr/config.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define BVR_POOL_FOR_EACH(pool, value) \
     for(uint64 _i = 0; _i < (pool).capacity; _i++) \
     if(bvr_pool_is_available(&(pool), ((char*)(pool).data) + _i * (pool).chunk_size) && (((value) = (void*)((char*)(pool).data) + _i * (pool).chunk_size, 1)))
@@ -64,3 +68,7 @@ int bvr_pool_is_available(bvr_pool_t* pool, void* chunk);
 void bvr_destroy_pool(bvr_pool_t* pool);
 
 union bvr_pool_block_u* bvr_pool_iterate(struct bvr_pool_iterator_s* iterator);
+
+#ifdef __cplusplus
+}
+#endif

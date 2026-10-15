@@ -11,6 +11,10 @@
 
 #include <bvr/math.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define BVR_VERTEX_GROUP_FLAG_INVISIBLE 0x01
 
 typedef enum bvr_drawmode_e {
@@ -187,7 +191,7 @@ BVR_H_FUNC void bvr_create_3d_line(bvr_mesh_t* mesh, uint32 seg_count, vec3 dir,
     
     vec3_norm(dir, dir);
 
-    float* vertices = malloc(vertex_count * sizeof(float));
+    float* vertices = (float*)malloc(vertex_count * sizeof(float));
     BVR_ASSERT(vertices);
 
     for (size_t i = 0; i < seg_count; i += 3)
@@ -212,4 +216,8 @@ BVR_H_FUNC void bvr_create_3d_line(bvr_mesh_t* mesh, uint32 seg_count, vec3 dir,
     free(vertices);
 }
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

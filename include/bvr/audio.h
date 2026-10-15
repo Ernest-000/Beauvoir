@@ -5,6 +5,10 @@
 #include <bvr/assets.h>
 #include <bvr/collections/string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define BVR_AUDIO_MONO 1
 #define BVR_AUDIO_STEREO 2
 
@@ -182,3 +186,7 @@ uint32 bvr_audio_do_wave_command(struct bvr_audio_command_s* command);
 void bvr_audio_add_wave_command(const struct bvr_audio_command_s* command);
 
 void bvr_destroy_audio_mixer(bvr_audio_mixer_t* stream);
+
+#ifdef __cplusplus
+}
+#endif

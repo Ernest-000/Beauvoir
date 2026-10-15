@@ -2,6 +2,10 @@
 
 #include <bvr/graphics.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define BVR_MOUSE_SIZE 16
 #define BVR_KEYBOARD_SIZE 512
 
@@ -402,3 +406,7 @@ float bvr_get_delta_time(void);
     Wait a specified number of milliseconds before returning.
 */
 void bvr_delay(uint64 ms);
+
+#ifdef __cplusplus
+}
+#endif

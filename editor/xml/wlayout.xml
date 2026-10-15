@@ -3,7 +3,7 @@
   <requires lib="gtk" version="4.0"/>
   <requires lib="gtk" version="4.0"/>
   <requires lib="gtk" version="4.0"/>
-  <object class="GtkFixed" id="wlayout">
+  <object class="GtkBox" id="wlayout">
     <property name="width-request">1000</property>
     <property name="height-request">800</property>
     <property name="hexpand">1</property>
@@ -38,7 +38,7 @@
               <object class="GtkPaned" id="user-layout">
                 <property name="resize-start-child">0</property>
                 <property name="focusable">1</property>
-                <property name="position">800</property>
+                <property name="position">764</property>
                 <property name="position-set">1</property>
                 <property name="wide-handle">1</property>
                 <property name="start-child">
@@ -69,15 +69,12 @@
                       </object>
                     </property>
                     <property name="end-child">
-                      <object class="GtkBox" id="inspecto-container">
+                      <object class="GtkBox" id="whierarchy">
                         <property name="orientation">vertical</property>
                         <child>
-                          <object class="GtkLabel" id="name">
-                            <property name="label" translatable="1">Inspector</property>
+                          <object class="GtkLabel" id="scname">
+                            <property name="label" translatable="1">Scene</property>
                           </object>
-                        </child>
-                        <child>
-                          <placeholder/>
                         </child>
                         <child>
                           <placeholder/>
@@ -87,18 +84,21 @@
                   </object>
                 </property>
                 <property name="end-child">
-                  <object class="GtkBox" id="scene-container">
+                  <object class="GtkBox" id="inspecto-container">
                     <property name="orientation">vertical</property>
                     <child>
-                      <object class="GtkLabel" id="scname">
-                        <property name="label" translatable="1">Scene</property>
+                      <object class="GtkLabel" id="name">
+                        <property name="label" translatable="1">Inspector</property>
                       </object>
                     </child>
                     <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
+                      <object class="GtkBox" id="winspector">
+                        <property name="vexpand">1</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </object>
                     </child>
                   </object>
                 </property>

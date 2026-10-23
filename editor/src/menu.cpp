@@ -1,137 +1,77 @@
+#include <bvr/common.h>
 #include <bergson/menu.hpp>
-#include <bergson/viewport.hpp>
+#include <bergson/window.hpp>
 
-#include <gtk/gtk.h>
+using namespace Bergson;
 
-static void bgsi_open_scene_read(GObject* src, GAsyncResult* result, gpointer user){
-    struct bgs_viewport_s* viewport = (struct bgs_viewport_s*)user;
-    
-    GtkFileDialog* dialog = GTK_FILE_DIALOG(src);
-    GError* error = NULL;
+MenuLayout::MenuLayout(){
+  Gtk::MenuButton* fileButton = NewMenuButton("File", 2);
+  AddPopoverItem(fileButton, "Open", []{
+    // when the user open a new scene                 
+  });
+  AddPopoverItem(fileButton, "Save", []{
+    // when the user save the current scene    
+  });
 
-    GFile* file = gtk_file_dialog_open_finish(dialog, result, &error);
-    if(file != NULL){
-        // success, open scene
-        BVR_PRINT(g_file_get_path(file));
-        //bvr_create_page(viewport->page, g_file_get_path(file));
-        g_object_unref(file);
-    } 
-    else {
-        g_printerr("Error while choosing a file: %s\n", error->message);
-        g_error_free(error);
-    }
+  Gtk::MenuButton* editButton = NewMenuButton("Edit", 0);
+
+  Gtk::MenuButton* winButton = NewMenuButton("Window", 0);
+
+  insert(*fileButton, 0);
+  insert(*editButton, 1);
+  insert(*winButton, 2);
+
+  set_can_focus(false);
 }
 
-static void bgsi_on_open_scene(GtkButton* button, gpointer user_data){
-    struct bgs_menu_s* menu = (struct bgs_menu_s*)user_data;
-    struct bgs_viewport_s* viewport = (struct bgs_viewport_s*)menu->parent;
-
-    GtkFileDialog* diag = gtk_file_dialog_new();
-    gtk_file_dialog_open(
-        diag,
-        GTK_WINDOW(gtk_widget_get_ancestor(GTK_WIDGET(button), GTK_TYPE_WINDOW)),
-        NULL,
-        bgsi_open_scene_read,
-        viewport
-    );
+MenuLayout::~MenuLayout(){
+  
 }
 
-static void bgsi_on_save_scene(GtkButton* button, gpointer user_data){
-    struct bgs_menu_s* menu = (struct bgs_menu_s*)user_data;
-    struct bgs_viewport_s* viewport = (struct bgs_viewport_s*)menu->parent;
+Gtk::MenuButton* MenuLayout::NewMenuButton(const char* string, const int submenuCount){
+  // make sure to have a valid string 
+  BVR_ASSERT(string);
+
+  Gtk::MenuButton* button = Gtk::make_managed<Gtk::MenuButton>();
+  BVR_ASSERT(button);
+  button->set_use_underline(true);
+  button->set_label(string);
+  button->set_can_focus(false);
+
+  Gtk::Popover* popover = Gtk::make_managed<Gtk::Popover>();
+  Gtk::Box* box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, submenuCount);
+  BVR_ASSERT(popover && box);
+
+  popover->set_child(*box);
+  button->set_popover(*popover);
+
+  return button;
 }
 
-static void bgsi_on_quit(GtkButton* button, gpointer user_data){
-    struct bgs_menu_s* menu = (struct bgs_menu_s*)user_data;
-}
+template <typename F>
+void MenuLayout::AddPopoverItem(Gtk::MenuButton *button, const char* string, F&& callback){
+  BVR_ASSERT(button);
+  BVR_ASSERT(string);
 
-static void bgsi_on_settings(GtkButton* button, gpointer user_data){
-    struct bgs_menu_s* menu = (struct bgs_menu_s*)user_data;
-}
+  // instantiate a new button
+  Gtk::Button* nButton = Gtk::make_managed<Gtk::Button>();
+  nButton->set_label(string);
+  nButton->set_use_underline(true);
 
-static void* bgsi_menu_add_item(GtkWidget* popover, 
-    const char* name, GCallback clbk, gpointer user){
+  // check for alignement
+  Gtk::Widget* child = nButton->get_child();
+  if(child){
+    child->set_halign(Gtk::Align::START);
+  }
 
-    BVR_ASSERT(popover);
+  // add the button to the container
+  Gtk::Box* container = (Gtk::Box*)button->get_popover()->get_child();
+  container->append(*nButton);
 
-    GtkWidget* button = gtk_button_new_with_mnemonic(name);
-    BVR_ASSERT(button);
-
-    GtkWidget* child = gtk_button_get_child(GTK_BUTTON(button));
-    if(child){
-        gtk_widget_set_halign(child, GTK_ALIGN_START);
-    }
-
-    g_signal_connect(button, "clicked", clbk, user);
-    g_signal_connect_swapped(button, "clicked", G_CALLBACK(gtk_popover_popdown), popover);
-
-    return button;
-}
-
-static void* bgsi_new_menu_button(const char* name, GtkWidget** popover, GtkWidget** box){
-    BVR_ASSERT(name);
-    BVR_ASSERT(popover);
-    BVR_ASSERT(box);
-    
-    GtkWidget* menu = gtk_menu_button_new();
-    BVR_ASSERT(menu);
-
-    gtk_menu_button_set_label(GTK_MENU_BUTTON(menu), name);
-
-    *popover = gtk_popover_new();
-    *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
-    BVR_ASSERT(*popover && *box);
-
-    gtk_popover_set_child(GTK_POPOVER(*popover), *box);
-    gtk_menu_button_set_popover(GTK_MENU_BUTTON(menu), *popover);
-
-    return menu;
-}
-
-void* bgs_create_menuitems(struct bgs_menu_s* menu, void* parent){
-    BVR_ASSERT(menu);
-    BVR_ASSERT(parent);
-
-    GtkWidget* popover;
-    GtkWidget* box;
-
-    menu->parent = parent;
-
-    // contains all buttons
-    menu->menu_widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-
-    // contains file popover buttons
-    // button for : file open, file save, quit
-    menu->file_widget = bgsi_new_menu_button("_File", &popover, &box);
-    gtk_menu_button_set_use_underline(GTK_MENU_BUTTON(menu->file_widget), TRUE);
-    // add the open submenu
-    gtk_box_append(
-        GTK_BOX(box),
-        GTK_WIDGET(bgsi_menu_add_item(popover, "_Open", G_CALLBACK(bgsi_on_open_scene), menu))
-    );
-
-    // add the save submenu
-    gtk_box_append(
-        GTK_BOX(box),
-        GTK_WIDGET(bgsi_menu_add_item(popover, "_Save", G_CALLBACK(bgsi_on_save_scene), menu))
-    );
-
-    // add the quit submenu
-    gtk_box_append(
-        GTK_BOX(box),
-        GTK_WIDGET(bgsi_menu_add_item(popover, "_Quit", G_CALLBACK(bgsi_on_quit), menu))
-    );
-
-    gtk_box_append(GTK_BOX(menu->menu_widget), GTK_WIDGET(menu->file_widget));
-
-    // contains edit popover buttons
-    // button for : settings
-    menu->edit_widget = NULL;
-    
-    // returns the menu widget
-    return menu->menu_widget;
-}
-
-void bgs_destroy_menuitems(struct bgs_menu_s* menu){
-    
+  // link the callback
+  nButton->signal_clicked().connect(callback);
+  nButton->signal_clicked().connect([button]{
+    button->get_popover()->popdown();                              
+  });
+  
 }

@@ -1,99 +1,72 @@
 #include <bergson/hierarchy.hpp>
+#include <bergson/viewport.hpp>
+#include <bergson/window.hpp>
 
-#include <bvr/actors.h>
+#include <bvr/collections/table.h>
 
-#include <gtk/gtk.h>
+using namespace Bergson;
 
-#define BGS_HIERARCHY_VISIBILITY_INDEX 0
-#define BGS_HIERARCHY_NAME_INDEX 1
+Hierarchy::Hierarchy(){
 
-static void bgs_hierarchy_add_actor(struct bgs_hierarchy_s* hierarchy, struct bvr_actor_s* actor){
-    GtkTreeIter iter;
-    gtk_tree_store_append(GTK_TREE_STORE(hierarchy->store), &iter, NULL);
-    gtk_tree_store_set(
-        GTK_TREE_STORE(hierarchy->store),
-        &iter,
-        BGS_HIERARCHY_VISIBILITY_INDEX, actor->active,
-        BGS_HIERARCHY_NAME_INDEX, actor->name.string,
-        -1
-    );
+  // create the column prototype
+  mTreeStore = Gtk::TreeStore::create(mColumnModel);
+  
+  mTreeView = Gtk::make_managed<Gtk::TreeView>();
+  mTreeView->set_model(mTreeStore);
+  mTreeView->set_activate_on_single_click(true);
+  mTreeView->append_column("Hash", mColumnModel.mHash);
+  mTreeView->append_column("Name", mColumnModel.mName);
+  mTreeView->signal_row_activated().connect(
+    sigc::mem_fun(*this, &Hierarchy::OnRowActivated)
+  );
 
+  set_child(*mTreeView);
+  set_policy(Gtk::PolicyType::AUTOMATIC, Gtk::PolicyType::AUTOMATIC);
 }
 
-static void bgs_hierarchy_clear(struct bgs_hierarchy_s* hierarchy){
-    gtk_tree_store_clear(GTK_TREE_STORE(hierarchy->store));
+Hierarchy::~Hierarchy(){
+  
 }
 
-void bgs_hierarchy_row_activate (GtkTreeView* self, GtkTreePath* path, GtkTreeViewColumn* column, gpointer user_data) {
-    struct bgs_hierarchy_s* hierarchy = (struct bgs_hierarchy_s*)user_data;
-    
-    int* indices = gtk_tree_path_get_indices(path);
-    int index = indices[0];
+void Hierarchy::AddActor(struct bvr_actor_s *actor){
+  BVR_ASSERT(actor);
 
-    int i = 0;
-    void* _actor;
-    BVR_TABLE_FOR_EACH(&hierarchy->viewport->page->actors, _actor){    
-        if(i++ == index){
-            struct bvr_actor_s* actor = *((struct bvr_actor_s**)_actor);
-            bgs_viewport_select_actor(hierarchy->viewport, actor);
-        }    
-    }
+  Gtk::TreeModel::iterator iter = mTreeStore->append();
+  Gtk::TreeRow row = *iter;
+  row[mColumnModel.mHash] = actor->hash;
+  row[mColumnModel.mName] = Glib::ustring(actor->name.string);
 }
 
-void* bgs_create_hierarchy(struct bgs_hierarchy_s* hierarchy, struct bgs_viewport_s* viewport){
-    BVR_ASSERT(hierarchy);
-    BVR_ASSERT(viewport);
+void Hierarchy::SyncWithScene(bvr_page_t *page){
+  BVR_ASSERT(page);
 
-    hierarchy->viewport = viewport;
-    hierarchy->store = gtk_tree_store_new(
-        2, G_TYPE_BOOLEAN, G_TYPE_STRING
-    );
+  mTreeStore->clear();
 
-    hierarchy->treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(hierarchy->store));
-    gtk_tree_view_set_activate_on_single_click(GTK_TREE_VIEW(hierarchy->treeview), TRUE);
-
-    hierarchy->cell = gtk_cell_renderer_toggle_new();
-    hierarchy->visible_column = gtk_tree_view_column_new_with_attributes(
-        "Visible?",  GTK_CELL_RENDERER(hierarchy->cell),
-        "active", BGS_HIERARCHY_VISIBILITY_INDEX,
-        NULL
-    );
-    gtk_tree_view_append_column(GTK_TREE_VIEW(hierarchy->treeview), GTK_TREE_VIEW_COLUMN(hierarchy->visible_column));
-    
-    hierarchy->cell = gtk_cell_renderer_text_new();
-    hierarchy->name_column = gtk_tree_view_column_new_with_attributes(
-        "Name", GTK_CELL_RENDERER(hierarchy->cell),
-        "text", BGS_HIERARCHY_NAME_INDEX,
-        NULL
-    );
-    gtk_tree_view_append_column(GTK_TREE_VIEW(hierarchy->treeview), GTK_TREE_VIEW_COLUMN(hierarchy->name_column));
-
-    g_signal_connect(GTK_TREE_VIEW(hierarchy->treeview), "row-activated", G_CALLBACK(bgs_hierarchy_row_activate), hierarchy);
-
-    bgs_hierarchy_update_items(hierarchy);
-
-    return hierarchy->treeview;
+  void* actorRaw;
+  BVR_TABLE_FOR_EACH(&page->actors, actorRaw){
+    struct bvr_actor_s* actor = *((struct bvr_actor_s**)actorRaw);
+    AddActor(actor);
+  }
 }
 
-void bgs_hierarchy_update_items(struct bgs_hierarchy_s* hierarchy){
-    BVR_ASSERT(hierarchy);
+void Hierarchy::OnRowActivated(const Gtk::TreeModel::Path &path, Gtk::TreeViewColumn *column){
+  Gtk::TreeModel::iterator iter = mTreeStore->get_iter(path);
 
-    BVR_PRINT("update");
+  // when invalid iter
+  if(!iter){
+    return;
+  }
 
-    if(hierarchy->viewport == NULL || hierarchy->viewport->page == NULL){
-        return;
-    }
+  Viewport* viewport = (Viewport*)Window::GetInstance()->GetViewport();
+  Gtk::TreeRow row = *iter;
+  Glib::ustring name = row[mColumnModel.mName];
 
-    bgs_hierarchy_clear(hierarchy);
+  struct bvr_actor_s** actor = (struct bvr_actor_s**) bvr_table_get(
+    &viewport->GetCurrentPage()->actors,
+    name.c_str()
+  );
 
-    void* _actor;
-    BVR_TABLE_FOR_EACH(&hierarchy->viewport->page->actors, _actor){
-        struct bvr_actor_s* actor = *((struct bvr_actor_s**)_actor);
-
-        bgs_hierarchy_add_actor(hierarchy, actor);
-    }
-}
-
-void bgs_destroy_hierarchy(struct bgs_hierarchy_s* hierarchy){
-
+  if(actor){
+    viewport->SetFocusedActor(*actor);  
+  }
 }

@@ -13,6 +13,7 @@
 *.trace
 *.ninja_deps
 *.ninja_log
+*.clangd
 Makefile
 CMakeCache.txt
 compile_commands.json

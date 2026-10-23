@@ -2,37 +2,44 @@
 
 #include <bvr/common.h>
 #include <bvr/config.h>
-
 #include <bvr/collections/string.h>
 
-#include <bergson/config.hpp>
-#include <bergson/viewport.hpp>
-#include <bergson/hierarchy.hpp>
-#include <bergson/inspector.hpp>
-#include <bergson/menu.hpp>
-#include <bergson/terminal.hpp>
+#include <gtkmm.h>
 
-struct bgs_window_s;
+namespace Bergson
+{
+    class Window : public Gtk::Window
+    {
+    private:
+        static inline Window* sInstance;
+        
+        uint16 mWidth;
+        uint16 mHeight;
+        bvr_string_t mTitle;
 
-typedef struct bgs_window_s {
-    void* handle;
-    void* window;
-    void* gl;
+        Glib::RefPtr<Gtk::Builder> mBuilder;
+        Glib::RefPtr<Gtk::CssProvider> mCss;
+        Glib::RefPtr<Gtk::Widget> mLayout;
+        
+        Gtk::FlowBox* mMenuList;
+        Gtk::GLArea* mViewport;
+        Gtk::ScrolledWindow* mHierarchy;
+        Gtk::ScrolledWindow* mInspector;
+        
+        bool BuilderAddNewFile(const char* file);
+    public:
+        static inline Window* GetInstance() noexcept {
+            return sInstance;
+        }
 
-    bvr_string_t name;
-    
-    uint16 width;
-    uint16 height;
-    int flags; 
+        // default constructor (so that the factory could create it)
+        Window() : Window("Bergson", 1000, 800) {}
+        Window(const char* title, const uint16 width, const uint16 height);
+        ~Window();
 
-    struct {
-        struct bgs_viewport_s viewport;
-        struct bgs_menu_s menu;
-        struct bgs_terminal_s terminal;
-        struct bgs_hierarchy_s hierarchy;
-        struct bgs_inspector_s inspector;
-    } components;
-} bgs_window_t;
-
-int bgs_create_window(bgs_window_t* window, const char* name, const uint16 width, const uint16 height, int flags);
-int bgs_destroy_window(bgs_window_t* window);
+        inline Gtk::FlowBox* GetMenuList() const { return mMenuList; }
+        inline Gtk::GLArea* GetViewport() const { return mViewport; }
+        inline Gtk::ScrolledWindow* GetHierarchy() const { return mHierarchy; }
+        inline Gtk::ScrolledWindow* GetInspector() const { return mInspector; }
+    };
+} 

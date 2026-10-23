@@ -43,13 +43,29 @@
                 <property name="wide-handle">1</property>
                 <property name="start-child">
                   <object class="GtkPaned" id="viewport-panel">
-                    <property name="resize-start-child">0</property>
+                    <property name="shrink-end-child">0</property>
+                    <property name="resize-end-child">0</property>
                     <property name="focusable">1</property>
                     <property name="wide-handle">1</property>
                     <property name="start-child">
+                      <object class="GtkBox" id="whierarchy">
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkLabel" id="scname">
+                            <property name="label" translatable="1">Scene</property>
+                          </object>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </object>
+                    </property>
+                    <property name="end-child">
                       <object class="GtkBox" id="viewport-container">
                         <property name="width-request">500</property>
                         <property name="height-request">500</property>
+                        <property name="hexpand">1</property>
+                        <property name="vexpand">1</property>
                         <property name="orientation">vertical</property>
                         <child>
                           <object class="GtkLabel" id="vname">
@@ -60,24 +76,13 @@
                           <object class="GtkBox" id="wviewport">
                             <property name="width-request">400</property>
                             <property name="height-request">400</property>
+                            <property name="hexpand">1</property>
+                            <property name="vexpand">1</property>
                             <property name="orientation">vertical</property>
                             <child>
                               <placeholder/>
                             </child>
                           </object>
-                        </child>
-                      </object>
-                    </property>
-                    <property name="end-child">
-                      <object class="GtkBox" id="whierarchy">
-                        <property name="orientation">vertical</property>
-                        <child>
-                          <object class="GtkLabel" id="scname">
-                            <property name="label" translatable="1">Scene</property>
-                          </object>
-                        </child>
-                        <child>
-                          <placeholder/>
                         </child>
                       </object>
                     </property>

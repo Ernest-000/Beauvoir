@@ -7,39 +7,35 @@
 #include <bvr/book.h>
 #include <bvr/graphics.h>
 
-struct bgs_viewport_s {
-    void* parent;
-    void* context;
-    void* widget;
+#include <gtkmm.h>
 
-    // keyboard controller
-    void* kcontroller;
+namespace Bergson {
+    class Viewport : public Gtk::GLArea {
+    private:
+        // book holder
+        bvr_book_t mBook;
+        
+        struct bvr_actor_s* mFocusedActor;
+        struct bvr_page_s* mPage;
 
-    // motion controller
-    void* mcontroller;
+        bool OnTick(const Glib::RefPtr<Gdk::FrameClock>& clock);
+        void OnCreateContext();
+        void OnDestroyContext();
+        bool OnDraw(const Glib::RefPtr<Gdk::GLContext>& context);
+        void OnResize(int width, int height);
 
-    // scroll controller
-    void* scontroller;
+    public:
+        Viewport();
+        ~Viewport();  
 
-    // game context
-    bvr_book_t book;
-    bvr_page_t* page;
+        void LoadScene(const char* path);
+        void SaveScene(const char* path);
 
-    struct bvr_actor_s* selected_actor;
+        void SetFocusedActor(struct bvr_actor_s* actor);
 
-    struct {
-        vec2 mouse;
-        vec2 motion;
-        float scroll;
-    } inputs;
-};
+        inline float GetWidth() const { return get_width() * get_scale_factor(); }
+        inline float GetHeight() { return get_height() * get_scale_factor(); }
 
-void* bgs_create_viewport(struct bgs_viewport_s* viewport, void* parent);
-
-int bgs_viewport_load_page(struct bgs_viewport_s* viewport, const char* path);
-
-void bgs_viewport_get_size(struct bgs_viewport_s* viewport, uint32* x, uint32* y);
-
-void bgs_viewport_select_actor(struct bgs_viewport_s* viewport, struct bvr_actor_s* actor);
-
-void bgs_destroy_viewport(struct bgs_viewport_s* viewport);
+        inline bvr_page_t* GetCurrentPage() const { return mPage; }
+    };
+}

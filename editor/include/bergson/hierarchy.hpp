@@ -2,22 +2,40 @@
 
 #include <bvr/config.h>
 #include <bvr/common.h>
+#include <bvr/actors.h>
+#include <bvr/book.h>
 
 #include <bergson/config.hpp>
 #include <bergson/viewport.hpp>
 
-struct bgs_hierarchy_s {
-    struct bgs_viewport_s* viewport;
-    void* store;
-    void* cell;
-    void* treeview;
+#include <gtkmm.h>
 
-    void* name_column;
-    void* visible_column;
-};
+namespace Bergson {
+    
+    class HierarchyColumnModel : public Gtk::TreeModelColumnRecord {
+    public :
+        HierarchyColumnModel(){
+            add(mHash);
+            add(mName);
+        }
 
-void* bgs_create_hierarchy(struct bgs_hierarchy_s* hierarchy, struct bgs_viewport_s* viewport);
+        Gtk::TreeModelColumn<int> mHash;
+        Gtk::TreeModelColumn<Glib::ustring> mName;
+    };
+    
+    class Hierarchy : public Gtk::ScrolledWindow {
+    private :
+        HierarchyColumnModel mColumnModel;
+        
+        Gtk::TreeView* mTreeView;
+        Glib::RefPtr<Gtk::TreeStore> mTreeStore;
+        
+        void OnRowActivated(const Gtk::TreeModel::Path& path, Gtk::TreeViewColumn* column);
+    public :
+        Hierarchy();
+        ~Hierarchy();
 
-void bgs_hierarchy_update_items(struct bgs_hierarchy_s* hierarchy);
-
-void bgs_destroy_hierarchy(struct bgs_hierarchy_s* hierarchy);
+        void AddActor(struct bvr_actor_s* actor);
+        void SyncWithScene(bvr_page_t* page);
+    };
+}

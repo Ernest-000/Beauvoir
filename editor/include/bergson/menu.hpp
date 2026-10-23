@@ -1,17 +1,20 @@
-#pragma once
-
 #include <bvr/config.h>
 #include <bvr/common.h>
 
 #include <bergson/config.hpp>
 
-struct bgs_menu_s {
-    void* parent;
+#include <gtkmm.h>
 
-    void* menu_widget;
-    void* file_widget;
-    void* edit_widget;
-};
+namespace Bergson {    
+    class MenuLayout : public Gtk::FlowBox
+    {
+    private:
+        Gtk::MenuButton* NewMenuButton(const char* string, const int submenuCount);
 
-void* bgs_create_menuitems(struct bgs_menu_s* menu, void* parent);
-void bgs_destroy_menuitems(struct bgs_menu_s* menu);
+        template <typename F>
+        void AddPopoverItem(Gtk::MenuButton* button, const char* string, F&& callback);
+    public:
+        MenuLayout();
+        ~MenuLayout();    
+    };
+}   

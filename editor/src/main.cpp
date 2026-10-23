@@ -1,23 +1,9 @@
+#include <bergson/config.hpp>
 #include <bergson/window.hpp>
 
-static bgs_window_t window;
+using namespace Bergson;
 
-void _create(struct bgs_window_s* self){
-    // bvr_create_page(self->components.viewport.page, "scene.json");
-}
-
-void _tick(struct bgs_window_s* self, float delta){
-    
-}
-
-void _destroy(struct bgs_window_s* self){
-    
-}
-
-int main(void){
-    bgs_create_window(&window, "Bergon", 1000, 800, 0);
-
-    bgs_destroy_window(&window);
-
-    return 0;
+int main(int argc, char** argv){
+    auto application = Gtk::Application::create(BGS_CLASS);
+    return application->make_window_and_run<Bergson::Window>(argc, argv);
 }

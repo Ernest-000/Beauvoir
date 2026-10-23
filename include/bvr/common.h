@@ -257,9 +257,9 @@ void bvri_break(const char* __file, unsigned long long __line);
 BVR_H_FUNC void bvri_wmessage_inline(const char *t) { BVR_PRINTF("%s", t); }
 BVR_H_FUNC void bvri_wmessage_inline(char t) { BVR_PRINTF("%c", t); }
 BVR_H_FUNC void bvri_wmessage_inline(short t) { BVR_PRINTF("%hd", t); }
-BVR_H_FUNC void bvri_wmessage_inline(int t) { BVR_PRINTF("%d", t); }
-BVR_H_FUNC void bvri_wmessage_inline(long t) { BVR_PRINTF("%ld", t); }
-BVR_H_FUNC void bvri_wmessage_inline(long long t) { BVR_PRINTF("%lld", t); }
+BVR_H_FUNC void bvri_wmessage_inline(int t) { BVR_PRINTF("%i", t); }
+BVR_H_FUNC void bvri_wmessage_inline(long t) { BVR_PRINTF("%i", t); }
+BVR_H_FUNC void bvri_wmessage_inline(long long t) { BVR_PRINTF("%i", t); }
 BVR_H_FUNC void bvri_wmessage_inline(unsigned short t) { BVR_PRINTF("%hu", t); }
 BVR_H_FUNC void bvri_wmessage_inline(unsigned int t) { BVR_PRINTF("%u", t); }
 BVR_H_FUNC void bvri_wmessage_inline(unsigned long t) { BVR_PRINTF("%lu", t); }

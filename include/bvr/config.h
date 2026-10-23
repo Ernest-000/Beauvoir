@@ -72,6 +72,12 @@ typedef float float32;
 #define BVR_UINT64_MIN (0x0000000000000000ULL)
 #define BVR_UINT64_MAX (0xFFFFFFFFFFFFFFFFULL)
 
+#define BVR_FLOAT_MIN (1.175494351e-38F)
+#define BVR_FLOAT_MAX (3.402823466e+38F)
+
+#define BVR_DOUBLE_MIN (2.2250738585072014e-308)
+#define BVR_DOUBLE_MAX (1.7976931348623158e+308)
+
 /**
  * define compiler specific macros  
 */ 

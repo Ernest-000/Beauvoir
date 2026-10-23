@@ -6,24 +6,47 @@
 
 #include <bergson/config.hpp>
 
-struct bgs_inspector_s {
-    void* parent;
+#include <gtkmm.h>
 
-    void* widget;
-    void* store;
+namespace Bergson {
+    using WidgetFactoryFunc = Gtk::Widget* (*)(void*);
+    
+    class Inspector : public Gtk::ScrolledWindow {
+    private:
+        Gtk::ListBox* mFieldList;
+        struct bvr_actor_s* mSelectedActor;
 
-    struct bvr_actor_s* actor;
-};
+        /**
+         * @brief Create a new variable field to the inspector 
+         */
+        void AddField(struct bvr_fields_s* field);
 
-struct bgs_inspector_field_s {
-    const char* name;
-    uint32 type;
+        /**
+         * @brief Create a new widget for the T typed field.
+         */
+        template<class T>
+        static Gtk::Widget* CreateWidget(void* value);
 
-    bvr_phandle_t handle;
-};
+        /**
+         * @brief Create a new widget for a string typed field.
+         */
+        static Gtk::Widget* CreateStringWidget(void* string);
 
-void* bgs_create_inspector(struct bgs_inspector_s* inspector, void* parent);
+        /**
+         * @brief Create a new widget for a vector typed field.
+         */
+        template<class T, int N>
+        static Gtk::Widget* CreateVectorWidget(void* vec);
+    
+        /**
+         * @brief Retrieve the correct widget function to create
+         * a new field.
+         */
+        static WidgetFactoryFunc GetWidgetFactory(int type);
+    public:
+        Inspector();
+        ~Inspector();
 
-void bgs_inspector_set_actor(struct bgs_inspector_s* inspector, struct bvr_actor_s* actor);
-
-void bgs_destroy_inspector(struct bgs_inspector_s* inspector);
+        void SetSelectedActor(struct bvr_actor_s* actor);
+    };
+}

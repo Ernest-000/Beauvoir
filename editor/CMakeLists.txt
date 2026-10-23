@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.16.3)
 
 project(bergson LANGUAGES C CXX)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ##
 # set options
@@ -38,14 +39,15 @@ message(STATUS "BGS_BIN_DIR = ${BGS_BIN_DIR}")
 find_package(PkgConfig REQUIRED)
 
 ##
-# GTK4
+# GTK4MM
 ##
-pkg_check_modules(GTK4 REQUIRED IMPORTED_TARGET gtk4)
+pkg_check_modules(GTKMM REQUIRED gtkmm-4.0)
 
-include_directories(${GTK4_INCLUDE_DIRS})
-link_directories(${GTK4_LIBRARY_DIRS})
+include_directories(${GTKMM_INCLUDE_DIRS})
+include_directories(${GTKMM_INCLUDE_DIRS}/gtkmm4.0/)
+link_directories(${GTKMM_LIBRARY_DIRS})
 
-add_compile_options("${compiler_opt}" ${GTK4_CFLAGS_OTHER})
+add_compile_options(${GTKMM_CFLAGS_OTHER})
 
 ##
 # Use Beauvoir without building it
@@ -66,7 +68,8 @@ file(GLOB_RECURSE BGS_SOURCES "${BGS_SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE BGS_XML_SOURCES "${BGS_XML_SOURCE_DIR}/*.xml")
 
 add_executable(bergson ${BGS_SOURCES})
-
+target_compile_features(bergson PRIVATE cxx_std_17)
+ 
 ##
 # Enable or not the debug flag
 ##
@@ -85,7 +88,7 @@ endif()
 # target lib
 ##
 target_link_libraries(bergson PRIVATE 
-    ${GTK4_LIBRARIES} 
+    ${GTKMM_LIBRARIES} 
     ${BVR_THIRD_PARTY_MODULES}
     Threads::Threads
     beauvoir

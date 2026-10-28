@@ -74,6 +74,8 @@ bvr_book_t* bvr_create_book_attributes(bvr_book_t* book, struct bvr_book_attribu
             attributes.window_flags
         ));
 
+        BVR_PRINTF("audio info rate %i channls %i", attributes.sample_rate, attributes.channels);
+
         BVR_ASSERT(bvr_create_audio_mixer(
             &book->mixer,
             attributes.sample_rate,

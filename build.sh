@@ -9,7 +9,7 @@ set -euo pipefail
 #   --skip-nk: skip nuklear header generation
 
 # CMake building system
-BVR_GENERATOR="Unix Makefiles"
+BVR_GENERATOR="MinGW Makefiles"
 BVR_CC="gcc"
 BVR_CXX="g++"
 BVR_USE_CCACHE=false
@@ -202,6 +202,13 @@ bvr_build_module() {
         for ext in "*.so" "*.a" "*.dylib"; do
             find "${MOD_TMP}/lib" -maxdepth 1 -name "$ext" \
                 -exec cp -f {} "${BVR_ROOT_DIR}/lib/" \;
+        done
+    fi
+
+    if [ -d "${MOD_TMP}/bin" ]; then
+        for ext in "*.so" "*.a" "*.dll"; do
+            find "${MOD_TMP}/bin" -maxdepth 1 -name "$ext" \
+                -exec cp -f {} "${BVR_ROOT_DIR}/bin/" \;
         done
     fi
 

@@ -8,7 +8,16 @@
 #include <stdlib.h>
 #include <memory.h>
 
-#ifdef _WIN32
+#ifdef _WIN32    
+    #define INITGUID
+    #include <initguid.h>
+    // #include <wrl.h>
+    #include <audioclient.h>
+
+    #include <mmdeviceapi.h>
+    #include <mmreg.h>
+
+    #include <windows.h>
 #elif __unix__
     #include <spa/param/audio/format-utils.h>
     #include <pipewire/pipewire.h>
@@ -21,7 +30,7 @@
 
 // audio implementations promises
 void bvri_create_mixer_impl(bvr_audio_mixer_t* mixer);
-void bvri_write_audio_stream_impl(void* userdata);
+void* bvri_write_audio_stream_impl(void* userdata);
 void bvri_destroy_mixer_impl(bvr_audio_mixer_t* mixer);
 
 // callbacks
@@ -1154,7 +1163,11 @@ static void bvri_quantize_audio(bvr_audio_t* audio, const bvr_audio_mixer_t* mix
             }
             else if(audio->format == BVR_AUDIO_FORMAT_INT32){
                 int32 r = *((int32*)src) + 0xff; // round the number
-                if(r > BVR_INT32_MAX) r = BVR_INT32_MAX; // avoid overflow
+                
+                if(r > BVR_INT32_MAX)  {
+                    r = BVR_INT32_MAX; // avoid overflow
+                }
+
                 dest[i] = (short)(r >> 16);
             }
             else {
@@ -1224,6 +1237,242 @@ int bvr_create_audiof(bvr_audio_t* audio, FILE* file, const char* name){
 
 #ifdef _WIN32
 #warning plz do win32 audio pipeline
+
+// a lot of implementations comes from:
+// https://github.com/andrewrk/libsoundio/blob/master/src/wasapi.c
+
+#define BVRI_AUDIO_CLIENT_BUFFER_DURATION 10000000
+
+static CRITICAL_SECTION __wasapi_lock;
+
+static const CLSID __CLSID_MMDeviceEnumerator = {
+    0xbcde0395, 0xe52f, 0x467c, {0x8e, 0x3d, 0xc4, 0x57, 0x92, 0x91, 0x69, 0x2e}
+};
+
+static const IID __IID_IMMDeviceEnumerator = {
+    0xa95664d2, 0x9614, 0x4f35, {0xa7, 0x46, 0xde, 0x8d, 0xb6, 0x36, 0x17, 0xe6}
+};
+
+static const IID __IID_IAudioClient = {
+    0x1cb9ad4c, 0xdbfa, 0x4c32, {0xb1, 0x78, 0xc2, 0xf5, 0x68, 0xa7, 0x03, 0xb2}
+};
+
+static const IID __IID_IAudioRenderClient = {
+    0xf294acfc, 0x3146, 0x4483, {0xa7, 0xbf, 0xad, 0xdc, 0xa7, 0xc2, 0x60, 0xe2}
+};
+
+
+void bvri_create_mixer_impl(bvr_audio_mixer_t* mixer){
+    HRESULT hr;
+
+    // constant for the time unit per second
+    // this is used as the buffer time
+    // window sucks
+    REFERENCE_TIME hnsRequestedDuration = 0;
+
+    IMMDeviceEnumerator* pEnumerator = NULL;
+    IMMDevice* pDevice = NULL;
+    struct IAudioClient* pClient = NULL;
+    struct IAudioRenderClient* pRenderClient = NULL;
+    WAVEFORMATEX* pwfx = NULL;
+    HANDLE hThread;
+    HANDLE hEvent;
+
+    CoInitializeEx(NULL, COINIT_MULTITHREADED);
+
+    hr = CoCreateInstance(
+        &__CLSID_MMDeviceEnumerator, NULL,
+        CLSCTX_ALL, &__IID_IMMDeviceEnumerator,
+        (void**)&pEnumerator
+    );
+    BVR_ASSERT(SUCCEEDED(hr));
+
+    hr = pEnumerator->lpVtbl->GetDefaultAudioEndpoint(
+        pEnumerator, eRender, eConsole, &pDevice
+    );
+    BVR_ASSERT(SUCCEEDED(hr));
+
+    hr = pDevice->lpVtbl->Activate(
+        pDevice, &__IID_IAudioClient, CLSCTX_ALL,
+        NULL, (void**)&pClient
+    );
+    BVR_ASSERT(SUCCEEDED(hr));
+
+    hr = pClient->lpVtbl->GetMixFormat(pClient, &pwfx);
+    BVR_ASSERT(SUCCEEDED(hr));
+
+    // overwrite the wave format
+    pwfx->wFormatTag = WAVE_FORMAT_PCM;
+    if(mixer->format == BVR_AUDIO_FORMAT_FLOAT){
+        pwfx->wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
+    }
+
+    pwfx->wBitsPerSample = mixer->sample_depth * 8;
+    pwfx->nChannels = mixer->channels;
+    pwfx->nSamplesPerSec = mixer->sample_rate;
+    pwfx->nBlockAlign = mixer->channels * pwfx->wBitsPerSample / 8;
+    pwfx->nAvgBytesPerSec = mixer->sample_rate * pwfx->nBlockAlign;
+    pwfx->cbSize = 0;
+
+    // initialize the client
+    hr = pClient->lpVtbl->Initialize(
+        pClient, AUDCLNT_SHAREMODE_SHARED, 
+        AUDCLNT_STREAMFLAGS_EVENTCALLBACK |
+        AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM |
+        AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
+        hnsRequestedDuration, 0,
+        pwfx, NULL
+    );
+
+    BVR_ASSERT(SUCCEEDED(hr));
+
+    hr = pClient->lpVtbl->GetService(
+        pClient, &__IID_IAudioRenderClient,
+        (void**)&pRenderClient
+    );
+    BVR_ASSERT(SUCCEEDED(hr));
+
+    hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+    BVR_ASSERT(hEvent);
+
+    hr = pClient->lpVtbl->SetEventHandle(pClient, hEvent);
+    BVR_ASSERT(SUCCEEDED(hr));
+
+    mixer->client.win.audio_client = pClient;
+    mixer->client.win.device = pDevice;
+    mixer->client.win.render_client = pRenderClient;
+    mixer->client.win.is_active = 1;
+
+    InitializeCriticalSection(&__wasapi_lock);
+
+    // start thread after to avoid race conditions
+    hThread = CreateThread(
+        NULL, 0, (LPTHREAD_START_ROUTINE)bvri_write_audio_stream_impl, 
+        mixer, 0, NULL
+    );
+
+    SetThreadPriority(hThread, THREAD_PRIORITY_TIME_CRITICAL);
+
+    mixer->client.win.event = hEvent;
+    mixer->client.win.thread = hThread;
+
+    // start the client
+    hr = pClient->lpVtbl->Start(pClient);
+    BVR_ASSERT(SUCCEEDED(hr));
+}
+
+// ces fdp de microsoft la, c'est nul l'architecture de wasapi :(
+// https://learn.microsoft.com/fr-fr/windows/win32/coreaudio/rendering-a-stream
+void* bvri_write_audio_stream_impl(void* userdata){
+    bvr_audio_mixer_t* mixer = (bvr_audio_mixer_t*)userdata;
+
+    HRESULT hr;
+    IMMDevice* pDevice = (IMMDevice*)mixer->client.win.device;
+    struct IAudioClient* pClient = (struct IAudioClient*)mixer->client.win.audio_client;
+    struct IAudioRenderClient* pRenderClient = (struct IAudioRenderClient*)mixer->client.win.render_client;
+    HANDLE hEvent = (HANDLE)mixer->client.win.event;
+
+    BVR_ASSERT(pDevice && pClient && pRenderClient);
+
+    uint8* audio_buffer = NULL;
+
+    uint32 avail_frame_count = 0;
+    uint32 buffer_frame_count = 0;
+    uint32 padding_frame_count = 0;
+    uint32 done = 0;
+
+    const uint32 buffer_capacity = BVR_AUDIO_FRAME_COUNT / mixer->channels;
+    const uint32 block_sz = MAX(MIN( mixer->sample_rate / 100, buffer_capacity), 1);
+    const uint32 rblock = block_sz * mixer->sample_depth * mixer->channels;
+
+    pClient->lpVtbl->GetBufferSize(pClient, &buffer_frame_count);
+
+    while (mixer->client.win.is_active)
+    {
+        // wait for the audio engine 
+        DWORD wait = WaitForSingleObject(hEvent, 2000);
+
+        if(wait != WAIT_OBJECT_0){
+            // not sync yet, we need to wait
+            continue;
+        }
+
+        hr = pClient->lpVtbl->GetCurrentPadding(pClient, &padding_frame_count);
+        if(!SUCCEEDED(hr)){
+            break;
+        }
+        
+        avail_frame_count = buffer_frame_count - padding_frame_count;
+
+        while(avail_frame_count >= block_sz){
+            // here, we can write audio buffer
+            // find the max available buffer length
+            mixer->master.requested_length = block_sz;
+
+            // get the available buffer
+            hr = pRenderClient->lpVtbl->GetBuffer(pRenderClient, block_sz, &audio_buffer);
+            BVR_ASSERT(SUCCEEDED(hr));
+            
+            memset(mixer->master.pcm, 0, rblock);
+            done = 0;
+
+            // write buffer
+            {
+                EnterCriticalSection(&__wasapi_lock);
+
+                for (size_t i = 0; i < mixer->command_count; i++)
+                {
+                    bvr_audio_do_wave_command(&mixer->commands[i]);
+
+                    if(mixer->commands[i].sample_count > 0){
+                        mixer->commands[done++] = mixer->commands[i];
+                    }
+                }
+            
+                mixer->command_count = done;
+
+                LeaveCriticalSection(&__wasapi_lock);
+            }
+
+            // copy the pcm to wasapi
+            memcpy(audio_buffer, mixer->master.pcm, rblock);
+
+            // release the buffer
+            hr = pRenderClient->lpVtbl->ReleaseBuffer(pRenderClient, block_sz, 0);
+            BVR_ASSERT(SUCCEEDED(hr));
+
+            avail_frame_count -= block_sz;
+        }
+    }
+    
+}
+
+void bvri_destroy_mixer_impl(bvr_audio_mixer_t* mixer){
+    HRESULT hr;
+
+    IMMDevice* pDevice = (IMMDevice*)mixer->client.win.device;
+    struct IAudioClient* pClient = (struct IAudioClient*)mixer->client.win.audio_client;
+    struct IAudioRenderClient* pRenderClient = (struct IAudioRenderClient*)mixer->client.win.render_client;
+    HANDLE hThread = (HANDLE)mixer->client.win.thread;    
+    HANDLE hEvent = (HANDLE)mixer->client.win.event;
+
+    // disable the loop
+    mixer->client.win.is_active = 0;
+
+    SetEvent(hEvent);
+    WaitForSingleObject(hThread, INFINITE);
+    CloseHandle(hThread);
+    CloseHandle(hEvent);
+    DeleteCriticalSection(&__wasapi_lock);
+    
+    hr = pClient->lpVtbl->Stop(pClient);
+    BVR_ASSERT(SUCCEEDED(hr));
+
+    pDevice->lpVtbl->Release(pDevice);
+    pClient->lpVtbl->Release(pClient);
+    pRenderClient->lpVtbl->Release(pRenderClient);
+}
+
 #elif __unix__
 
 static struct pw_stream_events __pipewire_global_events;
@@ -1308,7 +1557,7 @@ void bvri_create_mixer_impl(bvr_audio_mixer_t* mixer){
     pw_thread_loop_start(mixer->client.pipewire.loop);
 }
 
-void bvri_write_audio_stream_impl(void* userdata){
+void* bvri_write_audio_stream_impl(void* userdata){
     bvr_audio_mixer_t* mixer = (bvr_audio_mixer_t*)userdata;
 
     struct pw_buffer* pw_buffer;
@@ -1521,7 +1770,7 @@ uint32 bvr_audio_do_wave_command(struct bvr_audio_command_s* command){
     command->wave += wave_samples;
     command->sample_count -= wave_samples;
 
-    return wave_samples;
+    return command->sample_count;
 }
 
 void bvr_audio_add_wave_command(const struct bvr_audio_command_s* command){

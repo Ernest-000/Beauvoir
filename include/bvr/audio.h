@@ -59,7 +59,14 @@ enum bvr_audio_format_e {
 
 union bvr_audio_client_u {
     struct {
-        void* context;
+        void* device;
+        void* audio_client;
+        void* render_client;
+        
+        void* event;
+        void* thread;
+        
+        volatile uint8 is_active;
     } win;
 
     struct {
@@ -92,7 +99,7 @@ typedef struct bvr_audio_mixer_s {
 
     // physical device id
     enum bvr_audio_device_e device_id;
-
+ 
     // number of output channels
     uint8 channels;
 

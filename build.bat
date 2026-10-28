@@ -42,8 +42,6 @@ shift
 goto parse_args
 :args_done
 
-:: =========================== MAIN ===========================
-
 if "%BVR_SKIP_SYNC%"=="false" (
     call :bvr_git_sync
     if errorlevel 1 echo Submodules sync had errors
@@ -89,8 +87,6 @@ call :bvr_post_build
 
 endlocal
 exit /b 0
-
-:: ======================= FUNCTIONS =======================
 
 :: clear all cmake and user's cache
 :bvr_clear

@@ -308,7 +308,9 @@ static int bvri_create_window_impl(bvr_window_t* window, const uint16 width, con
     window->context = wglCreateContext(window->handle.win32.hdc);
     BVR_ASSERT(wglMakeCurrent(window->handle.win32.hdc, window->context));
 
-    ShowWindow(window->handle.win32.wnd, sMode);
+    if(!BVR_HAS_FLAG(flags, BVR_WINDOW_HIDDEN)){
+        ShowWindow(window->handle.win32.wnd, sMode);
+    }
 
     return 1;
 }
@@ -364,7 +366,7 @@ static void bvri_window_destroy_impl(bvr_window_t* window){
 
 // load windows's virtual scancode layout to bind it
 // to beauvoir's layout :]
-static void bvri_create_keycode_layout(){
+static void bvri_create_keymap_layout(){
 
     // NULL key
     __keycodes[0] = BVR_KEY_UNKNOWN;
@@ -495,6 +497,11 @@ LRESULT CALLBACK WndProc(HWND wnd, UINT msg, WPARAM wParam, LPARAM lParam){
         return DefWindowProc(wnd, msg, wParam, lParam);
     }
 
+    // reset state
+    __window->inputs.scroll = 0.0f;
+    memset(__window->inputs.keys, 0, BVR_KEYBOARD_SIZE * sizeof(char));
+    memset(__window->inputs.buttons, 0, BVR_MOUSE_SIZE * sizeof(char));
+
     switch (msg)
     {
     // window activate message
@@ -585,15 +592,15 @@ LRESULT CALLBACK WndProc(HWND wnd, UINT msg, WPARAM wParam, LPARAM lParam){
             int y = GET_Y_LPARAM(lParam);
 
             // save previous mouse position
-            __window->inputs.prev_mouse[0] = __window->inputs.mouse[0];
-            __window->inputs.prev_mouse[1] = __window->inputs.mouse[1];
+            __window->inputs.prev_mouse[0] = __window->inputs.mouse_position[0];
+            __window->inputs.prev_mouse[1] = __window->inputs.mouse_position[1];
 
-            __window->inputs.mouse[0] = x;
-            __window->inputs.mouse[1] = y;
-            __window->inputs.motion[0] = __window->inputs.prev_mouse[0] -  __window->inputs.mouse[0];
-            __window->inputs.motion[0] = __window->inputs.prev_mouse[1] -  __window->inputs.mouse[1];
-            __window->inputs.relative_motion[0] = __window->inputs.motion[0];
-            __window->inputs.relative_motion[1] = __window->inputs.motion[1];
+            __window->inputs.mouse_position[0] = x;
+            __window->inputs.mouse_position[1] = y;
+            __window->inputs.mouse_motion[0] = __window->inputs.prev_mouse[0] -  __window->inputs.mouse_position[0];
+            __window->inputs.mouse_motion[0] = __window->inputs.prev_mouse[1] -  __window->inputs.mouse_position[1];
+            __window->inputs.relative_motion[0] = __window->inputs.mouse_motion[0];
+            __window->inputs.relative_motion[1] = __window->inputs.mouse_motion[1];
             __window->events |= BVR_EVENT_MOTION;
         }
         break;
@@ -670,7 +677,7 @@ static void* bvri_load_proc(const char* name){
 /*
 https://github.com/ThomasHabets/monotonic_clock/blob/master/src/monotonic_win32.c
 */
-static uint64 bvri_get_tick_impl(){
+static uint64 bvri_get_ns_tick_impl(){
     static uint64 scale_factor;
 
 	LARGE_INTEGER count;
@@ -685,8 +692,8 @@ static uint64 bvri_get_tick_impl(){
 	return count.QuadPart / scale_factor;
 }
 
-static void bvri_thread_wait(uint64 ns){
-    BVR_ASSERT(__window->handle.win32.wnd)
+static void bvri_thread_wait_ns(uint64 ns){
+    BVR_ASSERT(__window->handle.win32.wnd);
     
     DWORD delay = (DWORD)(ns / 1000000UL);
     HANDLE event = __window->handle.win32.wnd;

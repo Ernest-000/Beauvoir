@@ -13,9 +13,10 @@ extern "C" {
  * Safer way to copy a raw C string. 
  * This macro will add a null terminated char at the end of the string
  */
-#define BVR_STRCPY(_dst, _src, _length) { \
-    *_dst = '\0'; \
-    strncat(_dst, _src, _length + 1); \
+#define BVR_STRCPY(_dst, _src, _length) {   \
+    if(_dst != NULL && _src != NULL){       \
+    *_dst = '\0';                           \
+    strncat(_dst, _src, _length + 1);}      \
 }
 #else
 /**
@@ -23,8 +24,9 @@ extern "C" {
  * This macro will add a null terminated char at the end of the string
  */
 #define BVR_STRCPY(_dst, _src, _length) { \
+    if(_dst != NULL && _src != NULL){       \
     *_dst = '\0'; \
-    strlcat(_dst, _src, _length + 1); \
+    strlcat(_dst, _src, _length + 1);} \
 }
 #endif
 

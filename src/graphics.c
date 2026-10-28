@@ -31,7 +31,7 @@ void bvr_pipeline_state_enable(struct bvr_pipeline_state_s* const state){
     // force ogl to use the first vertex for
     // geometry shaders (only for ogl desktop i guess)
 #ifdef BVR_USE_GLDESK
-    glProvokingVertex(GL_FIRST_VERTEX_CONVENTION);
+    // glProvokingVertex(GL_FIRST_VERTEX_CONVENTION);
 #endif
 }
 
